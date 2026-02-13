@@ -31,19 +31,19 @@ const AdminDashboard = () => {
   const [approvals, setApprovals] = useState([
     {
       id: "a1",
-      title: "Educator Verification: John D.",
+      title: "Educator Verification: yasindu",
       subtitle: "Submitted certificates + portfolio links",
       type: "educator",
     },
     {
       id: "a2",
-      title: "Mentor Verification: Sarah P.",
+      title: "Mentor Verification: gunasekara",
       subtitle: "5+ years exp • references attached",
       type: "mentor",
     },
     {
       id: "a3",
-      title: "Mentor Verification: Sarah P.",
+      title: "Mentor Verification: ramrasu",
       subtitle: "5+ years exp • references attached",
       type: "mentor",
     },
