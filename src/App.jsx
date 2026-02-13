@@ -82,6 +82,8 @@ const App = () => {
             <Route path="reviewers" element={<AdminReviewers />} />
             <Route path="verify-educators" element={<AdminVerifyEducators />} />
             <Route path="review-dashboard" element={<AdminReviewDashboard />} />
+            <Route path="queue" element={<ReviewerQueue />} />
+            <Route path="queue/:id" element={<ReviewerCourseReview />} />
           </Route>
         </Route>
 
