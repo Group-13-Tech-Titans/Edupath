@@ -1,91 +1,133 @@
-import React from "react";
-import { Link, NavLink, Outlet } from "react-router-dom";
+import React, { useMemo, useState } from "react";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useApp } from "../../context/AppProvider.jsx";
 
 const AdminLayout = () => {
   const { currentUser, logout } = useApp();
+  const [open, setOpen] = useState(false);
+  const location = useLocation();
+
+  // close mobile menu when route changes
+  useMemo(() => {
+    setOpen(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   const navLinkClass = ({ isActive }) =>
-    `px-4 py-2 rounded-full text-sm font-medium transition ${
+    `px-4 py-2 rounded-xl text-sm font-medium transition whitespace-nowrap ${
       isActive
-        ? "bg-primary text-white shadow"
+        ? "bg-primary/60 text-white shadow"
         : "text-text-dark/70 hover:bg-black/5"
     }`;
 
+  const navItems = [
+    { to: "/admin", label: "Home", end: true },
+    { to: "/admin/verify-educators", label: "Verify Educators" },
+    { to: "/admin/approvals", label: "Reviews Course" },
+    { to: "/admin/reviewers", label: "Create Reviewer" },
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-100 via-teal-100 to-emerald-50">
-      {/* Top bar */}
       <header className="sticky top-0 z-30 border-b border-black/5 bg-white/60 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <Link to="/admin" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/15 text-primary shadow-sm">
-              🎓
-            </div>
-            <div className="leading-tight">
-              <p className="text-sm font-semibold text-text-dark">EduPath</p>
-              <p className="text-[11px] text-muted -mt-0.5">Admin</p>
-            </div>
-          </Link>
+        <div className="mx-auto max-w-6xl px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            {/* Brand */}
+            <Link to="/admin" className="flex items-center gap-2 shrink-0">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/15 text-primary shadow-sm">
+                🎓
+              </div>
+              <div className="leading-tight">
+                <p className="text-sm font-semibold text-text-dark">EduPath</p>
+                <p className="text-[11px] text-muted -mt-0.5">Admin</p>
+              </div>
+            </Link>
 
-          <div className="flex items-center gap-3">
-            <span className="hidden text-xs text-muted sm:inline">
-              {currentUser?.email}
-            </span>
-            
+            {/* Desktop nav */}
+            <nav className="hidden lg:flex items-center gap-2">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={navLinkClass}
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
+
+            {/* Right actions */}
+            <div className="flex items-center gap-3">
+              <span className="hidden md:inline text-xs text-muted">
+                {currentUser?.email}
+              </span>
+
+              <button
+                onClick={logout}
+                className="hidden sm:inline-flex rounded-full border border-red-200 bg-white/70 px-4 py-2 text-xs font-medium text-red-500 hover:bg-red-50"
+              >
+                Log out
+              </button>
+
+              {/* Mobile hamburger */}
+              <button
+                onClick={() => setOpen((v) => !v)}
+                className="lg:hidden inline-flex h-10 w-10 items-center justify-center rounded-xl bg-black/5 hover:bg-black/10"
+                aria-label="Toggle menu"
+                aria-expanded={open}
+              >
+                {open ? (
+                  <span className="text-xl leading-none">✕</span>
+                ) : (
+                  <span className="text-xl leading-none">☰</span>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile menu panel */}
+          <div
+            className={`lg:hidden overflow-hidden transition-all duration-300 ${
+              open ? "max-h-96 mt-3" : "max-h-0"
+            }`}
+          >
+            <div className="rounded-2xl border border-black/5 bg-white/70 p-3 backdrop-blur">
+              <div className="flex flex-col gap-2">
+                {navItems.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.end}
+                    className={({ isActive }) =>
+                      `px-4 py-3 rounded-xl text-sm font-medium transition ${
+                        isActive
+                          ? "bg-primary/60 text-white shadow"
+                          : "text-text-dark/80 hover:bg-black/5"
+                      }`
+                    }
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+
+                {/* Mobile email + logout */}
+                <div className="mt-2 flex items-center justify-between gap-3 rounded-xl bg-white/70 px-4 py-3">
+                  <span className="text-xs text-muted truncate">
+                    {currentUser?.email}
+                  </span>
+                  <button
+                    onClick={logout}
+                    className="rounded-full border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
+                  >
+                    Log out
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </header>
-
-      {/* Admin sub nav card like screenshot */}
-      <div className="mx-auto max-w-6xl px-4 pt-6">
-        <div className="rounded-[28px] border border-black/5 bg-white/70 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/15 text-primary shadow-sm">
-                🎓
-              </div>
-              <div>
-                <p className="text-base font-semibold text-text-dark">
-                  EduPath Admin
-                </p>
-                <p className="text-xs text-muted">
-                  Manage users, payments, and approvals
-                </p>
-              </div>
-            </div>
-
-            <nav className="flex flex-wrap items-center gap-2">
-              <NavLink to="/admin" end className={navLinkClass}>
-                Home
-              </NavLink>
-             
-              <NavLink to="/admin/verify-educators" className={navLinkClass}>
-                Verify Educators
-              </NavLink>
-              <NavLink to="/admin/approvals" className={navLinkClass}>
-                Reviews Course
-              </NavLink>
-            </nav>
-
-            <div className="flex items-center gap-2">
-              <Link
-                to="/admin/reviewers"
-                className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow hover:brightness-95"
-              >
-                Create Reviewer
-              </Link>
-            
-            
-              <button
-              onClick={logout}
-              className="rounded-full border border-red-200 bg-white/70 px-4 py-2 text-xs font-medium text-red-500 hover:bg-red-50"
-            >
-              Log out
-            </button>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <main className="mx-auto max-w-6xl px-4 py-6">
         <Outlet />
