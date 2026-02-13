@@ -65,8 +65,7 @@ const AdminDashboard = () => {
                 System Dashboard
               </h1>
               <p className="mt-1 text-xs text-muted">
-                View platform stats, approvals, user handling, and payment
-                operations.
+                Manage platform users, verify educators, and add reviewers.
               </p>
             </div>
 

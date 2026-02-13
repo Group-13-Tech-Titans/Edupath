@@ -60,10 +60,17 @@ const AdminLayout = () => {
 
             {/* Right actions */}
             <div className="flex items-center gap-3">
-              <span className="hidden md:inline text-xs text-muted">
-                {currentUser?.email}
-              </span>
+              
 
+              {/* Profile icon */}
+              <button
+                onClick={() => window.location.href = "/admin/profile"}
+                className="hidden sm:inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary font-semibold shadow-sm"
+                title="Go to profile"
+              >
+                {currentUser?.email?.charAt(0).toUpperCase()}
+              </button>
+              
               <button
                 onClick={logout}
                 className="hidden sm:inline-flex rounded-full border border-red-200 bg-white/70 px-4 py-2 text-xs font-medium text-red-500 hover:bg-red-50"
@@ -117,12 +124,17 @@ const AdminLayout = () => {
                   <span className="text-xs text-muted truncate">
                     {currentUser?.email}
                   </span>
-                  <button
-                    onClick={logout}
-                    className="rounded-full border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
-                  >
-                    Log out
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-semibold">
+                      {currentUser?.email?.charAt(0).toUpperCase()}
+                    </div>
+                    <button
+                      onClick={logout}
+                      className="rounded-full border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
+                    >
+                      Log out
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
