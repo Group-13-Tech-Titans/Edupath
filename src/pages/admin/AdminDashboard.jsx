@@ -99,9 +99,9 @@ const AdminDashboard = () => {
         <div className="rounded-[28px] border border-black/5 bg-white/70 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-text-dark">
-              Approvals & Requests
+              Verify Educators
             </h2>
-            <span className="text-sm font-semibold text-primary">Today</span>
+            <button className="text-sm font-semibold text-primary" onClick={() => window.location.href = '/admin/verify-educators'}>View All</button>
           </div>
 
           <div className="mt-4 space-y-3">
@@ -274,7 +274,6 @@ const AdminDashboard = () => {
   );
 };
 
-/* -------------------- Small UI Components -------------------- */
 
 const KpiCard = ({ label, value }) => {
   return (
