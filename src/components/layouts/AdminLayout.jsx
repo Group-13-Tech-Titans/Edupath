@@ -74,13 +74,13 @@ const AdminLayout = () => {
                 to="/admin/reviewers"
                 className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow hover:brightness-95"
               >
-                Create Admin
+                Create Reviewer
               </Link>
             
             
               <button
               onClick={logout}
-              className="rounded-full border border-red-200 bg-white/70 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
+              className="rounded-full border border-red-200 bg-white/70 px-4 py-2 text-xs font-medium text-red-500 hover:bg-red-50"
             >
               Log out
             </button>
