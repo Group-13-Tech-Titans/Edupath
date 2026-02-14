@@ -38,6 +38,7 @@ import ReviewerDashboard from "./pages/reviewer/ReviewerDashboard.jsx";
 import ReviewerQueue from "./pages/reviewer/ReviewerQueue.jsx";
 import ReviewerCourseReview from "./pages/reviewer/ReviewerCourseReview.jsx";
 import ReviewerHistory from "./pages/reviewer/ReviewerHistory.jsx";
+import AdminProfile from "./pages/admin/AdminProfile.jsx";
 
 import NotFound from "./pages/NotFound.jsx";
 
@@ -82,6 +83,9 @@ const App = () => {
             <Route path="reviewers" element={<AdminReviewers />} />
             <Route path="verify-educators" element={<AdminVerifyEducators />} />
             <Route path="review-dashboard" element={<AdminReviewDashboard />} />
+            <Route path="queue" element={<ReviewerQueue />} />
+            <Route path="queue/:id" element={<ReviewerCourseReview />} />
+            <Route path="profile" element={<AdminProfile />} />
           </Route>
         </Route>
 
