@@ -34,7 +34,7 @@ export default function ResetPassword() {
         password
       });
       setMsg(res.data?.message || "Password updated successfully!");
-      setTimeout(() => navigate("/"), 1200);
+      setTimeout(() => navigate("/login"), 1200);
     } catch (err) {
       setIsError(true);
       setMsg(err?.response?.data?.message || "Invalid or expired reset link.");
@@ -63,7 +63,7 @@ export default function ResetPassword() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-sm font-semibold text-gray-900">New Password</label>
-              <Link to="/" className="text-sm font-semibold text-emerald-600 hover:underline">
+              <Link to="/login" className="text-sm font-semibold text-emerald-600 hover:underline">
                 Back to Login
               </Link>
             </div>
@@ -117,7 +117,7 @@ export default function ResetPassword() {
 
         <p className="text-center text-gray-500 mt-6 text-sm">
           Remembered your password?{" "}
-          <Link to="/" className="font-semibold text-emerald-600 hover:underline">
+          <Link to="/login" className="font-semibold text-emerald-600 hover:underline">
             Sign in
           </Link>
         </p>
