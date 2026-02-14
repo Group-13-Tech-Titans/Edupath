@@ -1,11 +1,13 @@
 import React, { useMemo, useState } from "react";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
+import AdminFooter from "./AdminFooter.jsx";
+
 
 const AdminDashboard = () => {
   const { users, courses } = useApp();
 
-  // ---- Mock numbers like your UI (replace with real fields if you already have them)
+
   const totalUsers = users?.length || 0;
 
   const educators = useMemo(
@@ -155,119 +157,9 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* User Handling */}
-        <div className="rounded-[28px] border border-black/5 bg-white/70 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-text-dark">
-              User Handling
-            </h2>
-            <span className="text-sm font-semibold text-primary">Open</span>
-          </div>
-
-          <div className="mt-4 space-y-3">
-            <IssueRow
-              title="Reported User: user_1029"
-              subtitle="Spam messages in mentorship chat"
-              badge="High"
-              tone="danger"
-            />
-            <IssueRow
-              title="Educator Payout Issue"
-              subtitle="Bank details mismatch"
-              badge="Medium"
-              tone="warn"
-            />
-          </div>
-
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <button className="rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white shadow hover:brightness-95">
-              Manage Users
-            </button>
-            <button className="rounded-full bg-primary/15 px-5 py-3 text-sm font-semibold text-primary shadow-sm hover:bg-primary/20">
-              Role & Access
-            </button>
-          </div>
-        </div>
-
-        {/* Payments Review */}
-        <div className="rounded-[28px] border border-black/5 bg-white/70 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-text-dark">
-              Payments Review
-            </h2>
-            <button className="text-sm font-semibold text-primary hover:underline">
-              View All
-            </button>
-          </div>
-
-          <div className="mt-4 space-y-3">
-            <PaymentRow
-              title="Student Payment"
-              subtitle="Rs 30,000 • Course: Web Dev Bootcamp"
-              action="Verify"
-            />
-            <PaymentRow
-              title="Educator Withdrawal"
-              subtitle="Rs 75,000 • Bank Transfer"
-              action="Approve"
-            />
-          </div>
-
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <button className="rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white shadow hover:brightness-95">
-              Approve Selected
-            </button>
-            <button className="rounded-full bg-primary/15 px-5 py-3 text-sm font-semibold text-primary shadow-sm hover:bg-primary/20">
-              Flag
-            </button>
-          </div>
-        </div>
-
+       
         {/* Footer */}
-        <footer className="rounded-[28px] border border-black/5 bg-white/70 p-6 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
-          <div className="grid gap-6 sm:grid-cols-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/15 text-primary shadow-sm">
-                  🎓
-                </div>
-                <p className="font-semibold text-text-dark">EduPath</p>
-              </div>
-              <p className="mt-3 text-xs text-muted">
-                Empowering learners worldwide with quality education and
-                personalized learning paths.
-              </p>
-              <div className="mt-3 flex gap-2">
-                <IconDot>f</IconDot>
-                <IconDot>x</IconDot>
-                <IconDot>in</IconDot>
-                <IconDot>ig</IconDot>
-              </div>
-            </div>
-
-            <FooterCol
-              title="Quick Links"
-              items={["Browse Courses", "Career Paths", "My Learning", "Become an Instructor"]}
-            />
-            <FooterCol
-              title="Support"
-              items={["Help Center", "Contact Us", "FAQs", "Community"]}
-            />
-            <FooterCol
-              title="Legal"
-              items={[
-                "Terms & Conditions",
-                "Privacy Policy",
-                "Cookie Policy",
-                "Accessibility",
-              ]}
-            />
-          </div>
-
-          <div className="mt-6 border-t border-black/5 pt-4 text-center text-xs text-muted">
-            2025 EduPath. All rights reserved.
-          </div>
-        </footer>
+        <AdminFooter />
       </div>
     </PageShell>
   );
