@@ -7,6 +7,7 @@ import EducatorLayout from "./components/layouts/EducatorLayout.jsx";
 import AdminLayout from "./components/layouts/AdminLayout.jsx";
 import ReviewerLayout from "./components/layouts/ReviewerLayout.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import AdminCourseReview from "./pages/admin/AdminCourseReview.jsx";
 
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
@@ -39,6 +40,7 @@ import ReviewerQueue from "./pages/reviewer/ReviewerQueue.jsx";
 import ReviewerCourseReview from "./pages/reviewer/ReviewerCourseReview.jsx";
 import ReviewerHistory from "./pages/reviewer/ReviewerHistory.jsx";
 import AdminProfile from "./pages/admin/AdminProfile.jsx";
+
 
 import NotFound from "./pages/NotFound.jsx";
 
@@ -85,6 +87,7 @@ const App = () => {
             <Route path="review-dashboard" element={<AdminReviewDashboard />} />
             <Route path="queue" element={<ReviewerQueue />} />
             <Route path="queue/:id" element={<ReviewerCourseReview />} />
+            <Route path="approvals" element={<AdminCourseReview />} />
             <Route path="profile" element={<AdminProfile />} />
           </Route>
         </Route>

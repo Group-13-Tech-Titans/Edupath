@@ -23,7 +23,7 @@ const AdminLayout = () => {
   const navItems = [
     { to: "/admin", label: "Home", end: true },
     { to: "/admin/verify-educators", label: "Verify Educators" },
-    { to: "/admin/queue", label: "Reviews Course" },
+    { to: "/admin/approvals", label: "Reviews Course" },
     { to: "/admin/reviewers", label: "Create Reviewer" },
     
   ];
