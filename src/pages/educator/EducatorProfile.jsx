@@ -3,9 +3,8 @@ import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 
 const EducatorProfile = () => {
-  const { currentUser, users } = useApp();
-  const educator = users.find((u) => u.email === currentUser?.email);
-  const profile = educator?.profile || {};
+  const { currentUser } = useApp();
+  const profile = currentUser?.profile || {};
 
   return (
     <PageShell>
@@ -18,16 +17,16 @@ const EducatorProfile = () => {
         <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <dt className="text-muted">Name</dt>
-            <dd className="font-medium text-text-dark">{educator?.name}</dd>
+            <dd className="font-medium text-text-dark">{currentUser?.name}</dd>
           </div>
           <div>
             <dt className="text-muted">Email</dt>
-            <dd className="font-medium text-text-dark">{educator?.email}</dd>
+            <dd className="font-medium text-text-dark">{currentUser?.email}</dd>
           </div>
           <div>
             <dt className="text-muted">Specialization tag</dt>
             <dd className="font-medium text-text-dark">
-              {educator?.specializationTag || "Not set"}
+              {currentUser?.specializationTag || "Not set"}
             </dd>
           </div>
           <div>
@@ -39,7 +38,7 @@ const EducatorProfile = () => {
           <div>
             <dt className="text-muted">Verification status</dt>
             <dd className="font-medium text-text-dark">
-              {educator?.status || "PENDING_VERIFICATION"}
+              {currentUser?.status || "PENDING_VERIFICATION"}
             </dd>
           </div>
         </dl>

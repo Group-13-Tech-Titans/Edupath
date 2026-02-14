@@ -10,10 +10,13 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
+import Signup from "./pages/Signup.jsx";
 import SignupRole from "./pages/SignupRole.jsx";
 import SignupStudent from "./pages/SignupStudent.jsx";
 import SignupEducator from "./pages/SignupEducator.jsx";
 import PublicCourses from "./pages/PublicCourses.jsx";
+import ForgotPassword from "./pages/ForgotPassword.jsx";
+import ResetPassword from "./pages/ResetPassword.jsx";
 
 import StudentDashboard from "./pages/student/StudentDashboard.jsx";
 import StudentCourses from "./pages/student/StudentCourses.jsx";
@@ -48,7 +51,10 @@ const App = () => {
         <Route path="/" element={<PublicLayout />}>
           <Route index element={<Home />} />
           <Route path="login" element={<Login />} />
-          <Route path="signup" element={<SignupRole />} />
+          <Route path="forgot-password" element={<ForgotPassword />} />
+          <Route path="reset-password/:token" element={<ResetPassword />} />
+          <Route path="signup" element={<Signup />} />
+          <Route path="signup/role" element={<SignupRole />} />
           <Route path="signup/student" element={<SignupStudent />} />
           <Route path="signup/educator" element={<SignupEducator />} />
           <Route path="courses" element={<PublicCourses />} />
