@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
+import AdminFooter from "./AdminFooter.jsx";
 
 const AdminReviewers = () => {
   const { reviewerAccounts, createReviewer } = useApp();
@@ -119,6 +120,10 @@ const AdminReviewers = () => {
             )}
           </ul>
         </div>
+      </div>
+      <div>
+        <br/>
+         <AdminFooter />
       </div>
     </PageShell>
   );
