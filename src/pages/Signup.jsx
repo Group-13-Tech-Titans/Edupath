@@ -1,44 +1,30 @@
 import React, { useState } from "react";
-import { useLocation, useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useApp } from "../context/AppProvider.jsx";
 import PageShell from "../components/PageShell.jsx";
+import { useApp } from "../context/AppProvider.jsx";
 
-const roleHomePath = {
-  student: "/student",
-  educator: "/educator",
-  admin: "/admin",
-  reviewer: "/reviewer"
-};
-
-const Login = () => {
-  const { login } = useApp();
+const Signup = () => {
+  const { signupAccount } = useApp();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
-  const navigate = useNavigate();
-  const location = useLocation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    const res = await login(email.trim(), password);
-    if (!res.success) {
-      setError(res.message || "Unable to login");
+    if (password !== confirm) {
+      setError("Passwords do not match");
       return;
     }
-    const user = res.user;
-    const fromState = location.state && location.state.from?.pathname;
-    let target = fromState;
-    if (!target) {
-      if (roleHomePath[user.role]) {
-        target = roleHomePath[user.role];
-      } else {
-        // Newly created accounts without an assigned role go to role selection
-        target = "/signup/role";
-      }
+    const res = await signupAccount({ email: email.trim(), password });
+    if (!res.success) {
+      setError(res.message || "Unable to create account");
+      return;
     }
-    navigate(target, { replace: true });
+    navigate("/login");
   };
 
   return (
@@ -49,26 +35,14 @@ const Login = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <div className="flex flex-col items-center gap-3">
-            <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-lg font-semibold text-white shadow-md">
-                🎓
-              </div>
-              <span className="text-xl font-semibold text-emerald-700">
-                Edupath
-              </span>
-            </div>
-            <div className="mt-1 text-center">
-              <h2 className="text-2xl font-semibold text-text-dark">
-                Welcome Back
-              </h2>
-              <p className="mt-1 text-xs text-muted">
-                Sign in to continue your learning journey
-              </p>
-            </div>
+          <div className="text-center">
+            <h2 className="text-2xl font-semibold text-text-dark">Sign Up</h2>
+            <p className="mt-1 text-xs text-muted">
+              Create your EduPath student account
+            </p>
           </div>
 
-          <div className="mt-6 space-y-3">
+          <div className="mt-6">
             <button
               type="button"
               className="flex w-full items-center justify-center gap-2 rounded-full border border-emerald-100 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-emerald-50"
@@ -103,33 +77,28 @@ const Login = () => {
               />
             </div>
             <div>
-              <div className="mb-1 flex items-center justify-between">
-                <label className="text-xs font-medium text-text-dark">
-                  Password
-                </label>
-                <button
-                  type="button"
-                  className="text-[11px] font-medium text-primary hover:underline"
-                >
-                  <Link to="/forgot-password">Forgot Password ?</Link>
-                </button>
-              </div>
+              <label className="text-xs font-medium text-text-dark">
+                Password
+              </label>
               <input
                 type="password"
-                className="w-full rounded-full border border-emerald-100 bg-white/80 px-4 py-2.5 text-sm outline-none ring-primary/40 focus:border-emerald-300 focus:ring"
+                className="mt-1 w-full rounded-full border border-emerald-100 bg-white/80 px-4 py-2.5 text-sm outline-none ring-primary/40 focus:border-emerald-300 focus:ring"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
-            <div className="flex items-center justify-between text-[11px] text-muted">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  className="h-3.5 w-3.5 rounded border-emerald-300 text-emerald-500 focus:ring-emerald-400"
-                />
-                <span>Remember me for 30 days</span>
+            <div>
+              <label className="text-xs font-medium text-text-dark">
+                Confirm Password
               </label>
+              <input
+                type="password"
+                className="mt-1 w-full rounded-full border border-emerald-100 bg-white/80 px-4 py-2.5 text-sm outline-none ring-primary/40 focus:border-emerald-300 focus:ring"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                required
+              />
             </div>
             {error && (
               <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs text-red-600">
@@ -140,14 +109,14 @@ const Login = () => {
               type="submit"
               className="btn-primary mt-1 w-full rounded-full py-2.5 text-sm"
             >
-              Sign in
+              Create Account
             </button>
           </form>
 
           <p className="mt-4 text-center text-xs text-muted">
-            Don&apos;t have an account?{" "}
-            <Link to="/signup" className="text-primary underline-offset-2 hover:underline">
-              Sign up free
+            Already have an account?{" "}
+            <Link to="/login" className="text-primary underline-offset-2 hover:underline">
+              Sign In
             </Link>
           </p>
         </motion.div>
@@ -156,5 +125,5 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Signup;
 
