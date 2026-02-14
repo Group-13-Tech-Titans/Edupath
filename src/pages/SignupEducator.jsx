@@ -21,18 +21,18 @@ const SignupEducator = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (form.password !== form.confirm) {
       setError("Passwords do not match");
       return;
     }
-    const res = signupEducator(form);
+    const res = await signupEducator(form);
     if (!res.success) {
       setError(res.message || "Unable to sign up");
       return;
     }
-    navigate("/login");
+    navigate("/educator");
   };
 
   return (
