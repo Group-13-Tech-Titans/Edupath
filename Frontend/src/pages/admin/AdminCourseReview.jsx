@@ -204,7 +204,6 @@ const AdminCourseReview = () => {
 
   return (
     <PageShell>
-      {/* Toast */}
       {toast && (
         <div className="fixed right-4 top-20 z-50">
           <div
@@ -218,7 +217,6 @@ const AdminCourseReview = () => {
       )}
 
       <div className="space-y-6">
-        {/* Header */}
         <div className="rounded-[28px] border border-black/5 bg-white/70 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -244,27 +242,7 @@ const AdminCourseReview = () => {
           <StatCard label="Rejected" value={counts.rejected} />
         </div>
 
-        <div className="rounded-[28px] border border-black/5 bg-white/70 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-wrap gap-2">
-              <TabBtn value="pending" label="Pending" count={counts.pending} />
-              <TabBtn value="approved" label="Approved" count={counts.approved} />
-              <TabBtn value="rejected" label="Rejected" count={counts.rejected} />
-            </div>
-
-            <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">
-                🔎
-              </span>
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search courses..."
-                className="w-full lg:w-[360px] rounded-2xl border border-black/10 bg-white/70 pl-9 pr-4 py-3 text-sm text-text-dark shadow-sm outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
-          </div>
-        </div>
+        
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Left: course list */}
