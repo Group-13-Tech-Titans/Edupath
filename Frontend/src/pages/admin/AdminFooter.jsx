@@ -9,7 +9,7 @@ const AdminFooter = () => {
         <div>
           <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/15 text-primary shadow-sm">
-              🛡
+              🎓
             </div>
             <div className="leading-tight">
               <p className="font-semibold text-text-dark">EduPath</p>
@@ -24,7 +24,6 @@ const AdminFooter = () => {
          
         </div>
 
-        {/* Admin shortcuts */}
         <FooterCol
           title="Admin"
           items={[
@@ -35,7 +34,6 @@ const AdminFooter = () => {
           ]}
         />
 
-        {/* Operations */}
         <FooterCol
           title="Operations"
           items={[ 
@@ -45,7 +43,6 @@ const AdminFooter = () => {
           ]}
         />
 
-        {/* Help & Policy */}
         <FooterCol
           title="Help & Policy"
           items={[
