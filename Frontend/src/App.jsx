@@ -41,7 +41,7 @@ import ReviewerCourseReview from "./pages/reviewer/ReviewerCourseReview.jsx";
 import ReviewerHistory from "./pages/reviewer/ReviewerHistory.jsx";
 import AdminProfile from "./pages/admin/AdminProfile.jsx";
 
-
+import ComingSoon from "./pages/ComingSoon.jsx";
 import NotFound from "./pages/NotFound.jsx";
 
 const App = () => {
@@ -102,6 +102,8 @@ const App = () => {
         </Route>
 
         <Route path="*" element={<NotFound />} />
+        <Route path="/coming-soon" element={<ComingSoon />} />
+
       </Routes>
     </AnimatePresence>
   );
