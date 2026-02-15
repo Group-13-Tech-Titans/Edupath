@@ -3,6 +3,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 import AdminFooter from "./AdminFooter.jsx";
+import ComingSoon from "../ComingSoon.jsx";
+
+
 
 const LS_KEY = "edupath_courses_v1";
 
@@ -226,10 +229,10 @@ const AdminCourseReview = () => {
             </div>
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={reloadMock}
+                onClick={() => window.location.href = "/coming-soon"}
                 className="rounded-full bg-primary/15 px-5 py-2.5 text-sm font-semibold text-primary shadow-sm hover:bg-primary/20"
               >
-                view
+                view All Courses
               </button>
             </div>
           </div>
