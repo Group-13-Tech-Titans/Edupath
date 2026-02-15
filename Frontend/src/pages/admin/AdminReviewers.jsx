@@ -35,10 +35,8 @@ const AdminReviewers = () => {
     <PageShell>
       <div className="grid gap-5 md:grid-cols-2">
         <div className="glass-card p-5 text-xs">
-          <h1 className="text-xl font-semibold text-text-dark">Reviewer accounts</h1>
-          <p className="mt-1 text-muted">
-            Create reviewer logins. They will use the same login page.
-          </p>
+          <h1 className="text-xl font-semibold text-text-dark">Create Reviewer accounts</h1>
+          
           <form onSubmit={handleSubmit} className="mt-4 space-y-3">
             <div>
               <label className="font-medium">Name</label>
