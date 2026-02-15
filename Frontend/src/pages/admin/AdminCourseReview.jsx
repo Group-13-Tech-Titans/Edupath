@@ -2,10 +2,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
+import AdminFooter from "./AdminFooter.jsx";
 
 const LS_KEY = "edupath_courses_v1";
 
-/* ---------------- Mock Courses (pending only shown in queue) ---------------- */
 const mockCourses = [
   {
     id: "CRS-1001",
@@ -16,8 +16,8 @@ const mockCourses = [
     specializationTag: "React",
     level: "Beginner",
     rating: 4.6,
-    educatorName: "John Perera",
-    educatorEmail: "john.perera@edupath.com",
+    educatorName: "Kamal perera",
+    educatorEmail: "kamal.perera@edupath.com",
     status: "pending",
     createdAt: "2026-02-10T09:30:00.000Z",
     content: {
@@ -48,8 +48,8 @@ const mockCourses = [
     specializationTag: "UI/UX",
     level: "Intermediate",
     rating: 4.3,
-    educatorName: "Sarah Fernando",
-    educatorEmail: "sarah.fernando@edupath.com",
+    educatorName: "Amal Fernando",
+    educatorEmail: "amal.fernando@edupath.com",
     status: "pending",
     createdAt: "2026-02-11T15:05:00.000Z",
     content: {
@@ -94,7 +94,6 @@ const AdminCourseReview = () => {
 
   const [courses, setLocalCourses] = useState(coursesFromApp);
 
-  // Load courses: App state -> localStorage -> mock
   useEffect(() => {
     if (coursesFromApp?.length) {
       setLocalCourses(coursesFromApp);
@@ -183,7 +182,6 @@ const AdminCourseReview = () => {
     localStorage.setItem(LS_KEY, JSON.stringify(mockCourses));
     setLocalCourses(mockCourses);
     setSelected(null);
-    showToast("success", "Mock courses reloaded.");
   };
 
   const TabBtn = ({ value, label, count }) => (
@@ -231,20 +229,18 @@ const AdminCourseReview = () => {
                 onClick={reloadMock}
                 className="rounded-full bg-primary/15 px-5 py-2.5 text-sm font-semibold text-primary shadow-sm hover:bg-primary/20"
               >
-                Reload Mock Data
+                view
               </button>
             </div>
           </div>
         </div>
 
-        {/* Stats */}
         <div className="grid gap-4 sm:grid-cols-3">
           <StatCard label="Pending" value={counts.pending} />
           <StatCard label="Approved" value={counts.approved} />
           <StatCard label="Rejected" value={counts.rejected} />
         </div>
 
-        {/* Controls */}
         <div className="rounded-[28px] border border-black/5 bg-white/70 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap gap-2">
@@ -267,7 +263,6 @@ const AdminCourseReview = () => {
           </div>
         </div>
 
-        {/* Layout: list + details */}
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Left: course list */}
           <div className="lg:col-span-1 rounded-[28px] border border-black/5 bg-white/70 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
@@ -328,12 +323,14 @@ const AdminCourseReview = () => {
             )}
           </div>
         </div>
+        <div>
+              <AdminFooter/>
+        </div>
       </div>
     </PageShell>
   );
 };
 
-/* ---------------- Components ---------------- */
 
 const StatCard = ({ label, value }) => (
   <div className="rounded-[22px] border border-black/5 bg-white/75 p-5 shadow-[0_12px_30px_rgba(0,0,0,0.08)] backdrop-blur">
@@ -448,6 +445,7 @@ const CourseDetails = ({ course, tab, onApprove, onReject }) => {
                         </span>
                       ))}
                     </div>
+                    
                   </li>
                 ))}
               </ul>
