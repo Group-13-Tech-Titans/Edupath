@@ -9,86 +9,7 @@ import ComingSoon from "../ComingSoon.jsx";
 
 const LS_KEY = "edupath_courses_v1";
 
-const mockCourses = [
-  {
-    id: "CRS-1001",
-    title: "React Fundamentals for Beginners",
-    description:
-      "Learn React basics: components, props, state, hooks, routing and best practices with hands-on mini projects.",
-    category: "Web Development",
-    specializationTag: "React",
-    level: "Beginner",
-    rating: 4.6,
-    educatorName: "Kamal perera",
-    educatorEmail: "kamal.perera@edupath.com",
-    status: "pending",
-    createdAt: "2026-02-10T09:30:00.000Z",
-    content: {
-      modules: [
-        {
-          title: "Getting Started",
-          lessons: [
-            { title: "What is React?", materials: ["Slides", "Notes"] },
-            { title: "JSX Basics", materials: ["Video", "Quiz"] },
-          ],
-        },
-        {
-          title: "State & Props",
-          lessons: [
-            { title: "Props Deep Dive", materials: ["Notes"] },
-            { title: "useState + events", materials: ["Video"] },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    id: "CRS-1002",
-    title: "UI/UX Design Essentials",
-    description:
-      "Practical UI/UX foundations: design thinking, wireframes, color, typography, and real-world portfolio tasks.",
-    category: "Design",
-    specializationTag: "UI/UX",
-    level: "Intermediate",
-    rating: 4.3,
-    educatorName: "Amal Fernando",
-    educatorEmail: "amal.fernando@edupath.com",
-    status: "pending",
-    createdAt: "2026-02-11T15:05:00.000Z",
-    content: {
-      modules: [
-        {
-          title: "User Research",
-          lessons: [{ title: "Personas", materials: ["Template"] }],
-        },
-        {
-          title: "Wireframing",
-          lessons: [
-            { title: "Low-fidelity sketches", materials: ["Examples"] },
-            { title: "Figma wireframes", materials: ["Video"] },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    id: "CRS-1003",
-    title: "SQL Crash Course",
-    description:
-      "Learn SQL basics to advanced queries: joins, grouping, subqueries and database design fundamentals.",
-    category: "Databases",
-    specializationTag: "SQL",
-    level: "Beginner",
-    rating: 4.7,
-    educatorName: "Kevin Silva",
-    educatorEmail: "kevin.silva@edupath.com",
-    status: "approved",
-    createdAt: "2026-02-05T09:10:00.000Z",
-    content: {
-      modules: [{ title: "SQL Basics", lessons: [{ title: "SELECT", materials: ["Quiz"] }] }],
-    },
-  },
-];
+
 
 const AdminCourseReview = () => {
   const app = useApp();
@@ -244,11 +165,11 @@ const AdminCourseReview = () => {
 
         
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Left: course list */}
+        
+          
           <div className="lg:col-span-1 rounded-[28px] border border-black/5 bg-white/70 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-text-dark">Queue</h2>
+              <h2 className="text-base font-semibold text-text-dark">Recent Courses</h2>
               <span className="text-xs text-muted">
                 Showing <span className="font-semibold text-text-dark">{list.length}</span>
               </span>
@@ -285,24 +206,10 @@ const AdminCourseReview = () => {
                   No courses in this tab.
                 </div>
               )}
-            </div>
+          
           </div>
 
-          {/* Right: details */}
-          <div className="lg:col-span-2 rounded-[28px] border border-black/5 bg-white/70 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
-            {!selected ? (
-              <div className="rounded-[22px] border border-dashed border-black/10 bg-white/60 p-10 text-center text-sm text-muted">
-                Select a course from the queue to review details.
-              </div>
-            ) : (
-              <CourseDetails
-                course={selected}
-                tab={tab}
-                onApprove={() => setStatus(selected.id, "approved")}
-                onReject={(reason) => setStatus(selected.id, "rejected", reason)}
-              />
-            )}
-          </div>
+          
         </div>
         <div>
               <AdminFooter/>
@@ -353,7 +260,6 @@ const CourseDetails = ({ course, tab, onApprove, onReject }) => {
           </div>
         </div>
 
-        {/* Actions */}
         {tab === "pending" ? (
           <div className="flex flex-wrap gap-2">
             <button
