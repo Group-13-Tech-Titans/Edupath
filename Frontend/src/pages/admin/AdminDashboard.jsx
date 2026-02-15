@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 import AdminFooter from "./AdminFooter.jsx";
+import ComingSoon from "../ComingSoon.jsx";
 
 
 const AdminDashboard = () => {
@@ -68,10 +69,10 @@ const AdminDashboard = () => {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <button className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow hover:brightness-95">
+              <button className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow hover:brightness-95" onClick={() => window.location.href = '/coming-soon'}>
                 Export Reports
               </button>
-              <button className="rounded-full bg-primary/15 px-5 py-2.5 text-sm font-semibold text-primary shadow-sm hover:bg-primary/20">
+              <button className="rounded-full bg-primary/15 px-5 py-2.5 text-sm font-semibold text-primary shadow-sm hover:bg-primary/20" onClick={() => window.location.href = '/coming-soon'}>
                 System Status
               </button>
             </div>
