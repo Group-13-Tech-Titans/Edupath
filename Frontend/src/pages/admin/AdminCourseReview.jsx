@@ -33,7 +33,6 @@ const AdminCourseReview = () => {
           return;
         }
       } catch {
-        // ignore
       }
     }
 
@@ -102,26 +101,9 @@ const AdminCourseReview = () => {
     showToast("success", status === "approved" ? "Course approved ✅" : "Course rejected ❌");
   };
 
-  const reloadMock = () => {
-    localStorage.setItem(LS_KEY, JSON.stringify(mockCourses));
-    setLocalCourses(mockCourses);
-    setSelected(null);
-  };
 
-  const TabBtn = ({ value, label, count }) => (
-    <button
-      onClick={() => {
-        setTab(value);
-        setSelected(null);
-      }}
-      className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-        tab === value ? "bg-primary/60 text-white shadow" : "bg-white/70 text-text-dark hover:bg-white/90"
-      }`}
-    >
-      {label}
-      <span className="ml-2 rounded-full bg-black/5 px-2 py-0.5 text-xs">{count}</span>
-    </button>
-  );
+
+
 
   return (
     <PageShell>
@@ -227,139 +209,8 @@ const StatCard = ({ label, value }) => (
   </div>
 );
 
-const CourseDetails = ({ course, tab, onApprove, onReject }) => {
-  const [reason, setReason] = useState("");
 
-  useEffect(() => setReason(""), [course?.id]);
 
-  const modules = course?.content?.modules || [];
 
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-lg font-semibold text-text-dark">{course.title}</h3>
-            <Badge status={course.status} />
-          </div>
-
-          <p className="mt-1 text-sm text-muted">{course.description}</p>
-
-          <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-muted">
-            <Pill label={`ID: ${course.id}`} />
-            <Pill label={`Category: ${course.category}`} />
-            <Pill label={`Tag: ${course.specializationTag}`} />
-            <Pill label={`Level: ${course.level}`} />
-            <Pill label={`Rating: ${course.rating}`} />
-          </div>
-
-          <div className="mt-3 rounded-[22px] border border-black/5 bg-white/70 p-4 text-sm">
-            <p className="text-xs font-semibold text-muted">Educator</p>
-            <p className="mt-1 font-semibold text-text-dark">{course.educatorName}</p>
-            <p className="text-xs text-muted">{course.educatorEmail}</p>
-          </div>
-        </div>
-
-        {tab === "pending" ? (
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => onReject(reason || "Not enough details / missing materials.")}
-              className="rounded-full bg-black/5 px-5 py-2 text-sm font-semibold text-text-dark hover:bg-black/10"
-            >
-              Reject
-            </button>
-            <button
-              onClick={onApprove}
-              className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white shadow hover:brightness-95"
-            >
-              Approve
-            </button>
-          </div>
-        ) : (
-          <div className="rounded-[22px] border border-black/5 bg-white/70 p-4 text-xs text-muted">
-            <p>
-              Reviewed at:{" "}
-              <span className="font-semibold text-text-dark">
-                {course.reviewedAt ? new Date(course.reviewedAt).toLocaleString() : "—"}
-              </span>
-            </p>
-            {course.decisionReason && (
-              <p className="mt-2">
-                Reason: <span className="font-semibold text-text-dark">{course.decisionReason}</span>
-              </p>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Reject reason (only when pending) */}
-      {tab === "pending" && (
-        <div className="rounded-[22px] border border-black/5 bg-white/70 p-4">
-          <p className="text-xs font-semibold text-muted">Rejection Reason (optional)</p>
-          <textarea
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="Example: Missing lesson materials / unclear module structure / incomplete description..."
-            className="mt-2 w-full rounded-2xl border border-black/10 bg-white/70 px-4 py-3 text-sm text-text-dark shadow-sm outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20 min-h-[90px] resize-none"
-          />
-        </div>
-      )}
-
-      {/* Modules / Lessons */}
-      <div className="rounded-[22px] border border-black/5 bg-white/70 p-4">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-text-dark">Course Content</p>
-          <span className="text-xs text-muted">
-            Modules: <span className="font-semibold text-text-dark">{modules.length}</span>
-          </span>
-        </div>
-
-        <div className="mt-3 space-y-3">
-          {modules.map((m, idx) => (
-            <div key={`${m.title}-${idx}`} className="rounded-2xl border border-black/5 bg-white/80 p-4">
-              <p className="text-sm font-semibold text-text-dark">
-                Module {idx + 1}: {m.title}
-              </p>
-
-              <ul className="mt-2 space-y-2">
-                {(m.lessons || []).map((l, i) => (
-                  <li key={`${l.title}-${i}`} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-sm text-text-dark/90">• {l.title}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {(l.materials || []).map((x) => (
-                        <span key={x} className="rounded-full bg-black/5 px-3 py-1 text-[11px] text-muted">
-                          {x}
-                        </span>
-                      ))}
-                    </div>
-                    
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-
-          {modules.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-black/10 bg-white/60 p-4 text-sm text-muted">
-              No module/lesson data found.
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const Pill = ({ label }) => <span className="rounded-full bg-black/5 px-3 py-1">{label}</span>;
-
-const Badge = ({ status }) => {
-  const map = {
-    pending: "bg-amber-100 text-amber-700",
-    approved: "bg-emerald-100 text-emerald-700",
-    rejected: "bg-red-100 text-red-600",
-  };
-  const text = status?.charAt(0)?.toUpperCase() + status?.slice(1);
-  return <span className={`rounded-full px-3 py-1 text-xs font-semibold ${map[status] || "bg-black/5 text-muted"}`}>{text}</span>;
-};
 
 export default AdminCourseReview;
