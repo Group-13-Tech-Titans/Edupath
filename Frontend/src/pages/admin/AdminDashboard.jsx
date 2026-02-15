@@ -25,27 +25,24 @@ const AdminDashboard = () => {
     [courses]
   );
 
-  // Simple demo "subscriptions/payments"
-  const activeSubscriptions = Math.max(0, Math.round(totalUsers * 0.15));
-  const paymentsToReview = Math.max(0, Math.min(35, pendingCourses.length + 10));
 
-  // Approvals list (UI mock)
+
   const [approvals, setApprovals] = useState([
     {
       id: "a1",
-      title: "Educator Verification: yasindu",
+      title: "Educator Verification: Amal perera",
       subtitle: "Submitted certificates + portfolio links",
       type: "educator",
     },
     {
       id: "a2",
-      title: "Mentor Verification: gunasekara",
+      title: "Mentor Verification: Kamalika Jayasuriya",
       subtitle: "5+ years exp • references attached",
       type: "mentor",
     },
     {
       id: "a3",
-      title: "Mentor Verification: ramrasu",
+      title: "Mentor Verification: Nimalka Fernando",
       subtitle: "5+ years exp • references attached",
       type: "mentor",
     },
@@ -59,7 +56,6 @@ const AdminDashboard = () => {
   return (
     <PageShell>
       <div className="space-y-6">
-        {/* System Dashboard banner */}
         <div className="rounded-[28px] border border-black/5 bg-white/70 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -82,21 +78,8 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* KPI tiles */}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <KpiCard label="Total Users" value={formatK(totalUsers || 12480)} />
-          <KpiCard
-            label="Active Subscriptions"
-            value={formatK(activeSubscriptions || 1942)}
-          />
-          <KpiCard
-            label="Pending Educator Approvals"
-            value={pendingEducators.length || 27}
-          />
-          <KpiCard label="Payments to Review" value={paymentsToReview || 19} />
-        </div>
+        
 
-        {/* Approvals & Requests */}
         <div className="rounded-[28px] border border-black/5 bg-white/70 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-text-dark">
@@ -143,7 +126,6 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Platform Statistics */}
         <div className="rounded-[28px] border border-black/5 bg-white/70 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-text-dark">
@@ -153,86 +135,16 @@ const AdminDashboard = () => {
           </div>
 
           <div className="mt-4 rounded-[22px] border border-dashed border-black/10 bg-white/60 p-10 text-center text-sm text-muted">
-            KPI graph placeholder (MAU / Conversions / Revenue)
+            Comming Soon
           </div>
         </div>
 
        
-        {/* Footer */}
         <AdminFooter />
       </div>
     </PageShell>
   );
 };
 
-
-const KpiCard = ({ label, value }) => {
-  return (
-    <div className="rounded-[22px] border border-black/5 bg-white/75 p-5 shadow-[0_12px_30px_rgba(0,0,0,0.08)] backdrop-blur">
-      <p className="text-sm text-text-dark/70">{label}</p>
-      <p className="mt-2 text-4xl font-extrabold tracking-tight text-text-dark">
-        {value}
-      </p>
-    </div>
-  );
-};
-
-const IssueRow = ({ title, subtitle, badge, tone = "warn" }) => {
-  const badgeClass =
-    tone === "danger"
-      ? "bg-red-100 text-red-600"
-      : "bg-amber-100 text-amber-700";
-
-  return (
-    <div className="flex items-center justify-between rounded-[22px] border border-black/5 bg-white/80 p-4 shadow-sm">
-      <div>
-        <p className="text-sm font-semibold text-text-dark">{title}</p>
-        <p className="mt-0.5 text-xs text-muted">{subtitle}</p>
-      </div>
-      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${badgeClass}`}>
-        {badge}
-      </span>
-    </div>
-  );
-};
-
-const PaymentRow = ({ title, subtitle, action }) => {
-  return (
-    <div className="flex items-center justify-between rounded-[22px] border border-black/5 bg-white/80 p-4 shadow-sm">
-      <div>
-        <p className="text-sm font-semibold text-text-dark">{title}</p>
-        <p className="mt-0.5 text-xs text-muted">{subtitle}</p>
-      </div>
-      <button className="rounded-full bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-200">
-        {action}
-      </button>
-    </div>
-  );
-};
-
-const FooterCol = ({ title, items }) => (
-  <div>
-    <p className="text-sm font-semibold text-text-dark">{title}</p>
-    <ul className="mt-3 space-y-2 text-xs text-muted">
-      {items.map((x) => (
-        <li key={x} className="hover:text-text-dark hover:underline cursor-pointer">
-          {x}
-        </li>
-      ))}
-    </ul>
-  </div>
-);
-
-const IconDot = ({ children }) => (
-  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary">
-    {children}
-  </div>
-);
-
-function formatK(n) {
-  if (typeof n !== "number") return n;
-  if (n >= 1000) return n.toLocaleString();
-  return String(n);
-}
 
 export default AdminDashboard;
