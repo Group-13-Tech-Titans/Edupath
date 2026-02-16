@@ -36,6 +36,8 @@ import AdminVerifyEducators from "./pages/admin/AdminVerifyEducators.jsx";
 import AdminReviewDashboard from "./pages/admin/AdminReviewDashboard.jsx";
 import AdminViewCourses from "./pages/admin/AdminViewCourses.jsx";
 import AdminProfile from "./pages/admin/AdminProfile.jsx";
+import AdminCourseRating from "./pages/admin/AdminCourseRating.jsx";
+
 
 
 import ReviewerDashboard from "./pages/reviewer/ReviewerDashboard.jsx";
@@ -92,6 +94,7 @@ const App = () => {
             <Route path="approvals" element={<AdminCourseReview />} />
             <Route path="profile" element={<AdminProfile />} />
             <Route path="view-courses" element={<AdminViewCourses />} />
+            <Route path="course-rating/:id" element={<AdminCourseRating />} />
           </Route>
         </Route>
 
