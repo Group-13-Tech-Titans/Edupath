@@ -34,12 +34,14 @@ import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import AdminReviewers from "./pages/admin/AdminReviewers.jsx";
 import AdminVerifyEducators from "./pages/admin/AdminVerifyEducators.jsx";
 import AdminReviewDashboard from "./pages/admin/AdminReviewDashboard.jsx";
+import AdminViewCourses from "./pages/admin/AdminViewCourses.jsx";
+import AdminProfile from "./pages/admin/AdminProfile.jsx";
+
 
 import ReviewerDashboard from "./pages/reviewer/ReviewerDashboard.jsx";
 import ReviewerQueue from "./pages/reviewer/ReviewerQueue.jsx";
 import ReviewerCourseReview from "./pages/reviewer/ReviewerCourseReview.jsx";
 import ReviewerHistory from "./pages/reviewer/ReviewerHistory.jsx";
-import AdminProfile from "./pages/admin/AdminProfile.jsx";
 
 import ComingSoon from "./pages/ComingSoon.jsx";
 import NotFound from "./pages/NotFound.jsx";
@@ -89,6 +91,7 @@ const App = () => {
             <Route path="queue/:id" element={<ReviewerCourseReview />} />
             <Route path="approvals" element={<AdminCourseReview />} />
             <Route path="profile" element={<AdminProfile />} />
+            <Route path="view-courses" element={<AdminViewCourses />} />
           </Route>
         </Route>
 

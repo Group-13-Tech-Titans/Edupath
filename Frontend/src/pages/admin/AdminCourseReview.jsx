@@ -130,7 +130,7 @@ const AdminCourseReview = () => {
             </div>
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={() => window.location.href = "/coming-soon"}
+                onClick={() => window.location.href = "/admin/view-courses"}
                 className="rounded-full bg-primary/15 px-5 py-2.5 text-sm font-semibold text-primary shadow-sm hover:bg-primary/20"
               >
                 view All Courses

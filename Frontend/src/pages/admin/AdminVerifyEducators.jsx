@@ -58,12 +58,12 @@ const AdminVerifyEducators = () => {
                 Recent educator verification requests submitted to the platform.
               </p>
             </div>
-            <a
+            {/* <a
               href="/coming-soon"
               className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary/90"
             >
               View All Requests
-            </a>
+            </a> */}
           </div>
         </div>
 
@@ -72,12 +72,12 @@ const AdminVerifyEducators = () => {
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-text-dark">Requests</h2>
             <span className="text-xs text-muted">
-              <a
+              {/* <a
               href="/coming-soon"
               className=" px-4 py-2 text-xs font-semibold text-black hover:bg-primary/90 hover:text-white rounded-full"
             >
               View All
-            </a>
+            </a> */}
             </span>
           </div>
 
