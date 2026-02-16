@@ -1,7 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
 
-// 1. Define your animation variants
 const stagger = {
   show: {
     transition: {
@@ -15,9 +14,8 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
 };
 
-// 2. Define the sub-components used in the form
 const ContactPill = ({ icon, title, text }) => (
-  <div className="flex items-center gap-3 rounded-2xl border border-black/5 bg-slate-50 p-3">
+  <div className="flex items-center gap-3 rounded-xl border border-black/5 bg-white p-3">
     <span className="text-xl">{icon}</span>
     <div>
       <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{title}</p>
@@ -44,7 +42,7 @@ export default function ContactForm({ onNav }) {
         whileInView="show"
         viewport={{ once: true, amount: 0.2 }}
         variants={stagger}
-        className="rounded-[34px] border border-black/5 bg-white p-6 shadow-[0_18px_70px_rgba(0,0,0,0.08)] sm:p-10"
+        className="rounded-[34px] border border-black/5 bg-gradient-to-b from-emerald-50 to-white p-6 shadow-[0_18px_70px_rgba(0,0,0,0.08)] sm:p-10"
       >
         <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
           <div className="space-y-3">
