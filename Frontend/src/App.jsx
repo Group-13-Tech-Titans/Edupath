@@ -23,6 +23,8 @@ import StudentCourses from "./pages/student/StudentCourses.jsx";
 import StudentCourseDetail from "./pages/student/StudentCourseDetail.jsx";
 import StudentMentor from "./pages/student/StudentMentor.jsx";
 import StudentProfile from "./pages/student/StudentProfile.jsx";
+import PathIntro from "./pages/student/PathIntro.jsx";
+import PathFinder from "./pages/student/PathFinder.jsx";
 
 import EducatorDashboard from "./pages/educator/EducatorDashboard.jsx";
 import EducatorCourses from "./pages/educator/EducatorCourses.jsx";
@@ -63,11 +65,14 @@ const App = () => {
 
         <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
           <Route path="/student" element={<StudentLayout />}>
-            <Route index element={<StudentDashboard />} />
+            <Route index element={<PathIntro />} />
+            {/* <Route index element={<StudentDashboard />} /> */}
             <Route path="courses" element={<StudentCourses />} />
             <Route path="courses/:id" element={<StudentCourseDetail />} />
             <Route path="mentor" element={<StudentMentor />} />
             <Route path="profile" element={<StudentProfile />} />
+            {/* <Route path="/student/path" element={<PathIntro />} /> */}
+            <Route path="/student/path-finder" element={<PathFinder />} />
           </Route>
         </Route>
 
