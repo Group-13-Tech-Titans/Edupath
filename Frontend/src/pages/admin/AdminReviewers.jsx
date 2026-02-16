@@ -3,6 +3,15 @@ import React, { useEffect, useMemo, useState } from "react";
 
 const LS_KEY = "edupath_reviewers_v1";
 
+// ✅ Mock data (shows on right side card on first load)
+const MOCK_REVIEWERS = [
+  { id: 1001, name: "Nuwan Silva", email: "nuwan@edupath.com", specializationTag: "ui-ux" },
+  { id: 1002, name: "Kavindu Perera", email: "kavindu@edupath.com", specializationTag: "web-dev" },
+  { id: 1003, name: "Sahan Fernando", email: "sahan@edupath.com", specializationTag: "data-science" },
+  { id: 1004, name: "Dinuli Jayasinghe", email: "dinuli@edupath.com", specializationTag: "cyber" },
+  { id: 1005, name: "Shehan Wickramasinghe", email: "shehan@edupath.com", specializationTag: "mobile" },
+];
+
 const getInitials = (name = "") => {
   const parts = name.trim().split(" ").filter(Boolean);
   if (!parts.length) return "R";
@@ -26,14 +35,37 @@ export default function AdminReviewers() {
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
 
-  // Load reviewers
+  // ✅ Load + seed reviewers (only once, if storage empty)
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem(LS_KEY)) || [];
+    const raw = localStorage.getItem(LS_KEY);
+
+    // If nothing saved yet -> seed mock
+    if (!raw) {
+      localStorage.setItem(LS_KEY, JSON.stringify(MOCK_REVIEWERS));
+      setReviewers(MOCK_REVIEWERS);
+      return;
+    }
+
+    let stored = [];
+    try {
+      stored = JSON.parse(raw) || [];
+    } catch {
+      stored = [];
+    }
+
+    // If saved but empty -> seed mock
+    if (Array.isArray(stored) && stored.length === 0) {
+      localStorage.setItem(LS_KEY, JSON.stringify(MOCK_REVIEWERS));
+      setReviewers(MOCK_REVIEWERS);
+      return;
+    }
+
     setReviewers(stored);
   }, []);
 
-  // Save reviewers
+  // ✅ Save reviewers whenever list changes (skip first empty render)
   useEffect(() => {
+    if (!Array.isArray(reviewers)) return;
     localStorage.setItem(LS_KEY, JSON.stringify(reviewers));
   }, [reviewers]);
 
@@ -48,7 +80,7 @@ export default function AdminReviewers() {
 
   // Form handler
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
   };
 
   // Submit handler
@@ -67,7 +99,7 @@ export default function AdminReviewers() {
       return;
     }
 
-    const exists = reviewers.some((r) => r.email === form.email);
+    const exists = reviewers.some((r) => r.email.toLowerCase() === form.email.toLowerCase());
     if (exists) {
       setError("Reviewer email already exists.");
       return;
@@ -75,13 +107,13 @@ export default function AdminReviewers() {
 
     const newReviewer = {
       id: Date.now(),
-      name: form.name,
-      email: form.email,
-      specializationTag: form.specializationTag || "data",
+      name: form.name.trim(),
+      email: form.email.trim(),
+      specializationTag: (form.specializationTag || "data").trim(),
+      // NOTE: password is not saved in localStorage for basic safety.
     };
 
-    setReviewers([newReviewer, ...reviewers]);
-
+    setReviewers((prev) => [newReviewer, ...prev]);
     setSuccess("Reviewer account created ✅");
 
     setForm({
@@ -93,12 +125,8 @@ export default function AdminReviewers() {
   };
 
   return (
-    // ✅ FIX: allow page to grow + scroll on mobile
-    <div className="min-h-screen  from-emerald-50 to-white px-4 py-4">
-      {/* ✅ FIX: remove h-full so grid can expand on mobile */}
+    <div className="min-h-screen from-emerald-50 to-white px-4 py-4">
       <div className="mx-auto max-w-6xl grid gap-5 lg:grid-cols-2">
-        {/* LEFT - FORM */}
-        {/* ✅ FIX: remove h-full / flex-1 so it doesn't force fixed height */}
         <div className="rounded-[26px] bg-white/80 shadow-lg p-6 ring-1 ring-emerald-100">
           <div>
             <h2 className="text-lg font-bold text-slate-900">Create Reviewer</h2>
@@ -143,7 +171,7 @@ export default function AdminReviewers() {
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => setShowPassword((v) => !v)}
                   className="absolute right-4 top-3.5 text-slate-400 hover:text-slate-600"
                 >
                   👁
@@ -164,10 +192,7 @@ export default function AdminReviewers() {
               />
             </div>
 
-            {error && <p className="text-sm text-red-500 font-semibold">{error}</p>}
-            {success && (
-              <p className="text-sm text-green-600 font-semibold">{success}</p>
-            )}
+            
 
             <button
               type="submit"
@@ -177,14 +202,11 @@ export default function AdminReviewers() {
             </button>
 
             <p className="text-xs text-slate-500">
-              Tip: Use specialization tags to assign reviewers for specific course
-              categories.
+              Tip: Use specialization tags to assign reviewers for specific course categories.
             </p>
           </form>
         </div>
 
-        {/* RIGHT - LIST */}
-        {/* ✅ FIX: remove h-full / flex-1; keep list scroll only on desktop */}
         <div className="rounded-[26px] bg-white/80 shadow-lg p-6 ring-1 ring-emerald-100">
           <div>
             <h2 className="text-lg font-bold text-slate-900">Existing reviewers</h2>
@@ -200,8 +222,6 @@ export default function AdminReviewers() {
             className="mt-4 w-full rounded-full border px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-emerald-100"
           />
 
-          {/* ✅ FIX: On mobile -> normal flow (page scroll)
-              On desktop -> make list scroll inside the card */}
           <div className="mt-4 space-y-3 lg:max-h-[520px] lg:overflow-y-auto pr-1">
             {filteredReviewers.length === 0 && (
               <p className="text-sm text-slate-400">No reviewers found...</p>
@@ -229,6 +249,8 @@ export default function AdminReviewers() {
               </div>
             ))}
           </div>
+
+          
         </div>
       </div>
     </div>
