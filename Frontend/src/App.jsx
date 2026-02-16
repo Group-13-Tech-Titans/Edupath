@@ -33,6 +33,7 @@ import EducatorEditCourse from "./pages/educator/EducatorEditCourse.jsx";
 import EducatorAddContent from "./pages/educator/EducatorAddContent.jsx";
 import EducatorPayouts from "./pages/educator/EducatorPayouts.jsx";
 import EducatorProfile from "./pages/educator/EducatorProfile.jsx";
+import EducatorVerificationPendingPage from "./pages/educator/EducatorVerificationPendingPage.jsx";
 
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import AdminReviewers from "./pages/admin/AdminReviewers.jsx";
@@ -77,6 +78,7 @@ const App = () => {
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["educator"]} />}>
+          <Route path="verification-pending" element={<EducatorVerificationPendingPage />} />
           <Route path="/educator" element={<EducatorLayout />}>
             <Route index element={<EducatorDashboard />} />
             <Route path="courses" element={<EducatorCourses />} />
@@ -85,6 +87,7 @@ const App = () => {
             <Route path="add-content/:id" element={<EducatorAddContent />} />
             <Route path="payouts" element={<EducatorPayouts />} />
             <Route path="profile" element={<EducatorProfile />} />
+            {/* <Route path="verification-pending" element={<EducatorVerificationPendingPage />} /> */}
           </Route>
         </Route>
 

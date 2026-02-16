@@ -32,7 +32,7 @@ const SignupEducator = () => {
       setError(res.message || "Unable to sign up");
       return;
     }
-    navigate("/educator");
+    navigate("/verification-pending");
   };
 
   return (
