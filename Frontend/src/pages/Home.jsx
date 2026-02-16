@@ -297,17 +297,12 @@ export default function LandingBloomPro() {
                 Learn with structured courses and guided steps
               </motion.h3>
               <motion.p variants={fadeUp} className="mt-1 text-sm text-slate-600">
-                Lessons + materials + quizzes + projects — reviewed before publishing for quality.
+                EduPath helps you choose the right career direction and learn with a guided, verified, and modern experience.
               </motion.p>
             </div>
 
             <motion.div variants={fadeUp} className="flex gap-2">
-              <Link
-                to="/courses"
-                className="rounded-full border border-black/10 bg-white px-5 py-2.5 text-sm font-bold hover:bg-black/5"
-              >
-                Browse all
-              </Link>
+              
               <Link
                 to="/signup"
                 className="rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow hover:brightness-95"
@@ -320,50 +315,23 @@ export default function LandingBloomPro() {
           {/* special highlight */}
           <motion.div
             variants={fadeUp}
-            className="rounded-[30px] border border-black/5 bg-gradient-to-br from-emerald-50 via-white to-yellow-50 p-6 shadow-[0_18px_60px_rgba(0,0,0,0.06)]"
+            // className="rounded-[30px] border border-black/5 bg-gradient-to-br from-emerald-50 via-white to-yellow-50 p-6 shadow-[0_18px_60px_rgba(0,0,0,0.06)]"
           >
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            
               <div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-black/5 bg-white px-3 py-1 text-xs font-extrabold">
-                  🌟 Featured Learning Track
-                  <span className="rounded-full bg-yellow-300 px-2 py-0.5 text-[11px] font-black text-slate-900">
-                    POPULAR
-                  </span>
-                </div>
-                <h4 className="mt-3 text-2xl font-extrabold">
-                  Web Development Starter Pack — from basics to real projects
-                </h4>
-                <p className="mt-2 max-w-2xl text-sm text-slate-600">
-                  Start with HTML, CSS, and JavaScript, then continue into React and APIs.
-                  Each step is guided through quizzes and milestones — so you always know what to learn next.
-                </p>
-
-                <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-700">
-                  <Tag>Beginner-friendly</Tag>
-                  <Tag>Step-by-step</Tag>
-                  <Tag>Projects</Tag>
-                  <Tag>Certificate</Tag>
-                </div>
+                <img
+                  src="/landingImages/Img2.png"
+                  alt="Landing Preview"
+                  className="w-full h-full rounded-xl"
+      />
+                
               </div>
 
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Link
-                  to="/courses/web-starter"
-                  className="rounded-full bg-slate-900 px-6 py-3 text-sm font-extrabold text-white shadow hover:brightness-95"
-                >
-                  View syllabus
-                </Link>
-                <Link
-                  to="/signup"
-                  className="rounded-full bg-emerald-600 px-6 py-3 text-sm font-extrabold text-white shadow hover:brightness-95"
-                >
-                  Enroll (free)
-                </Link>
-              </div>
-            </div>
+              
+          
           </motion.div>
 
-          {/* grid */}
+          
           <div className="grid gap-4 md:grid-cols-3">
             <CourseCard
               title="HTML + CSS Foundations"
@@ -430,37 +398,17 @@ export default function LandingBloomPro() {
             variants={fadeUp}
             className="rounded-[30px] border border-black/5 bg-white p-7 shadow-[0_18px_60px_rgba(0,0,0,0.06)]"
           >
-            <p className="text-xs font-extrabold text-emerald-700">WHY EDUPATH</p>
-            <h3 className="mt-2 text-3xl font-extrabold">
-              A complete learning ecosystem — students, educators, reviewers, and admin
-            </h3>
-            <p className="mt-2 text-sm text-slate-600">
-              Students follow guided pathways, educators publish structured courses, reviewers approve
-              quality, and admins manage roles and platform operations. Everything works together to keep
-              learning focused and reliable.
-            </p>
+            
+        <img
+        src="/landingImages/Img1.png"
+        alt="Landing Preview"
+        className="w-full rounded-xl"
+      />
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <Stat value="4 roles" label="Student • Educator • Reviewer • Admin" />
-              <Stat value="RBAC" label="Secure access per screen" />
-              <Stat value="Quality" label="Review before publish" />
-              <Stat value="Tracking" label="Progress + streaks + milestones" />
-            </div>
 
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <Link
-                to="/login"
-                className="rounded-full border border-black/10 bg-white px-6 py-3 text-sm font-extrabold hover:bg-black/5"
-              >
-                Log in
-              </Link>
-              <Link
-                to="/signup"
-                className="rounded-full bg-emerald-600 px-6 py-3 text-sm font-extrabold text-white shadow hover:brightness-95"
-              >
-                Create account
-              </Link>
-            </div>
+            
+
+            
           </motion.div>
 
           <motion.div

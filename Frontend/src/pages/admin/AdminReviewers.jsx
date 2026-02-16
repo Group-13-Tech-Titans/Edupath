@@ -1,5 +1,5 @@
-// src/pages/admin/AdminReviewers.jsx
 import React, { useEffect, useMemo, useState } from "react";
+import AdminFooter from "./AdminFooter.jsx";
 
 const LS_KEY = "edupath_reviewers_v1";
 
@@ -252,7 +252,9 @@ export default function AdminReviewers() {
 
           
         </div>
-      </div>
+        
+      </div><br />
+      <AdminFooter />
     </div>
   );
 }
