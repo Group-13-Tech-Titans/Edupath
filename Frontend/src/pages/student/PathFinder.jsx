@@ -341,6 +341,7 @@ export default function PathFinder() {
           </div>
         </div>
       </div>
+      
     </div>
   );
 }
