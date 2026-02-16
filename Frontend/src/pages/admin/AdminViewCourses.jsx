@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminFooter from "./AdminFooter";
+import AdminCourseRating from "./AdminCourseRating";
 
 const mockCourses = [
   {
@@ -103,7 +104,7 @@ export default function AdminViewCourses() {
       });
   }, [tab, search]);
 
-  const openCourse = (id) => navigate(`/admin/courses/${id}`);
+  const openCourse = (id) => navigate(`/admin/course-rating/${id}`);
 
   return (
     <div className="min-h-screen ">
