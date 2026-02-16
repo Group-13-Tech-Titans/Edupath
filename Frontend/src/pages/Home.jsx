@@ -220,10 +220,11 @@ export default function LandingBloomPro() {
               CAREER PATHWAYS
             </motion.p>
             <motion.h2 variants={fadeUp} className="text-3xl font-extrabold sm:text-4xl">
-              Career pathways built around real job roles
+              Build your future with job-ready learning pathways
             </motion.h2>
             <motion.p variants={fadeUp} className="max-w-2xl text-sm text-slate-600 sm:text-base">
-              Our AI Path Finder recommends career directions based on your interests and learning level. After you choose a goal, EduPath guides you step-by-step with courses, quizzes, projects, and milestone certifications.
+             EduPath uses AI to suggest the best career direction for you.
+Once you choose a goal, we guide you step-by-step with courses, quizzes, projects, and milestones.
             </motion.p>
 
             <motion.div variants={fadeUp} className="grid gap-3 sm:grid-cols-2">
