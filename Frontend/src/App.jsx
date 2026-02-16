@@ -41,6 +41,14 @@ import ReviewerCourseReview from "./pages/reviewer/ReviewerCourseReview.jsx";
 import ReviewerHistory from "./pages/reviewer/ReviewerHistory.jsx";
 import AdminProfile from "./pages/admin/AdminProfile.jsx";
 
+import MentorLayout from "./components/layouts/MentorLayout.jsx";
+
+import MentorDashboard from "./pages/mentor/MentorDashboard.jsx";
+import MentorProfile from "./pages/mentor/MentorProfile.jsx";
+import MentorSessions from "./pages/mentor/MentorSessions.jsx";
+import MentorShareResource from "./pages/mentor/MentorShareResource.jsx";
+import MentorStudents from "./pages/mentor/MentorStudents.jsx";
+
 import ComingSoon from "./pages/ComingSoon.jsx";
 import NotFound from "./pages/NotFound.jsx";
 
@@ -78,6 +86,23 @@ const App = () => {
             <Route path="profile" element={<EducatorProfile />} />
           </Route>
         </Route>
+
+        {/* <Route>
+          <Route path="/mentor" element={<MentorLayout />}>
+            <Route index element={<MentorDashboard />} />
+            <Route path="sessions" element={<MentorSessions />} />
+            <Route path="resources" element={<MentorShareResource />} />
+            <Route path="students" element={<MentorStudents />} />
+            <Route path="profile" element={<MentorProfile />} />
+          </Route>
+        </Route> */}
+
+        {/* Mentor test routes (unprotected) - quick access for development/testing */}
+        <Route path="/MentorDashboard" element={<MentorDashboard />} />
+        <Route path="/MentorSessions" element={<MentorSessions />} />
+        <Route path="/MentorResources" element={<MentorShareResource />} />
+        <Route path="/MentorStudents" element={<MentorStudents />} />
+        <Route path="/MentorProfile" element={<MentorProfile />} />
 
         <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
           <Route path="/admin" element={<AdminLayout />}>
