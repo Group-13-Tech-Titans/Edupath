@@ -2,6 +2,8 @@ import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import LandingFooter from "../components/LandingFooter";
+import ComingSoon from "./ComingSoon";
+import ContactForm from "../components/ContactForm.jsx";
 
 
 const ease = [0.22, 1, 0.36, 1];
@@ -41,7 +43,7 @@ export default function LandingBloomPro() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-emerald-50 text-slate-900">
-      {/* Sticky Header */}
+
       <header className="sticky top-0 z-50 border-b border-black/5 bg-white/70 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <button
@@ -88,7 +90,6 @@ export default function LandingBloomPro() {
         </div>
       </header>
 
-      {/* HERO */}
       <section id="home" className="mx-auto max-w-6xl px-4 pt-10">
         <motion.div
           initial="hidden"
@@ -96,7 +97,6 @@ export default function LandingBloomPro() {
           variants={stagger}
           className="relative overflow-hidden rounded-[34px] border border-black/5 bg-white shadow-[0_18px_70px_rgba(0,0,0,0.08)]"
         >
-          {/* background accents */}
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-emerald-400/15 blur-3xl" />
             <div className="absolute -right-24 top-10 h-72 w-72 rounded-full bg-teal-400/15 blur-3xl" />
@@ -104,7 +104,7 @@ export default function LandingBloomPro() {
           </div>
 
           <div className="relative grid gap-8 p-6 sm:p-10 lg:grid-cols-2 lg:items-center">
-            {/* Left content */}
+
             <div className="space-y-5">
               
 
@@ -145,9 +145,7 @@ export default function LandingBloomPro() {
               
             </div>
 
-            {/* Right “image + link cards” */}
             <motion.div variants={fade} className="relative">
-              {/* floating dots like your reference */}
               <motion.div
                 aria-hidden
                 animate={{ y: [0, -10, 0] }}
@@ -164,7 +162,7 @@ export default function LandingBloomPro() {
               <div className="rounded-[28px] border border-black/5 bg-white p-4 shadow-[0_18px_60px_rgba(0,0,0,0.08)]">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <LinkCard
-                    to="/path-finder"
+                    to="/coming-soon"
                     title="AI Path Finder"
                     subtitle="Answer questions → get your best matches"
                     badge="AI"
@@ -172,7 +170,7 @@ export default function LandingBloomPro() {
                     bg="bg-gradient-to-br from-emerald-50 to-white"
                   />
                   <LinkCard
-                    to="/courses"
+                    onclick={()=> scrollToId("courses")}
                     title="Verified Courses"
                     subtitle="Reviewed before publishing for quality"
                     badge="QC"
@@ -180,7 +178,7 @@ export default function LandingBloomPro() {
                     bg="bg-gradient-to-br from-teal-50 to-white"
                   />
                   <LinkCard
-                    to="/mentor"
+                    to="/coming-soon"
                     title="Mentor Support"
                     subtitle="Request 1:1 guidance (Premium)"
                     badge="PRO"
@@ -188,7 +186,7 @@ export default function LandingBloomPro() {
                     bg="bg-gradient-to-br from-yellow-50 to-white"
                   />
                   <LinkCard
-                    to="/dashboard"
+                    to="/login"
                     title="My Learning"
                     subtitle="Track progress, streaks, milestones"
                     badge="GO"
@@ -446,69 +444,7 @@ Once you choose a goal, we guide you step-by-step with courses, quizzes, project
           </motion.div>
         </motion.div>
       </section>
-
-      {/* CONTACT */}
-      <section id="contact" className="mx-auto max-w-6xl px-4 pb-12">
-        <motion.div
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.2 }}
-          variants={stagger}
-          className="rounded-[34px] border border-black/5 bg-white p-6 shadow-[0_18px_70px_rgba(0,0,0,0.08)] sm:p-10"
-        >
-          <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
-            <div className="space-y-3">
-              <motion.p variants={fadeUp} className="text-xs font-extrabold text-emerald-700">
-                CONTACT US
-              </motion.p>
-              <motion.h4 variants={fadeUp} className="text-3xl font-extrabold">
-                Need help choosing a path?
-              </motion.h4>
-              <motion.p variants={fadeUp} className="text-sm text-slate-600">
-                Ask us about pathways, course publishing, reviews, mentoring, or subscriptions.
-                We’ll respond with clear guidance and next steps.
-              </motion.p>
-
-              <motion.div variants={fadeUp} className="mt-4 grid gap-3 sm:grid-cols-2">
-                <ContactPill icon="📍" title="Location" text="Sri Lanka " />
-                <ContactPill icon="📧" title="Email" text="support@edupath.app" />
-                <ContactPill icon="⏰" title="Hours" text="24/7 Learning Access" />
-                <ContactPill icon="💬" title="Support" text="Fast response" />
-              </motion.div>
-            </div>
-
-            <motion.form
-              variants={fadeUp}
-              className="rounded-[26px] border border-black/5 bg-gradient-to-b from-emerald-50 to-white p-5 sm:p-6"
-            >
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Input label="Full name" placeholder="Your name" />
-                <Input label="Email" placeholder="you@email.com" type="email" />
-              </div>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <Input label="I am a..." placeholder="Student / Educator / Parent" />
-                <Input label="Topic" placeholder="Pathways / Courses / Mentoring" />
-              </div>
-              <div className="mt-3">
-                <label className="text-xs font-extrabold text-slate-700">Message</label>
-                <textarea
-                  className="mt-1 h-28 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-300"
-                  placeholder="Tell us what you need…"
-                />
-              </div>
-
-              <button
-                type="button"
-                className="mt-4 w-full rounded-full bg-emerald-600 px-6 py-3 text-sm font-extrabold text-white shadow hover:brightness-95"
-              >
-                Send message
-              </button>
-
-              
-            </motion.form>
-          </div>
-        </motion.div>
-      </section>
+            <ContactForm/>
            <LandingFooter onNav={scrollToId} />
 
     </div>
