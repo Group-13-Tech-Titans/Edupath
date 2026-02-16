@@ -1,133 +1,260 @@
-import React, { useState } from "react";
-import PageShell from "../../components/PageShell.jsx";
-import { useApp } from "../../context/AppProvider.jsx";
+import React, { useEffect, useMemo, useState } from "react";
 import AdminFooter from "./AdminFooter.jsx";
 
-const AdminReviewers = () => {
-  const { reviewerAccounts, createReviewer } = useApp();
+const LS_KEY = "edupath_reviewers_v1";
+
+// ✅ Mock data (shows on right side card on first load)
+const MOCK_REVIEWERS = [
+  { id: 1001, name: "Nuwan Silva", email: "nuwan@edupath.com", specializationTag: "ui-ux" },
+  { id: 1002, name: "Kavindu Perera", email: "kavindu@edupath.com", specializationTag: "web-dev" },
+  { id: 1003, name: "Sahan Fernando", email: "sahan@edupath.com", specializationTag: "data-science" },
+  { id: 1004, name: "Dinuli Jayasinghe", email: "dinuli@edupath.com", specializationTag: "cyber" },
+  { id: 1005, name: "Shehan Wickramasinghe", email: "shehan@edupath.com", specializationTag: "mobile" },
+];
+
+const getInitials = (name = "") => {
+  const parts = name.trim().split(" ").filter(Boolean);
+  if (!parts.length) return "R";
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+};
+
+export default function AdminReviewers() {
+  const [reviewers, setReviewers] = useState([]);
+
   const [form, setForm] = useState({
     name: "",
     email: "",
     password: "",
-    specializationTag: ""
+    specializationTag: "",
   });
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
+  const [search, setSearch] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
+
+  // ✅ Load + seed reviewers (only once, if storage empty)
+  useEffect(() => {
+    const raw = localStorage.getItem(LS_KEY);
+
+    // If nothing saved yet -> seed mock
+    if (!raw) {
+      localStorage.setItem(LS_KEY, JSON.stringify(MOCK_REVIEWERS));
+      setReviewers(MOCK_REVIEWERS);
+      return;
+    }
+
+    let stored = [];
+    try {
+      stored = JSON.parse(raw) || [];
+    } catch {
+      stored = [];
+    }
+
+    // If saved but empty -> seed mock
+    if (Array.isArray(stored) && stored.length === 0) {
+      localStorage.setItem(LS_KEY, JSON.stringify(MOCK_REVIEWERS));
+      setReviewers(MOCK_REVIEWERS);
+      return;
+    }
+
+    setReviewers(stored);
+  }, []);
+
+  // ✅ Save reviewers whenever list changes (skip first empty render)
+  useEffect(() => {
+    if (!Array.isArray(reviewers)) return;
+    localStorage.setItem(LS_KEY, JSON.stringify(reviewers));
+  }, [reviewers]);
+
+  // Search filter
+  const filteredReviewers = useMemo(() => {
+    return reviewers.filter((r) =>
+      `${r.name} ${r.email} ${r.specializationTag}`
+        .toLowerCase()
+        .includes(search.toLowerCase())
+    );
+  }, [reviewers, search]);
+
+  // Form handler
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
   };
 
+  // Submit handler
   const handleSubmit = (e) => {
     e.preventDefault();
-    const res = createReviewer(form);
-    if (!res.success) {
-      setError(res.message || "Unable to create reviewer");
-      setSuccess("");
-    } else {
-      setError("");
-      setSuccess("Reviewer account created");
-      setForm({ name: "", email: "", password: "", specializationTag: "" });
+    setError("");
+    setSuccess("");
+
+    if (!form.name || !form.email || !form.password) {
+      setError("All fields are required!");
+      return;
     }
+
+    if (form.password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+
+    const exists = reviewers.some((r) => r.email.toLowerCase() === form.email.toLowerCase());
+    if (exists) {
+      setError("Reviewer email already exists.");
+      return;
+    }
+
+    const newReviewer = {
+      id: Date.now(),
+      name: form.name.trim(),
+      email: form.email.trim(),
+      specializationTag: (form.specializationTag || "data").trim(),
+      // NOTE: password is not saved in localStorage for basic safety.
+    };
+
+    setReviewers((prev) => [newReviewer, ...prev]);
+    setSuccess("Reviewer account created ✅");
+
+    setForm({
+      name: "",
+      email: "",
+      password: "",
+      specializationTag: "",
+    });
   };
 
   return (
-    <PageShell>
-      <div className="grid gap-5 md:grid-cols-2">
-        <div className="glass-card p-5 text-xs">
-          <h1 className="text-xl font-semibold text-text-dark">Reviewer accounts</h1>
-          <p className="mt-1 text-muted">
-            Create reviewer logins. They will use the same login page.
-          </p>
-          <form onSubmit={handleSubmit} className="mt-4 space-y-3">
+    <div className="min-h-screen from-emerald-50 to-white px-4 py-4">
+      <div className="mx-auto max-w-6xl grid gap-5 lg:grid-cols-2">
+        <div className="rounded-[26px] bg-white/80 shadow-lg p-6 ring-1 ring-emerald-100">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Create Reviewer</h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Fill the form and create a new reviewer login.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <div>
-              <label className="font-medium">Name</label>
+              <label className="text-sm font-semibold text-slate-700">Name</label>
               <input
                 name="name"
                 value={form.name}
                 onChange={handleChange}
-                required
-                className="mt-1 w-full rounded-2xl border border-black/10 bg-white/70 px-3 py-2 outline-none ring-primary/40 focus:ring"
+                placeholder="Eg: Nuwan Silva"
+                className="mt-2 w-full rounded-full border px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-emerald-100"
               />
             </div>
+
             <div>
-              <label className="font-medium">Email</label>
+              <label className="text-sm font-semibold text-slate-700">Email</label>
               <input
-                type="email"
                 name="email"
                 value={form.email}
                 onChange={handleChange}
-                required
-                className="mt-1 w-full rounded-2xl border border-black/10 bg-white/70 px-3 py-2 outline-none ring-primary/40 focus:ring"
+                placeholder="reviewer@edupath.com"
+                className="mt-2 w-full rounded-full border px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-emerald-100"
               />
             </div>
+
             <div>
-              <label className="font-medium">Password</label>
-              <input
-                type="password"
-                name="password"
-                value={form.password}
-                onChange={handleChange}
-                required
-                className="mt-1 w-full rounded-2xl border border-black/10 bg-white/70 px-3 py-2 outline-none ring-primary/40 focus:ring"
-              />
+              <label className="text-sm font-semibold text-slate-700">Password</label>
+              <div className="relative mt-2">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="Min 6 characters"
+                  className="w-full rounded-full border px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-emerald-100"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-4 top-3.5 text-slate-400 hover:text-slate-600"
+                >
+                  👁
+                </button>
+              </div>
             </div>
+
             <div>
-              <label className="font-medium">Specialization tag</label>
+              <label className="text-sm font-semibold text-slate-700">
+                Specialization Tag
+              </label>
               <input
                 name="specializationTag"
                 value={form.specializationTag}
                 onChange={handleChange}
-                placeholder="Eg: web-dev, data-science"
-                required
-                className="mt-1 w-full rounded-2xl border border-black/10 bg-white/70 px-3 py-2 outline-none ring-primary/40 focus:ring"
+                placeholder="Eg: web-dev, ui-ux, data-science"
+                className="mt-2 w-full rounded-full border px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-emerald-100"
               />
             </div>
-            {error && (
-              <p className="rounded-2xl bg-red-50 px-3 py-2 text-[11px] text-red-600">
-                {error}
-              </p>
-            )}
-            {success && (
-              <p className="rounded-2xl bg-emerald-50 px-3 py-2 text-[11px] text-emerald-700">
-                {success}
-              </p>
-            )}
-            <button type="submit" className="btn-primary w-full">
+
+            
+
+            <button
+              type="submit"
+              className="w-full rounded-full bg-emerald-500 py-3 font-bold text-white shadow-md hover:bg-emerald-600 transition"
+            >
               Create reviewer
             </button>
+
+            <p className="text-xs text-slate-500">
+              Tip: Use specialization tags to assign reviewers for specific course categories.
+            </p>
           </form>
         </div>
-        <div className="glass-card p-5 text-xs">
-          <h2 className="text-sm font-semibold text-text-dark">Existing reviewers</h2>
-          <ul className="mt-3 space-y-2">
-            {reviewerAccounts.map((r) => (
-              <li
+
+        <div className="rounded-[26px] bg-white/80 shadow-lg p-6 ring-1 ring-emerald-100">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Existing reviewers</h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Search and view created reviewer accounts.
+            </p>
+          </div>
+
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search reviewers..."
+            className="mt-4 w-full rounded-full border px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-emerald-100"
+          />
+
+          <div className="mt-4 space-y-3 lg:max-h-[520px] lg:overflow-y-auto pr-1">
+            {filteredReviewers.length === 0 && (
+              <p className="text-sm text-slate-400">No reviewers found...</p>
+            )}
+
+            {filteredReviewers.map((r) => (
+              <div
                 key={r.id}
-                className="flex items-center justify-between rounded-2xl bg-white/80 px-3 py-2"
+                className="flex items-center justify-between rounded-2xl border bg-white px-4 py-3 shadow-sm"
               >
-                <div>
-                  <p className="font-medium text-text-dark">{r.name}</p>
-                  <p className="text-[11px] text-muted">{r.email}</p>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center font-bold text-emerald-700 text-sm shrink-0">
+                    {getInitials(r.name)}
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-800 truncate text-sm">{r.name}</p>
+                    <p className="text-sm text-slate-500 truncate">{r.email}</p>
+                  </div>
                 </div>
-                <span className="rounded-full bg-primary/5 px-3 py-1 text-[11px] text-primary">
+
+                <span className="shrink-0 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
                   {r.specializationTag}
                 </span>
-              </li>
+              </div>
             ))}
-            {reviewerAccounts.length === 0 && (
-              <li className="text-muted">No reviewer accounts yet.</li>
-            )}
-          </ul>
+          </div>
+
+          
         </div>
-      </div>
-      <div>
-        <br/>
-         <AdminFooter />
-      </div>
-    </PageShell>
+        
+      </div><br />
+      <AdminFooter />
+    </div>
   );
-};
-
-export default AdminReviewers;
-
+}
