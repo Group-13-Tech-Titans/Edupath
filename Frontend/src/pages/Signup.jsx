@@ -29,7 +29,7 @@ const Signup = () => {
 
   return (
     
-      <div className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-gradient-to-b from-emerald-200 via-teal-200 to-cyan-200 px-4 py-10">
+      <div className="flex min-h-[calc(100vh)] items-center justify-center bg-gradient-to-b from-emerald-200 via-teal-200 to-cyan-200 px-4 py-10">
         <motion.div
           className="w-full max-w-md rounded-[32px] bg-white px-8 py-9 shadow-xl shadow-emerald-200/70"
           initial={{ opacity: 0, y: 20 }}

@@ -43,7 +43,7 @@ export default function SignupRole() {
 
   return (
     
-      <div className="flex min-h-[calc(100vh-80px)] items-center justify-center px-4 py-10">
+      <div className="flex min-h-[calc(100vh)] items-center justify-center px-4 py-10">
         <div className="glass-card w-full max-w-md p-6 text-center">
           <h2 className="text-2xl font-semibold text-text-dark">Select your role</h2>
           <p className="mt-1 text-xs text-muted">Choose how you want to join EduPath.</p>

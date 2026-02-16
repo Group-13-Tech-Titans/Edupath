@@ -36,7 +36,7 @@ const SignupEducator = () => {
 
   return (
     
-      <div className="flex min-h-[calc(100vh-80px)] items-center justify-center px-4 py-10">
+      <div className="flex min-h-[calc(100vh)] items-center justify-center px-4 py-10">
         <div className="glass-card w-full max-w-lg p-6">
           <h2 className="text-center text-2xl font-semibold text-text-dark">
             Educator Registration
