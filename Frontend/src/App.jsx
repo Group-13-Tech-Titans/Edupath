@@ -18,7 +18,7 @@ import PublicCourses from "./pages/PublicCourses.jsx";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
 
-import StudentDashboard from "./pages/student/StudentDashboard.jsx";
+// import StudentDashboard from "./pages/student/StudentDashboard.jsx";
 import StudentCourses from "./pages/student/StudentCourses.jsx";
 import StudentCourseDetail from "./pages/student/StudentCourseDetail.jsx";
 import StudentMentor from "./pages/student/StudentMentor.jsx";
