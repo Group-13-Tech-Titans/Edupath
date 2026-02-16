@@ -173,6 +173,14 @@ const Login = () => {
               Sign up free
             </Link>
           </p>
+          <p className="mt-4 text-center text-xs text-muted">
+            <Link
+              to="/"
+              className="text-primary underline-offset-2 hover:underline"
+            >
+              Back to Home
+            </Link>
+          </p>
         </motion.div>
       </div>
     
