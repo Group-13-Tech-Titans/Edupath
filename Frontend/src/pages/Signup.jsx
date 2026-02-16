@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import PageShell from "../components/PageShell.jsx";
 import { useApp } from "../context/AppProvider.jsx";
 import GoogleAuthButton from "../components/GoogleAuthButton.jsx";
 
@@ -29,7 +28,7 @@ const Signup = () => {
   };
 
   return (
-    <PageShell>
+    
       <div className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-gradient-to-b from-emerald-200 via-teal-200 to-cyan-200 px-4 py-10">
         <motion.div
           className="w-full max-w-md rounded-[32px] bg-white px-8 py-9 shadow-xl shadow-emerald-200/70"
@@ -117,7 +116,7 @@ const Signup = () => {
           </p>
         </motion.div>
       </div>
-    </PageShell>
+    
   );
 };
 

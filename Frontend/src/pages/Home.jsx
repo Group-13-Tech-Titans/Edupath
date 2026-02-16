@@ -509,7 +509,7 @@ Once you choose a goal, we guide you step-by-step with courses, quizzes, project
           </div>
         </motion.div>
       </section>
-           <LandingFooter onNav={scrollToId} />
+          <LandingFooter onNav={scrollToId} />
 
     </div>
   );

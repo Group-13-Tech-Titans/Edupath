@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import PageShell from "../components/PageShell.jsx";
+
 import axios from "axios";
 import { setToken } from "../api/client.js"; // IMPORTANT (same token system)
 
@@ -42,7 +42,7 @@ export default function SignupRole() {
   };
 
   return (
-    <PageShell>
+    
       <div className="flex min-h-[calc(100vh-80px)] items-center justify-center px-4 py-10">
         <div className="glass-card w-full max-w-md p-6 text-center">
           <h2 className="text-2xl font-semibold text-text-dark">Select your role</h2>
@@ -74,6 +74,6 @@ export default function SignupRole() {
           </p>
         </div>
       </div>
-    </PageShell>
+    
   );
 }

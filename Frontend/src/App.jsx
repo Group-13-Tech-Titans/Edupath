@@ -2,6 +2,7 @@ import React from "react";
 import { Routes, Route } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import PublicLayout from "./components/layouts/PublicLayout.jsx";
+import PlainLayout from "./components/layouts/PlainLayout.jsx";
 import StudentLayout from "./components/layouts/StudentLayout.jsx";
 import EducatorLayout from "./components/layouts/EducatorLayout.jsx";
 import AdminLayout from "./components/layouts/AdminLayout.jsx";
@@ -52,7 +53,7 @@ const App = () => {
   return (
     <AnimatePresence mode="wait">
       <Routes>
-        <Route path="/" element={<PublicLayout />}>
+        <Route path="/" element={<PlainLayout />}>
           <Route index element={<Home />} />
           <Route path="login" element={<Login />} />
           <Route path="forgot-password" element={<ForgotPassword />} />
@@ -61,7 +62,7 @@ const App = () => {
           <Route path="signup/role" element={<SignupRole />} />
           <Route path="signup/student" element={<SignupStudent />} />
           <Route path="signup/educator" element={<SignupEducator />} />
-          <Route path="courses" element={<PublicCourses />} />
+          {/* <Route path="courses" element={<PublicCourses />} /> */}
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["student"]} />}>

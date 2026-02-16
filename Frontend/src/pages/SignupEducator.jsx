@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import PageShell from "../components/PageShell.jsx";
 import { useApp } from "../context/AppProvider.jsx";
 
 const SignupEducator = () => {
@@ -36,7 +35,7 @@ const SignupEducator = () => {
   };
 
   return (
-    <PageShell>
+    
       <div className="flex min-h-[calc(100vh-80px)] items-center justify-center px-4 py-10">
         <div className="glass-card w-full max-w-lg p-6">
           <h2 className="text-center text-2xl font-semibold text-text-dark">
@@ -140,7 +139,7 @@ const SignupEducator = () => {
           </p>
         </div>
       </div>
-    </PageShell>
+    
   );
 };
 
