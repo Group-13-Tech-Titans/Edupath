@@ -1,7 +1,8 @@
 import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import PublicFooter from "../components/PublicFooter";
+import LandingFooter from "../components/LandingFooter";
+
 
 const ease = [0.22, 1, 0.36, 1];
 
@@ -105,15 +106,7 @@ export default function LandingBloomPro() {
           <div className="relative grid gap-8 p-6 sm:p-10 lg:grid-cols-2 lg:items-center">
             {/* Left content */}
             <div className="space-y-5">
-              <motion.div
-                variants={fadeUp}
-                className="inline-flex items-center gap-2 rounded-full border border-black/5 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm"
-              >
-                <span className="rounded-full bg-emerald-600/10 px-2 py-1 text-emerald-700">
-                  AI
-                </span>
-                AI Path Finder • Verified Courses • Mentor Support
-              </motion.div>
+              
 
               <motion.h1
                 variants={fadeUp}
@@ -127,10 +120,8 @@ export default function LandingBloomPro() {
                 variants={fadeUp}
                 className="max-w-xl text-sm text-slate-600 sm:text-base"
               >
-                EduPath helps Sri Lankan IT undergrads and A/L students discover the
-                right career direction. Take a short questionnaire (or choose manually)
-                and get 2–5 recommended career paths with step-by-step learning,
-                quizzes, milestones, and verified courses.
+                EduPath is a modern learning platform with AI career guidance, qualified educators, and special sessions with industry experts.
+
               </motion.p>
 
               <motion.div
@@ -151,16 +142,7 @@ export default function LandingBloomPro() {
                 </button>
               </motion.div>
 
-              {/* mini trust row */}
-              <motion.div
-                variants={fadeUp}
-                className="flex flex-wrap items-center gap-2 pt-1 text-xs font-semibold text-slate-600"
-              >
-                <Tag>AI Path Recommendations</Tag>
-                <Tag>Step-by-Step Pathways</Tag>
-                <Tag>Verified Courses</Tag>
-                <Tag>Quizzes & Milestones</Tag>
-              </motion.div>
+              
             </div>
 
             {/* Right “image + link cards” */}
@@ -216,7 +198,7 @@ export default function LandingBloomPro() {
                 </div>
 
                 <div className="mt-4 overflow-hidden rounded-[22px] border border-black/5 bg-gradient-to-b from-emerald-50 to-white">
-                  <HeroMockImage />
+                  
                 </div>
               </div>
             </motion.div>
@@ -241,9 +223,7 @@ export default function LandingBloomPro() {
               Career pathways built around real job roles
             </motion.h2>
             <motion.p variants={fadeUp} className="max-w-2xl text-sm text-slate-600 sm:text-base">
-              Our Path Finder recommends 2–5 career paths based on your interests, education level,
-              and learning preferences. Once you select a goal, EduPath guides you step-by-step using
-              courses, quizzes, projects, and certification milestones.
+              Our AI Path Finder recommends career directions based on your interests and learning level. After you choose a goal, EduPath guides you step-by-step with courses, quizzes, projects, and milestone certifications.
             </motion.p>
 
             <motion.div variants={fadeUp} className="grid gap-3 sm:grid-cols-2">
@@ -507,12 +487,12 @@ export default function LandingBloomPro() {
               <MiniRow
                 icon="🤝"
                 title="Mentor support (Premium)"
-                text="Request 1:1 sessions and get guidance when you’re stuck."
+                text="Request 1:1 sessions with industry experts and get guidance whenever you’re stuck.."
               />
             </div>
 
             <div className="mt-6 overflow-hidden rounded-[22px] border border-black/5 bg-gradient-to-br from-emerald-50 via-white to-teal-50">
-              <UsecaseMiniArt />
+              
             </div>
           </motion.div>
         </motion.div>
@@ -541,9 +521,9 @@ export default function LandingBloomPro() {
               </motion.p>
 
               <motion.div variants={fadeUp} className="mt-4 grid gap-3 sm:grid-cols-2">
-                <ContactPill icon="📍" title="Location" text="Sri Lanka (Remote)" />
+                <ContactPill icon="📍" title="Location" text="Sri Lanka " />
                 <ContactPill icon="📧" title="Email" text="support@edupath.app" />
-                <ContactPill icon="⏰" title="Hours" text="Mon–Sat 9am–6pm" />
+                <ContactPill icon="⏰" title="Hours" text="24/7 Learning Access" />
                 <ContactPill icon="💬" title="Support" text="Fast response" />
               </motion.div>
             </div>
@@ -575,20 +555,17 @@ export default function LandingBloomPro() {
                 Send message
               </button>
 
-              <p className="mt-3 text-center text-xs font-semibold text-slate-500">
-                (Demo UI) — Connect to your backend later.
-              </p>
+              
             </motion.form>
           </div>
         </motion.div>
       </section>
+           <LandingFooter onNav={scrollToId} />
 
-      <PublicFooter />
     </div>
   );
 }
 
-/* ---------------- Small UI Parts ---------------- */
 
 function Tag({ children }) {
   return (
@@ -733,68 +710,7 @@ function Input({ label, placeholder, type = "text" }) {
   );
 }
 
-/* ---------------- Decorative “image-like” arts (no external images) ---------------- */
 
-function HeroMockImage() {
-  return (
-    <div className="relative h-[260px] w-full sm:h-[280px]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(16,185,129,0.20),transparent_55%),radial-gradient(circle_at_80%_25%,rgba(20,184,166,0.18),transparent_55%),radial-gradient(circle_at_55%_80%,rgba(250,204,21,0.20),transparent_60%)]" />
-      <div className="absolute inset-0 p-5">
-        <div className="grid h-full grid-cols-12 gap-3">
-          <div className="col-span-7 rounded-[20px] border border-black/5 bg-white/80 p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-black text-slate-800">Today’s Stepstones</p>
-              <span className="rounded-full bg-emerald-600/10 px-3 py-1 text-[11px] font-black text-emerald-700">
-                72% Complete
-              </span>
-            </div>
-            <div className="mt-3 space-y-2">
-              <Bar label="Step 1: Fundamentals" v={0.9} />
-              <Bar label="Step 2: Practice" v={0.65} />
-              <Bar label="Step 3: Mini Project" v={0.35} />
-            </div>
-            <div className="mt-4 rounded-2xl bg-slate-900 px-4 py-3 text-xs font-black text-white">
-              Keep your streak 🔥
-            </div>
-          </div>
-
-          <div className="col-span-5 flex flex-col gap-3">
-            <div className="flex-1 rounded-[20px] border border-black/5 bg-white/80 p-4 shadow-sm">
-              <p className="text-xs font-black text-slate-800">Recommended Path</p>
-              <p className="mt-2 text-sm font-black text-emerald-700">Web Developer</p>
-              <p className="mt-1 text-xs font-bold text-slate-600">Milestones • Quizzes • Projects</p>
-              <div className="mt-3 flex gap-2">
-                <span className="rounded-full bg-yellow-300/70 px-3 py-1 text-[11px] font-black text-slate-900">
-                  Pathway
-                </span>
-                <span className="rounded-full bg-emerald-600/10 px-3 py-1 text-[11px] font-black text-emerald-700">
-                  Verified
-                </span>
-              </div>
-            </div>
-
-            <div className="flex-1 rounded-[20px] border border-black/5 bg-white/80 p-4 shadow-sm">
-              <p className="text-xs font-black text-slate-800">Next lesson</p>
-              <p className="mt-2 text-sm font-black text-slate-900">CSS Layout (Flexbox)</p>
-              <p className="mt-1 text-xs font-bold text-slate-600">12 min • quick win</p>
-
-              <motion.div
-                animate={{ x: [0, 8, 0] }}
-                transition={{ duration: 2.8, repeat: Infinity, ease }}
-                className="mt-4 inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-xs font-black text-white"
-              >
-                Continue <span aria-hidden>→</span>
-              </motion.div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-yellow-300/25 blur-2xl" />
-      <div className="pointer-events-none absolute -left-10 -bottom-10 h-36 w-36 rounded-full bg-emerald-400/15 blur-2xl" />
-    </div>
-  );
-}
 
 function Bar({ label, v }) {
   return (

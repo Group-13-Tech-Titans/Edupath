@@ -33,7 +33,6 @@ const AdminLayout = () => {
       <header className="sticky top-0 z-30 border-b border-black/5 bg-white/60 backdrop-blur">
         <div className="mx-auto max-w-6xl px-4 py-3">
           <div className="flex items-center justify-between gap-3">
-            {/* Brand */}
             <Link to="/admin" className="flex items-center gap-2 shrink-0">
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/15 text-primary shadow-sm">
                 🎓
@@ -125,9 +124,9 @@ const AdminLayout = () => {
                     {currentUser?.email}
                   </span>
                   <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-semibold">
-                      {currentUser?.email?.charAt(0).toUpperCase()}
-                    </div>
+              <button onClick={() => window.location.href = "/admin/profile"} className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-semibold">
+                {currentUser?.email?.charAt(0).toUpperCase()}
+              </button>
                     <button
                       onClick={logout}
                       className="rounded-full border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
