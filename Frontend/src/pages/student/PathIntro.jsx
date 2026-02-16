@@ -153,6 +153,7 @@ export default function PathIntro() {
           </div>
         </motion.div>
       </div>
+
     </div>
   );
 }
