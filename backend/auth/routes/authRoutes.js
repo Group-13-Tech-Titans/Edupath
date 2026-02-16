@@ -84,40 +84,20 @@ router.post("/google", async (req, res) => {
 router.post("/select-role", authMiddleware, async (req, res) => {
   try {
     const { role } = req.body;
-
     if (!["student", "educator"].includes(role)) {
       return res.status(400).json({ message: "Invalid role" });
     }
 
-    const user = await User.findById(req.user._id); // req.user exists from authMiddleware
+    const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // If role already selected, just return info (don’t fail hard)
     if (user.role !== "pending") {
-      const token = jwt.sign(
-        { id: user._id, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: "7d" }
-      );
-
-      return res.json({
-        message: "Role already selected",
-        token,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          avatar: user.avatar,
-        },
-      });
+      return res.status(400).json({ message: "Role already selected" });
     }
 
-    // Set role now
     user.role = role;
     await user.save();
 
-    // IMPORTANT: issue a NEW JWT containing the updated role
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
@@ -127,18 +107,13 @@ router.post("/select-role", authMiddleware, async (req, res) => {
     return res.json({
       message: "Role updated",
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatar,
-      },
+      user: { id: user._id.toString(), name: user.name, email: user.email, role: user.role }
     });
   } catch (err) {
     return res.status(500).json({ message: "Server error", error: err.message });
   }
 });
+
 
 router.get(
   "/admin",
@@ -162,31 +137,42 @@ router.get(
 // REGISTER
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
+
     const existing = await User.findOne({ email });
-    if (existing) {
-      return res.status(400).json({ message: "Email already in use" });
-    }
+    if (existing) return res.status(400).json({ message: "Email already in use" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
+
     const user = await User.create({
       name: name || email.split("@")[0],
       email,
       password: hashedPassword,
-      role: role || "pending"
+      role: "pending",
+      authProvider: "local",
     });
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
     const safe = user.toObject();
     delete safe.password;
     safe.id = safe._id.toString();
-    res.status(201).json({ message: "User registered", user: safe });
+
+    return res.status(201).json({
+      message: "User registered",
+      token,
+      user: safe,
+    });
   } catch (err) {
-    if (err.code === 11000) {
-      return res.status(400).json({ message: "Email already in use" });
-    }
+    if (err.code === 11000) return res.status(400).json({ message: "Email already in use" });
     res.status(500).json({ message: err.message || "Registration failed" });
   }
 });
+
 
 // LOGIN
 router.post("/login", async (req, res) => {

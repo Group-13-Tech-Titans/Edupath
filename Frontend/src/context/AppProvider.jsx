@@ -132,12 +132,23 @@ export const AppProvider = ({ children }) => {
 
   const signupAccount = useCallback(async (payload) => {
     try {
+      // 1) Register (creates user with pending role)
       await authApi.register({
         email: payload.email,
         password: payload.password,
         role: "pending",
       });
-      return { success: true };
+
+      // 2) Immediately login to get token + user
+      const loginRes = await authApi.login(payload.email, payload.password);
+
+      // 3) Save currentUser in state
+      setState((prev) => ({
+        ...prev,
+        currentUser: normalizeUser(loginRes.user),
+      }));
+
+      return { success: true, user: loginRes.user };
     } catch (err) {
       return {
         success: false,

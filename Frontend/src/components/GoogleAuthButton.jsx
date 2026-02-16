@@ -19,7 +19,9 @@ export default function GoogleAuthButton() {
 
       // ✅ immediately refresh current user from backend (so ProtectedRoute won’t bounce)
       const me = await authApi.getMe();
-      localStorage.setItem("edupath_user", JSON.stringify(me));
+    //   localStorage.setItem("edupath_user", JSON.stringify(me));
+      localStorage.setItem("edupath_user", JSON.stringify(res.data.user));
+
 
       const role = me.role;
 
