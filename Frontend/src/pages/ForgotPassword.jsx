@@ -33,7 +33,7 @@ export default function ForgotPassword() {
           <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white text-lg">
             🎓
           </div>
-          <h1 className="text-xl font-bold text-emerald-700">Edupahth</h1>
+          <h1 className="text-xl font-bold text-emerald-700">Edupath</h1>
         </div>
 
         <h2 className="text-4xl font-extrabold text-center text-gray-900">Forgot Password</h2>
