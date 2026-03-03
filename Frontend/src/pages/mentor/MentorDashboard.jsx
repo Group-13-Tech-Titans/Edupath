@@ -122,7 +122,6 @@ export default function MentorDashboard() {
           <Link to="/MentorSessions" className="font-medium text-slate-800 transition-colors hover:text-teal-500">
             Sessions
           </Link>
-          
           <Link to="/MentorProfile" className="font-medium text-slate-800 transition-colors hover:text-teal-500" style={{ textDecoration: "none" }}>
             Profile
           </Link>
@@ -161,7 +160,7 @@ export default function MentorDashboard() {
 
           <div className="flex gap-3">
             <Link
-              to="/mentor/profile"
+              to="/MentorProfile"
               className="inline-block rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-semibold text-teal-500 transition hover:bg-teal-400 hover:text-white"
             >
               View Profile
@@ -169,7 +168,7 @@ export default function MentorDashboard() {
             {/* NOTE: This was pointing to /mentor/resources but label says Settings.
                 Keep as-is if your settings page is inside resources, otherwise change route to /mentor/settings */}
             <Link
-              to="/mentor/resources"
+              to="/MentorSettings"
               className="inline-block rounded-xl bg-teal-400 px-6 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-teal-500 hover:shadow-[0_4px_12px_rgba(93,217,193,0.35)]"
             >
               Settings

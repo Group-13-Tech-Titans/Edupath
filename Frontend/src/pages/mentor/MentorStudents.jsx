@@ -174,12 +174,6 @@ export default function MentorStudents() {
           <p className="mt-1 text-sm text-slate-500">View your assigned students and communicate with them.</p>
         </div>
 
-        <Link
-          to="/mentor"
-          className="inline-block rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-semibold text-teal-600 transition hover:bg-teal-400 hover:text-white"
-        >
-          ← Back to Dashboard
-        </Link>
       </section>
 
       {/* Content grid */}

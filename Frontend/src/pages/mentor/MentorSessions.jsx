@@ -217,12 +217,7 @@ export default function MentorSessions() {
           <p className="mt-1 text-sm text-slate-500">Manage session requests, view upcoming sessions, and track session history.</p>
         </div>
 
-        <Link
-          to="/mentor"
-          className="inline-block rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-semibold text-teal-600 transition hover:bg-teal-400 hover:text-white"
-        >
-          ← Back to Dashboard
-        </Link>
+       
       </section>
 
       {/* Main Grid */}
@@ -231,12 +226,7 @@ export default function MentorSessions() {
         <section className="rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
           <div className="mb-5 flex items-center justify-between gap-3 flex-wrap">
             <h2 className="text-xl font-extrabold">Sessions</h2>
-            <button
-              type="button"
-              className="rounded-xl bg-teal-400 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-teal-500"
-            >
-              + Schedule Session
-            </button>
+           
           </div>
 
           {/* Tabs */}

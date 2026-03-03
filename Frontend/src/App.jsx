@@ -48,6 +48,8 @@ import MentorProfile from "./pages/mentor/MentorProfile.jsx";
 import MentorSessions from "./pages/mentor/MentorSessions.jsx";
 import MentorShareResource from "./pages/mentor/MentorShareResource.jsx";
 import MentorStudents from "./pages/mentor/MentorStudents.jsx";
+import MentorSettings from "./pages/mentor/MentorSettings.jsx";
+import MentorShareProfile from "./pages/mentor/MentorShareProfile.jsx";
 
 import ComingSoon from "./pages/ComingSoon.jsx";
 import NotFound from "./pages/NotFound.jsx";
@@ -103,6 +105,11 @@ const App = () => {
         <Route path="/MentorResources" element={<MentorShareResource />} />
         <Route path="/MentorStudents" element={<MentorStudents />} />
         <Route path="/MentorProfile" element={<MentorProfile />} />
+        <Route path="/MentorSettings" element={<MentorSettings />} />
+        <Route path="/MentorShareProfile" element={<MentorShareProfile />} />
+        
+
+
 
         <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
           <Route path="/admin" element={<AdminLayout />}>
