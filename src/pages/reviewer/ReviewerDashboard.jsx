@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 
@@ -96,6 +97,7 @@ const ModalShell = ({ open, title, children, onClose }) => {
 
 const ReviewerDashboard = () => {
   const { currentUser, courses } = useApp();
+  const navigate = useNavigate();
 
   // ---------------- Reviewer Profile (read-only display + modal editor) ----------------
   const fileInputRef = useRef(null);
@@ -109,7 +111,7 @@ const ReviewerDashboard = () => {
     email: currentUser?.email || "alex.smith@email.com",
     photoUrl: initialPhoto,
     domains: Array.isArray(currentUser?.domains || currentUser?.subjects)
-      ? (currentUser?.domains || currentUser?.subjects)
+      ? currentUser?.domains || currentUser?.subjects
       : ["Web Development"],
   });
 
@@ -530,10 +532,15 @@ const ReviewerDashboard = () => {
                       <div className="flex items-center gap-3">
                         {statusPill(item.status)}
 
+                        {/* ✅ ONLY CHANGE: alert -> navigate to ReviewerCourseReview with state */}
                         <button
                           type="button"
                           className="rounded-full border-2 border-emerald-300 bg-white px-4 py-2 text-[11px] font-extrabold text-emerald-600 shadow-[0_8px_14px_rgba(0,0,0,0.08)] transition hover:brightness-95 active:scale-[0.98]"
-                          onClick={() => alert(`Open: ${item.title}`)}
+                          onClick={() =>
+                            navigate(`/reviewer/queue/${item.id}?type=${item.type}`, {
+                              state: { reviewItem: item },
+                            })
+                          }
                         >
                           Open
                         </button>
@@ -552,11 +559,7 @@ const ReviewerDashboard = () => {
         </div>
 
         {/* Edit Profile Modal */}
-        <ModalShell
-          open={isEditOpen}
-          title="Edit Profile"
-          onClose={discardChanges}
-        >
+        <ModalShell open={isEditOpen} title="Edit Profile" onClose={discardChanges}>
           <div className="space-y-5">
             {/* Profile picture */}
             <div className="flex items-center gap-4">
@@ -640,7 +643,8 @@ const ReviewerDashboard = () => {
               </div>
             </div>
 
-            {(!isDirty.passwordValid && (profileDraft.password || profileDraft.confirmPassword)) ? (
+            {(!isDirty.passwordValid &&
+              (profileDraft.password || profileDraft.confirmPassword)) ? (
               <div className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
                 Passwords must match and be at least 6 characters.
               </div>

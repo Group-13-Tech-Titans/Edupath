@@ -24,5 +24,41 @@
   .btn-outline {
     @apply inline-flex items-center justify-center rounded-full border border-primary text-primary px-6 py-2 font-medium hover:bg-primary/5 transition;
   }
+
+  .footer-social {
+    @apply h-8 w-8 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center hover:bg-primary/15;
+  }
+
+  .pill {
+    @apply inline-flex items-center justify-center rounded-full border border-black/10 bg-white/70 px-4 py-1 text-xs font-medium text-text-dark;
+  }
+
+  .pill-soft {
+    @apply inline-flex items-center justify-center rounded-full border border-primary/20 bg-primary/10 px-4 py-1 text-xs font-medium text-text-dark;
+  }
+
+  .btn-soft {
+    @apply inline-flex items-center justify-center rounded-full border border-primary/20 bg-primary/10 px-6 py-2 text-sm font-medium text-text-dark shadow-sm hover:bg-primary/15;
+  }
+
+  .input {
+  @apply w-full px-4 py-2 rounded-xl border border-primary/40 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 text-sm;
+}
+
+  .sidebar-btn {
+    @apply w-full text-left px-4 py-2 rounded-xl bg-white/70 hover:bg-primary/10 border border-black/10 transition;
+  }
+
+  .field-label {
+    @apply block text-xs font-medium text-text-dark mb-1;
+  }
+
+  .field-input {
+    @apply w-full rounded-xl border border-primary/30 bg-white px-4 py-2 text-sm
+    focus:outline-none focus:ring-2 focus:ring-primary/25;
+  }
+
+
+
 }
 

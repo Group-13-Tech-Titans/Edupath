@@ -1,108 +1,221 @@
-import React, { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import React, { useMemo, useState } from "react";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 
+const DECISIONS = [
+  { value: "approved", label: "Approve" },
+  { value: "minor_changes", label: "Minor Changes" },
+  { value: "major_changes", label: "Major Changes" },
+  { value: "rejected", label: "Reject" },
+];
+
+const Star = ({ filled, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="text-2xl text-slate-600 hover:brightness-110"
+  >
+    {filled ? "★" : "☆"}
+  </button>
+);
+
 const ReviewerCourseReview = () => {
   const { id } = useParams();
-  const { courses, currentUser, approveCourse, rejectCourse } = useApp();
   const navigate = useNavigate();
-  const course = courses.find((c) => c.id === id);
-  const [notes, setNotes] = useState("");
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const { courses, currentUser, submitReviewDecision } = useApp();
 
-  if (!course) {
+  const typeFromQuery = searchParams.get("type") || "course";
+  const stateItem = location.state?.reviewItem;
+  const course = courses.find((c) => c.id === id);
+
+  const reviewItem = useMemo(() => {
+    if (typeFromQuery === "course") {
+      if (!course) return null;
+      return {
+        id: course.id,
+        type: "course",
+        title: course.title,
+        subjectDomain: course.subject || course.category || "General",
+        description: course.description || "",
+      };
+    }
+
+    if (stateItem && String(stateItem.id) === String(id)) return stateItem;
+    return null;
+  }, [course, id, stateItem, typeFromQuery]);
+
+  const [decision, setDecision] = useState("approved");
+  const [rating, setRating] = useState(0);
+  const [notes, setNotes] = useState("");
+  const [error, setError] = useState("");
+
+  if (!reviewItem) {
     return (
       <PageShell>
-        <p className="text-sm text-muted">Course not found.</p>
+        <p className="text-sm text-muted">Review item not found.</p>
       </PageShell>
     );
   }
 
-  const handleDecision = (decision) => {
-    if (decision === "approved") {
-      approveCourse(course.id, currentUser);
-    } else {
-      rejectCourse(course.id, currentUser, notes);
-    }
-    navigate("/reviewer/queue");
+  // Cancel → Dashboard
+  const onCancel = () => {
+    navigate("/reviewer", { replace: true });
   };
+
+  // Submit → Update + Dashboard
+  const onSubmit = () => {
+    if (!notes.trim()) {
+      setError("Review notes are mandatory.");
+      return;
+    }
+
+    if (rating < 1 || rating > 5) {
+      setError("Please select a rating (1–5).");
+      return;
+    }
+
+    setError("");
+
+    submitReviewDecision({
+      itemId: reviewItem.id,
+      itemType: reviewItem.type,
+      decision,
+      rating,
+      notes: notes.trim(),
+      reviewer: currentUser,
+    });
+
+    navigate("/reviewer", { replace: true });
+  };
+
+
+  const contentLinkTo = `/reviewer/queue/${reviewItem.id}?type=${reviewItem.type}&view=content`;
 
   return (
     <PageShell>
-      <div className="space-y-4">
-        <div className="glass-card p-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">
-            {course.category}
-          </p>
-          <h1 className="mt-1 text-xl font-semibold text-text-dark">{course.title}</h1>
-          <p className="mt-1 text-xs text-muted">
-            Educator: {course.educatorName} · Tag: {course.specializationTag}
-          </p>
-          <p className="mt-2 text-xs text-muted">{course.description}</p>
+      <div className="mx-auto w-full max-w-3xl px-4 pb-16 pt-6">
+        {/* Review Summary */}
+        <div className="mt-6 rounded-2xl bg-white px-6 py-6 shadow-[0_14px_30px_rgba(0,0,0,0.15)]">
+          <h2 className="text-xl font-extrabold text-slate-900 mb-5">
+            Review Summary
+          </h2>
+
+          {/* Description Container */}
+          <div className="rounded-2xl border border-slate-200 p-5 mb-5">
+            <div className="text-sm font-bold text-slate-800 mb-2">
+              Description
+            </div>
+            <p className="text-sm text-slate-600">
+              {reviewItem.description?.trim()
+                ? reviewItem.description
+                : "(Placeholder) Description will appear here once wired to backend."}
+            </p>
+          </div>
+
+          {/* Content Container */}
+          <div className="rounded-2xl border border-slate-200 p-5">
+            <div className="text-sm font-bold text-slate-800 mb-3">
+              Content
+            </div>
+
+            <Link
+              to={contentLinkTo}
+              state={{ reviewItem }}
+              className="inline-flex items-center justify-center rounded-full border-2 border-emerald-300 bg-white px-6 py-2 text-sm font-extrabold text-emerald-700 shadow-[0_8px_14px_rgba(0,0,0,0.08)] active:scale-[0.98]"
+            >
+              Open Content
+            </Link>
+          </div>
         </div>
-        <div className="glass-card p-5 text-xs">
-          <h2 className="text-sm font-semibold text-text-dark">Course content</h2>
-          <div className="mt-3 space-y-3">
-            {course.content?.modules?.map((m) => (
-              <div key={m.id} className="rounded-2xl bg-primary/5 p-3">
-                <p className="font-medium text-text-dark">{m.title}</p>
-                <ul className="mt-2 space-y-1">
-                  {m.lessons?.map((lesson) => (
-                    <li
-                      key={lesson.id}
-                      className="rounded-2xl bg-white/80 px-3 py-2 text-[11px]"
-                    >
-                      <p className="font-medium text-text-dark">{lesson.title}</p>
-                      <div className="mt-1 flex flex-wrap gap-2 text-[10px] text-muted">
-                        {lesson.materials?.map((mat) => (
-                          <span
-                            key={mat.title}
-                            className="rounded-full bg-primary/5 px-2 py-0.5"
-                          >
-                            {mat.type.toUpperCase()} · {mat.title}
-                          </span>
-                        ))}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+
+        {/* Reviewer Decision */}
+        <div className="mt-6 rounded-2xl bg-white px-6 py-6 shadow-[0_14px_30px_rgba(0,0,0,0.15)]">
+          <h2 className="text-xl font-extrabold text-slate-900 mb-4">
+            Reviewer Decision & Rating
+          </h2>
+
+          <select
+            value={decision}
+            onChange={(e) => setDecision(e.target.value)}
+            className="w-full rounded-2xl border border-slate-200 px-5 py-4 text-lg font-semibold text-slate-700 outline-none"
+          >
+            {DECISIONS.map((d) => (
+              <option key={d.value} value={d.value}>
+                {d.label}
+              </option>
             ))}
-            {(!course.content?.modules || course.content.modules.length === 0) && (
-              <p className="text-muted">No content added yet.</p>
+          </select>
+
+          {/* Rating */}
+          <div className="mt-5">
+            <div className="text-sm font-bold text-slate-900">
+              Reviewer Rating (1–5)
+            </div>
+            <div className="mt-2 flex gap-1">
+              {Array.from({ length: 5 }).map((_, i) => {
+                const val = i + 1;
+                return (
+                  <Star
+                    key={val}
+                    filled={val <= rating}
+                    onClick={() => setRating(val)}
+                  />
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="mt-5">
+            <div className="text-sm font-bold text-slate-900">
+              Review Notes (Mandatory)
+            </div>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={5}
+              className="mt-2 w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-emerald-300"
+              placeholder="Write detailed review notes..."
+            />
+            {error && (
+              <div className="mt-2 text-sm font-semibold text-rose-600">
+                {error}
+              </div>
             )}
           </div>
-        </div>
-        <div className="glass-card p-5 text-xs">
-          <h2 className="text-sm font-semibold text-text-dark">
-            Decision &amp; review notes
-          </h2>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={3}
-            placeholder="Optional: add notes for the educator (e.g., improve audio in Module 2, clarify quiz explanations)."
-            className="mt-2 w-full rounded-2xl border border-black/10 bg-white/70 px-3 py-2 outline-none ring-primary/40 focus:ring"
-          />
-          <div className="mt-3 flex flex-wrap gap-2">
+
+          {/* Buttons */}
+          <div className="mt-6 flex justify-end gap-3">
             <button
-              onClick={() => handleDecision("approved")}
-              className="rounded-full bg-emerald-500 px-4 py-2 text-[11px] font-medium text-white hover:bg-emerald-600"
+              type="button"
+              onClick={onCancel}
+              className="rounded-full border border-slate-300 bg-white px-8 py-2.5 text-sm font-extrabold text-slate-700 hover:bg-slate-50"
             >
-              Approve course
+              Cancel
             </button>
+
             <button
-              onClick={() => handleDecision("rejected")}
-              className="rounded-full bg-red-500 px-4 py-2 text-[11px] font-medium text-white hover:bg-red-600"
+              type="button"
+              onClick={onSubmit}
+              className="rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 px-8 py-2.5 text-sm font-extrabold text-white shadow-md active:scale-[0.98]"
             >
-              Reject / request changes
+              Submit
             </button>
           </div>
         </div>
+
       </div>
     </PageShell>
   );
 };
 
 export default ReviewerCourseReview;
-
