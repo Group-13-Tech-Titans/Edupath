@@ -5,7 +5,7 @@ const LS_KEY = "edupath_reviewers_v1";
 
 // ✅ Mock data (shows on right side card on first load)
 const MOCK_REVIEWERS = [
-  { id: 1001, name: "Nuwan Silva", email: "nuwan@edupath.com", specializationTag: "ui-ux" },
+  { id: 1001, name: "Yasindu Gunasekara", email: "yasindu@edupath.com", specializationTag: "ui-ux" },
   { id: 1002, name: "Kavindu Perera", email: "kavindu@edupath.com", specializationTag: "web-dev" },
   { id: 1003, name: "Sahan Fernando", email: "sahan@edupath.com", specializationTag: "data-science" },
   { id: 1004, name: "Dinuli Jayasinghe", email: "dinuli@edupath.com", specializationTag: "cyber" },

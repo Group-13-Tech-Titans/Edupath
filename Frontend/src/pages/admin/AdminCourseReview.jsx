@@ -14,7 +14,7 @@ const LS_KEY = "edupath_courses_v1";
 const AdminCourseReview = () => {
   const app = useApp();
   const coursesFromApp = app.courses || [];
-  const setCourses = app.setCourses; // optional if your provider supports it
+  const setCourses = app.setCourses; 
 
   const [courses, setLocalCourses] = useState(coursesFromApp);
 
@@ -40,13 +40,12 @@ const AdminCourseReview = () => {
     localStorage.setItem(LS_KEY, JSON.stringify(mockCourses));
   }, [coursesFromApp]);
 
-  // Keep context updated if supported
   useEffect(() => {
     if (typeof setCourses === "function" && courses?.length) setCourses(courses);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [courses]);
 
-  const [tab, setTab] = useState("pending"); // pending | approved | rejected
+  const [tab, setTab] = useState("pending"); 
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(null);
   const [toast, setToast] = useState(null);

@@ -6,13 +6,13 @@ import AdminFooter from "./AdminFooter.jsx";
 const mockRecentRequests = [
   {
     id: "req-1001",
-    fullName: "Amal Perera",
-    email: "amal.perera@edupath.com",
+    fullName: "Yasindu Gunasekara",
+    email: "yasindu.gunasekara@edupath.com",
     field: "Software Engineering",
     educationLevel: "BSc",
     courseCount: 4,
     submittedAt: "2026-02-10T10:30:00.000Z",
-    docs: { nic: true, certificate: true, portfolio: "https://portfolio.example/john" },
+    docs: { nic: true, certificate: true, portfolio: "https://www.linkedin.com/in/yasindu-gunasekara-5a247a27b/" },
   },
   {
     id: "req-1002",
