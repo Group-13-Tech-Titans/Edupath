@@ -32,12 +32,13 @@ const EducatorPublish = () => {
     price: "", // numeric-only
     duration: "", // numeric-only
     specializationTag: "",
-    thumbnailFile: null
+    thumbnailFile: null,
+    thumbnailUrl: ""
   });
 
   const [error, setError] = useState("");
 
-  const isVerified = educator?.status === "VERIFIED";
+  const isVerified = currentUser?.status === "VERIFIED";
   const hasContent = contentItems.length > 0;
 
   const handleChange = (e) => {
@@ -53,7 +54,12 @@ const EducatorPublish = () => {
 
   const handleThumbnail = (e) => {
     const file = e.target.files?.[0] || null;
-    setForm((p) => ({ ...p, thumbnailFile: file }));
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      setForm((p) => ({ ...p, thumbnailFile: file, thumbnailUrl: evt.target.result }));
+    };
+    reader.readAsDataURL(file);
   };
 
   // All fields mandatory (including thumbnail)
@@ -83,8 +89,9 @@ const EducatorPublish = () => {
     duration: Number(form.duration),
     specializationTag: form.specializationTag.trim(),
     thumbnailName: form.thumbnailFile?.name || "",
+    thumbnailUrl: form.thumbnailUrl || "",
     rating: 0,
-    educatorName: educator?.name || "Educator",
+    educatorName: currentUser?.name || "Educator",
     createdByEducatorEmail: currentUser?.email,
     status, // "pending" etc.
     content: {
@@ -97,7 +104,7 @@ const EducatorPublish = () => {
     navigate("/educator/add-content", { state: { backTo: "/educator/publish" } });
   };
 
-  const handleSaveDraft = (e) => {
+  const handleSaveDraft = async (e) => {
     e?.preventDefault?.();
     setError("");
 
@@ -114,12 +121,15 @@ const EducatorPublish = () => {
       return;
     }
 
-    createCourse(buildCoursePayload("pending"));
-    // ✅ go back to My Courses page
+    const res = await createCourse(buildCoursePayload("pending"));
+    if (!res.success) {
+      setError(res.message || "Failed to save draft.");
+      return;
+    }
     navigate("/educator/courses");
   };
 
-  const handlePublish = (e) => {
+  const handlePublish = async (e) => {
     e.preventDefault();
     setError("");
 
@@ -136,8 +146,11 @@ const EducatorPublish = () => {
       return;
     }
 
-    createCourse(buildCoursePayload("pending"));
-    // ✅ go back to My Courses page
+    const res = await createCourse(buildCoursePayload("pending"));
+    if (!res.success) {
+      setError(res.message || "Failed to publish course.");
+      return;
+    }
     navigate("/educator/courses");
   };
 

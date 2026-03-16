@@ -1,10 +1,14 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 
 const EducatorDashboard = () => {
-  const { currentUser, courses } = useApp();
+  const { currentUser, courses, fetchMyCourses } = useApp();
+
+  useEffect(() => {
+    fetchMyCourses();
+  }, [fetchMyCourses]);
 
   const normalizeStatus = (status) => {
     const s = String(status ?? "").toLowerCase().trim();
@@ -69,15 +73,15 @@ const EducatorDashboard = () => {
 
           {/* same width, no animation */}
           <div className="flex flex-col gap-3 items-end">
-            {/* ✅ Restored Link to EducatorProfile.jsx route */}
-            <Link to="/educator/profile" className="btn-primary w-52 px-6 py-2 text-sm text-center">
-              View Profile
-            </Link>
-
             {/* placeholder button, no link for now */}
             <button className="btn-soft w-52 px-6 py-2 text-sm">
               Register as Mentor
             </button>
+
+            {/* ✅ Link to Publish new Course */}
+            <Link to="/educator/publish" className="btn-primary w-52 px-6 py-2 text-sm text-center">
+              Publish new Course
+            </Link>
           </div>
         </div>
 

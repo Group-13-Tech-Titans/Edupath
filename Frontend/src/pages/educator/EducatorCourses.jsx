@@ -105,7 +105,11 @@ const CustomSelect = ({ value, options, onChange, placeholder }) => {
 };
 
 const EducatorCourses = () => {
-  const { currentUser, courses } = useApp();
+  const { currentUser, courses, fetchMyCourses } = useApp();
+
+  useEffect(() => {
+    fetchMyCourses();
+  }, [fetchMyCourses]);
 
   const myCourses = useMemo(() => {
     return courses.filter((c) => c.createdByEducatorEmail === currentUser?.email);

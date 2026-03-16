@@ -73,7 +73,7 @@ const App = () => {
             <Route path="courses" element={<EducatorCourses />} />
             <Route path="publish" element={<EducatorPublish />} />
             <Route path="edit/:id" element={<EducatorEditCourse />} />
-            <Route path="add-content/:id" element={<EducatorAddContent />} />
+            <Route path="add-content" element={<EducatorAddContent />} />
             <Route path="payouts" element={<EducatorPayouts />} />
             <Route path="profile" element={<EducatorProfile />} />
           </Route>

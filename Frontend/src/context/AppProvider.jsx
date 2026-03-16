@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { mockCourses } from "../data/mockCourses.js";
 import * as authApi from "../api/authApi.js";
+import * as courseApi from "../api/courseApi.js";
 import { getToken, setToken } from "../api/client.js";
 
 const STORAGE_KEY = "edupath_app_state_v1";
@@ -171,14 +172,25 @@ export const AppProvider = ({ children }) => {
     });
   }, []);
 
-  const createCourse = useCallback((courseData) => {
-    const newCourse = {
-      ...courseData,
-      id: `c-${Date.now()}`,
-      status: "pending"
-    };
-    setState((prev) => ({ ...prev, courses: [newCourse, ...prev.courses] }));
-    return newCourse;
+  const createCourse = useCallback(async (courseData) => {
+    try {
+      const result = await courseApi.createCourse(courseData);
+      const newCourse = { ...result.course, id: result.course._id };
+      setState((prev) => ({ ...prev, courses: [newCourse, ...prev.courses] }));
+      return { success: true, course: newCourse };
+    } catch (err) {
+      return { success: false, message: err.message || "Failed to create course" };
+    }
+  }, []);
+
+  const fetchMyCourses = useCallback(async () => {
+    try {
+      const courses = await courseApi.getMyCourses();
+      const normalized = courses.map((c) => ({ ...c, id: c._id }));
+      setState((prev) => ({ ...prev, courses: [...normalized, ...prev.courses.filter(c => !c._id)] }));
+    } catch (err) {
+      console.error("Failed to fetch courses", err);
+    }
   }, []);
 
   const updateCourse = useCallback((courseId, updatedData) => {
@@ -273,6 +285,7 @@ export const AppProvider = ({ children }) => {
     createReviewer,
     verifyEducator,
     createCourse,
+    fetchMyCourses,
     updateCourse,
     approveCourse,
     rejectCourse,

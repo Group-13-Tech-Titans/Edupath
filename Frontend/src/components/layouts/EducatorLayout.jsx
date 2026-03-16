@@ -1,7 +1,16 @@
 import React from "react";
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useApp } from "../../context/AppProvider.jsx";
 
 const EducatorLayout = () => {
+  const { logout } = useApp();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
   const navLink = ({ isActive }) =>
     `px-2 py-1 text-sm font-medium ${
       isActive
@@ -35,9 +44,17 @@ const EducatorLayout = () => {
             </NavLink>
           </nav>
 
-          <Link to="/educator/publish" className="btn-primary px-5 py-2 text-sm">
-            Publish new Course
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link to="/educator/profile" className="btn-primary px-5 py-2 text-sm">
+              View Profile
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="rounded-full bg-red-500 px-5 py-2 text-sm font-medium text-white hover:bg-red-600 transition"
+            >
+              Log out
+            </button>
+          </div>
         </div>
       </header>
 
