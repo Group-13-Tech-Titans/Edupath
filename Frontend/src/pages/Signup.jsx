@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useApp } from "../context/AppProvider.jsx";
 import GoogleAuthButton from "../components/GoogleAuthButton.jsx";
+import { emailRegex, passwordRegex } from "../utils/validation";
 
 const Signup = () => {
   const { signupAccount } = useApp();
@@ -11,21 +12,48 @@ const Signup = () => {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    if (password !== confirm) {
-      setError("Passwords do not match");
-      return;
-    }
-    const res = await signupAccount({ email: email.trim(), password });
-    if (!res.success) {
-      setError(res.message || "Unable to create account");
-      return;
-    }
-    navigate("/signup/role");
-  };
+  e.preventDefault();
+
+  let newErrors = {};
+
+  if (!email) {
+    newErrors.email = "Email is required";
+  } else if (!emailRegex.test(email)) {
+    newErrors.email = "Invalid email";
+  }
+
+  if (!password) {
+    newErrors.password = "Password is required";
+  } else if (!passwordRegex.test(password)) {
+    newErrors.password =
+      "Password must contain uppercase, lowercase, number and special character";
+  }
+
+  if (!confirm) {
+    newErrors.confirm = "Confirm password required";
+  } else if (password !== confirm) {
+    newErrors.confirm = "Passwords do not match";
+  }
+
+  setErrors(newErrors);
+
+  if (Object.keys(newErrors).length > 0) return;
+
+  const res = await signupAccount({
+    email: email.trim(),
+    password,
+  });
+
+  if (!res.success) {
+    setError(res.message || "Unable to create account");
+    return;
+  }
+
+  navigate("/signup/role");
+};
 
   return (
     
@@ -65,8 +93,8 @@ const Signup = () => {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required
               />
+              {errors.email && <p className="text-red-500 text-xs">{errors.email}</p>}
             </div>
             <div>
               <label className="text-xs font-medium text-text-dark">
@@ -77,8 +105,8 @@ const Signup = () => {
                 className="mt-1 w-full rounded-full border border-emerald-100 bg-white/80 px-4 py-2.5 text-sm outline-none ring-primary/40 focus:border-emerald-300 focus:ring"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
               />
+              {errors.password && <p className="text-red-500 text-xs">{errors.password}</p>}
             </div>
             <div>
               <label className="text-xs font-medium text-text-dark">
@@ -89,8 +117,8 @@ const Signup = () => {
                 className="mt-1 w-full rounded-full border border-emerald-100 bg-white/80 px-4 py-2.5 text-sm outline-none ring-primary/40 focus:border-emerald-300 focus:ring"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                required
               />
+              {errors.confirm && <p className="text-red-500 text-xs">{errors.confirm}</p>}
             </div>
             {error && (
               <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs text-red-600">

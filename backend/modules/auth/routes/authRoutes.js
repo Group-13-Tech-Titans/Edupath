@@ -1,17 +1,17 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const User = require("../models/user");
+const User = require("../models/User");
 
 const router = express.Router();
 
-const authMiddleware = require("../middleware/authMiddleware");
-const roleMiddleware = require("../middleware/roleMiddleware");
+const authMiddleware = require("../../../middleware/authMiddleware");
+const roleMiddleware = require("../../../middleware/roleMiddleware");
+const sendEmail = require("../../../utils/sendEmail");
 
 const crypto = require("crypto");
-const sendEmail = require("../../utils/sendEmail");
 
-const { OAuth2Client } = require("google-auth-library");// adjust path if needed
+const { OAuth2Client } = require("google-auth-library");
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -57,7 +57,7 @@ router.post("/google", async (req, res) => {
     }
     
 
-    // 3) Generate your JWT
+    // 3) Generate JWT
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,

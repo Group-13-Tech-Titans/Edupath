@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { passwordRegex } from "../utils/validation";
 
 export default function ResetPassword() {
   const { token } = useParams();
@@ -11,28 +12,40 @@ export default function ResetPassword() {
   const [msg, setMsg] = useState("");
   const [isError, setIsError] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const submit = async (e) => {
     e.preventDefault();
+
+    let newErrors = {};
     setMsg("");
     setIsError(false);
 
-    if (password.length < 8) {
-      setIsError(true);
-      setMsg("Password must be at least 8 characters.");
-      return;
-    }
-    if (password !== confirm) {
-      setIsError(true);
-      setMsg("Passwords do not match.");
-      return;
+    if (!password) {
+      newErrors.password = "Please enter a new password";
+    } else if (!passwordRegex.test(password)) {
+      newErrors.password =
+        "Password must be 8+ characters with uppercase, lowercase, number and special character";
     }
 
+    if (!confirm) {
+      newErrors.confirm = "Please confirm your password";
+    } else if (password !== confirm) {
+      newErrors.confirm = "Passwords do not match";
+    }
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) return;
+
     setLoading(true);
+
     try {
-      const res = await axios.post(`http://localhost:5000/api/auth/reset-password/${token}`, {
-        password
-      });
+      const res = await axios.post(
+        `http://localhost:5000/api/auth/reset-password/${token}`,
+        { password },
+      );
+
       setMsg(res.data?.message || "Password updated successfully!");
       setTimeout(() => navigate("/login"), 1200);
     } catch (err) {
@@ -51,10 +64,12 @@ export default function ResetPassword() {
           <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white text-lg">
             🎓
           </div>
-          <h1 className="text-xl font-bold text-emerald-700">Edupahth</h1>
+          <h1 className="text-xl font-bold text-emerald-700">Edupath</h1>
         </div>
 
-        <h2 className="text-4xl font-extrabold text-center text-gray-900">Reset Password</h2>
+        <h2 className="text-4xl font-extrabold text-center text-gray-900">
+          Reset Password
+        </h2>
         <p className="text-center text-gray-500 mt-2 mb-8">
           Create a new password for your account.
         </p>
@@ -62,8 +77,13 @@ export default function ResetPassword() {
         <form onSubmit={submit} className="space-y-5">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-semibold text-gray-900">New Password</label>
-              <Link to="/login" className="text-sm font-semibold text-emerald-600 hover:underline">
+              <label className="text-sm font-semibold text-gray-900">
+                New Password
+              </label>
+              <Link
+                to="/login"
+                className="text-sm font-semibold text-emerald-600 hover:underline"
+              >
                 Back to Login
               </Link>
             </div>
@@ -73,15 +93,18 @@ export default function ResetPassword() {
               placeholder="Enter new password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
               className="w-full rounded-full border border-emerald-100 px-5 py-3 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-200"
             />
+            {errors.password && (
+              <p className="text-red-500 text-xs">{errors.password}</p>
+            )}
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-semibold text-gray-900">Confirm Password</label>
-              <span className="text-xs text-gray-500">Minimum 8 characters</span>
+              <label className="text-sm font-semibold text-gray-900">
+                Confirm Password
+              </label>
             </div>
 
             <input
@@ -89,10 +112,17 @@ export default function ResetPassword() {
               placeholder="Confirm new password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              required
               className="w-full rounded-full border border-emerald-100 px-5 py-3 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-200"
             />
+            {errors.confirm && (
+              <p className="text-red-500 text-xs">{errors.confirm}</p>
+            )}
           </div>
+
+          <p className="text-xs text-gray-500 mt-1">
+            Password must contain uppercase, lowercase, number and special
+            character.
+          </p>
 
           <button
             type="submit"
@@ -117,7 +147,10 @@ export default function ResetPassword() {
 
         <p className="text-center text-gray-500 mt-6 text-sm">
           Remembered your password?{" "}
-          <Link to="/login" className="font-semibold text-emerald-600 hover:underline">
+          <Link
+            to="/login"
+            className="font-semibold text-emerald-600 hover:underline"
+          >
             Sign in
           </Link>
         </p>
