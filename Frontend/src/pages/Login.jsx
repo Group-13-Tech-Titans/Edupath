@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { useLocation, useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useApp } from "../context/AppProvider.jsx";
 import GoogleAuthButton from "../components/GoogleAuthButton.jsx";
@@ -21,14 +21,14 @@ const handleGoogleSuccess = async (credentialResponse) => {
     });
 
     // backend returns your JWT + user
-    localStorage.setItem("token", res.data.token);
-    localStorage.setItem("user", JSON.stringify(res.data.user));
+    localStorage.setItem("edupath_token", res.data.token);
+    localStorage.setItem("edupath_user", JSON.stringify(res.data.user));
 
     // redirect based on role
     const role = res.data.user.role;
-    if (role === "admin") window.location.href = "/admin";
-    else if (role === "educator") window.location.href = "/educator";
-    else window.location.href = "/student";
+    if (role === "admin") globalThis.location.href = "/admin";
+    else if (role === "educator") globalThis.location.href = "/educator";
+    else globalThis.location.href = "/student";
   } catch (err) {
     console.log(err);
     alert(err?.response?.data?.message || "Google sign-in failed");
@@ -46,7 +46,6 @@ const Login = () => {
   const [error, setError] = useState("");
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
-  const location = useLocation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -60,9 +59,9 @@ const Login = () => {
     }
 
     if (!password) {
-      newErrors.password = "Please enter password";
+      newErrors.authInput = "Please enter password";
     } else if (!passwordRegex.test(password)) {
-      newErrors.password =
+      newErrors.authInput =
         "Password must be 8+ characters with uppercase, lowercase, number and special character";
     }
 
@@ -124,10 +123,11 @@ const Login = () => {
 
         <form onSubmit={handleSubmit} className="mt-5 space-y-4">
           <div>
-            <label className="text-xs font-medium text-text-dark">
+            <label htmlFor="email" className="text-xs font-medium text-text-dark">
               Email Address
             </label>
             <input
+              id="email"
               type="email"
               className="mt-1 w-full rounded-full border border-emerald-100 bg-white/80 px-4 py-2.5 text-sm outline-none ring-primary/40 placeholder:text-gray-400 focus:border-emerald-300 focus:ring"
               placeholder="you@example.com"
@@ -140,7 +140,7 @@ const Login = () => {
           </div>
           <div>
             <div className="mb-1 flex items-center justify-between">
-              <label className="text-xs font-medium text-text-dark">
+              <label htmlFor="password" className="text-xs font-medium text-text-dark">
                 Password
               </label>
               <button
@@ -151,13 +151,14 @@ const Login = () => {
               </button>
             </div>
             <input
+              id="password"
               type="password"
               className="w-full rounded-full border border-emerald-100 bg-white/80 px-4 py-2.5 text-sm outline-none ring-primary/40 focus:border-emerald-300 focus:ring"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-            {errors.password && (
-              <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+            {errors.authInput && (
+              <p className="text-red-500 text-xs mt-1">{errors.authInput}</p>
             )}
           </div>
           <div className="flex items-center justify-between text-[11px] text-muted">

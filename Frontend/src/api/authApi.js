@@ -6,7 +6,7 @@ export async function login(email, password) {
     body: JSON.stringify({ email, password })
   });
   setToken(data.token);
-  return { success: true, user: data.user };
+  return { success: true, user: data.user, token: data.token };
 }
 
 export async function register(payload) {
@@ -40,5 +40,5 @@ export async function changePassword(currentPassword, newPassword) {
     method: "PATCH",
     body: JSON.stringify({ currentPassword, newPassword }),
   });
-  return data; // { message: "Password updated successfully" }
+  return data;
 }

@@ -1,7 +1,6 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
-import PublicLayout from "./components/layouts/PublicLayout.jsx";
 import PlainLayout from "./components/layouts/PlainLayout.jsx";
 import StudentLayout from "./components/layouts/StudentLayout.jsx";
 import EducatorLayout from "./components/layouts/EducatorLayout.jsx";
@@ -15,11 +14,9 @@ import Signup from "./pages/Signup.jsx";
 import SignupRole from "./pages/SignupRole.jsx";
 import SignupStudent from "./pages/SignupStudent.jsx";
 import SignupEducator from "./pages/SignupEducator.jsx";
-import PublicCourses from "./pages/PublicCourses.jsx";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
 
-// import StudentDashboard from "./pages/student/StudentDashboard.jsx";
 import StudentCourses from "./pages/student/StudentCourses.jsx";
 import StudentCourseDetail from "./pages/student/StudentCourseDetail.jsx";
 import StudentMentor from "./pages/student/StudentMentor.jsx";
@@ -40,12 +37,14 @@ import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import AdminReviewers from "./pages/admin/AdminReviewers.jsx";
 import AdminVerifyEducators from "./pages/admin/AdminVerifyEducators.jsx";
 import AdminReviewDashboard from "./pages/admin/AdminReviewDashboard.jsx";
+import AdminProfile from "./pages/admin/AdminProfile.jsx";
+import ManageQuestions from "./pages/admin/ManageQuestions";
 
 import ReviewerDashboard from "./pages/reviewer/ReviewerDashboard.jsx";
 import ReviewerQueue from "./pages/reviewer/ReviewerQueue.jsx";
 import ReviewerCourseReview from "./pages/reviewer/ReviewerCourseReview.jsx";
 import ReviewerHistory from "./pages/reviewer/ReviewerHistory.jsx";
-import AdminProfile from "./pages/admin/AdminProfile.jsx";
+
 
 import NotFound from "./pages/NotFound.jsx";
 
@@ -101,6 +100,7 @@ const App = () => {
             <Route path="queue" element={<ReviewerQueue />} />
             <Route path="queue/:id" element={<ReviewerCourseReview />} />
             <Route path="profile" element={<AdminProfile />} />
+            <Route path="/admin/questions" element={<ManageQuestions />} />
           </Route>
         </Route>
 

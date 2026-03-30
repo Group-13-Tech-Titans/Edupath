@@ -23,6 +23,9 @@ app.use("/api/pathway", require("./modules/pathway/routes/pathwayRoutes"));
 // Quiz for each step
 app.use("/api/step-quiz", require("./modules/quiz/routes/stepQuizRoutes"));
 
+// Admin routes
+app.use("/api/admin", require("./modules/admin/routes/adminRoutes"));
+
 app.get("/test", (req, res) => {
   res.send("Working");
 });

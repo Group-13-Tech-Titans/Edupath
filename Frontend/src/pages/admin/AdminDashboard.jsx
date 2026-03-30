@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
+import { Link } from "react-router-dom";
 
 const AdminDashboard = () => {
   const { users, courses } = useApp();
@@ -10,22 +12,25 @@ const AdminDashboard = () => {
 
   const educators = useMemo(
     () => (users || []).filter((u) => u.role === "educator"),
-    [users]
+    [users],
   );
 
   const pendingEducators = useMemo(
     () => educators.filter((e) => e.status === "PENDING_VERIFICATION"),
-    [educators]
+    [educators],
   );
 
   const pendingCourses = useMemo(
     () => (courses || []).filter((c) => c.status === "pending"),
-    [courses]
+    [courses],
   );
 
   // Simple demo "subscriptions/payments"
   const activeSubscriptions = Math.max(0, Math.round(totalUsers * 0.15));
-  const paymentsToReview = Math.max(0, Math.min(35, pendingCourses.length + 10));
+  const paymentsToReview = Math.max(
+    0,
+    Math.min(35, pendingCourses.length + 10),
+  );
 
   // Approvals list (UI mock)
   const [approvals, setApprovals] = useState([
@@ -51,7 +56,6 @@ const AdminDashboard = () => {
 
   const handleDecision = (id, decision) => {
     setApprovals((prev) => prev.filter((x) => x.id !== id));
-   
   };
 
   return (
@@ -73,9 +77,12 @@ const AdminDashboard = () => {
               <button className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow hover:brightness-95">
                 Export Reports
               </button>
-              <button className="rounded-full bg-primary/15 px-5 py-2.5 text-sm font-semibold text-primary shadow-sm hover:bg-primary/20">
-                System Status
-              </button>
+              <Link
+                to="/admin/questions"
+                className="bg-emerald-600 text-white px-4 py-2 rounded"
+              >
+                Manage Questions
+              </Link>
             </div>
           </div>
         </div>
@@ -100,7 +107,12 @@ const AdminDashboard = () => {
             <h2 className="text-base font-semibold text-text-dark">
               Verify Educators
             </h2>
-            <button className="text-sm font-semibold text-primary" onClick={() => window.location.href = '/admin/verify-educators'}>View All</button>
+            <button
+              className="text-sm font-semibold text-primary"
+              onClick={() => (globalThis.location.href = "/admin/verify-educators")}
+            >
+              View All
+            </button>
           </div>
 
           <div className="mt-4 space-y-3">
@@ -147,7 +159,9 @@ const AdminDashboard = () => {
             <h2 className="text-base font-semibold text-text-dark">
               Platform Statistics
             </h2>
-            <span className="text-xs font-semibold text-muted">Last 30 days</span>
+            <span className="text-xs font-semibold text-muted">
+              Last 30 days
+            </span>
           </div>
 
           <div className="mt-4 rounded-[22px] border border-dashed border-black/10 bg-white/60 p-10 text-center text-sm text-muted">
@@ -247,7 +261,12 @@ const AdminDashboard = () => {
 
             <FooterCol
               title="Quick Links"
-              items={["Browse Courses", "Career Paths", "My Learning", "Become an Instructor"]}
+              items={[
+                "Browse Courses",
+                "Career Paths",
+                "My Learning",
+                "Become an Instructor",
+              ]}
             />
             <FooterCol
               title="Support"
@@ -273,7 +292,6 @@ const AdminDashboard = () => {
   );
 };
 
-
 const KpiCard = ({ label, value }) => {
   return (
     <div className="rounded-[22px] border border-black/5 bg-white/75 p-5 shadow-[0_12px_30px_rgba(0,0,0,0.08)] backdrop-blur">
@@ -283,6 +301,11 @@ const KpiCard = ({ label, value }) => {
       </p>
     </div>
   );
+};
+
+KpiCard.propTypes = {
+  label: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
 };
 
 const IssueRow = ({ title, subtitle, badge, tone = "warn" }) => {
@@ -297,11 +320,20 @@ const IssueRow = ({ title, subtitle, badge, tone = "warn" }) => {
         <p className="text-sm font-semibold text-text-dark">{title}</p>
         <p className="mt-0.5 text-xs text-muted">{subtitle}</p>
       </div>
-      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${badgeClass}`}>
+      <span
+        className={`rounded-full px-3 py-1 text-xs font-semibold ${badgeClass}`}
+      >
         {badge}
       </span>
     </div>
   );
+};
+
+IssueRow.propTypes = {
+  title: PropTypes.string.isRequired,
+  subtitle: PropTypes.string.isRequired,
+  badge: PropTypes.string.isRequired,
+  tone: PropTypes.string,
 };
 
 const PaymentRow = ({ title, subtitle, action }) => {
@@ -318,12 +350,21 @@ const PaymentRow = ({ title, subtitle, action }) => {
   );
 };
 
+PaymentRow.propTypes = {
+  title: PropTypes.string.isRequired,
+  subtitle: PropTypes.string.isRequired,
+  action: PropTypes.string.isRequired,
+};
+
 const FooterCol = ({ title, items }) => (
   <div>
     <p className="text-sm font-semibold text-text-dark">{title}</p>
     <ul className="mt-3 space-y-2 text-xs text-muted">
       {items.map((x) => (
-        <li key={x} className="hover:text-text-dark hover:underline cursor-pointer">
+        <li
+          key={x}
+          className="hover:text-text-dark hover:underline cursor-pointer"
+        >
           {x}
         </li>
       ))}
@@ -331,11 +372,20 @@ const FooterCol = ({ title, items }) => (
   </div>
 );
 
+FooterCol.propTypes = {
+  title: PropTypes.string.isRequired,
+  items: PropTypes.arrayOf(PropTypes.string).isRequired,
+};
+
 const IconDot = ({ children }) => (
   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary">
     {children}
   </div>
 );
+
+IconDot.propTypes = {
+  children: PropTypes.node.isRequired,
+};
 
 function formatK(n) {
   if (typeof n !== "number") return n;
