@@ -190,7 +190,7 @@ exports.updateTemplate = async (req, res) => {
     const template = await Pathway.findOneAndUpdate(
       { _id: req.params.id, isTemplate: true },
       { pathName, level, steps },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true } // <-- FIXED DEPRECATION WARNING
     );
 
     if (!template) {
@@ -229,7 +229,7 @@ exports.updateTemplateStatus = async (req, res) => {
     const template = await Pathway.findOneAndUpdate(
       { _id: req.params.id, isTemplate: true },
       { status },
-      { new: true } // Returns the updated document
+      { returnDocument: 'after' } // <-- FIXED DEPRECATION WARNING
     );
 
     if (!template) {

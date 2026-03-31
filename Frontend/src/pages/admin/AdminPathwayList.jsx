@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 
 const AdminPathwayList = () => {
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const navigate = useNavigate();
+  // Removed unused navigate variable
 
   useEffect(() => {
     fetchTemplates();
@@ -33,7 +33,8 @@ const AdminPathwayList = () => {
 
   const handleDelete = async (id) => {
     if (
-      !window.confirm(
+      // Replaced window with globalThis
+      !globalThis.confirm(
         "Are you sure you want to delete this pathway? This cannot be undone.",
       )
     )
