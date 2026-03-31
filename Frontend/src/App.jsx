@@ -39,6 +39,9 @@ import AdminVerifyEducators from "./pages/admin/AdminVerifyEducators.jsx";
 import AdminReviewDashboard from "./pages/admin/AdminReviewDashboard.jsx";
 import AdminProfile from "./pages/admin/AdminProfile.jsx";
 import ManageQuestions from "./pages/admin/ManageQuestions";
+import AdminPathwayBuilder from "./pages/admin/AdminPathwayBuilder.jsx";
+import AdminPathwayList from "./pages/admin/AdminPathwayList.jsx";
+import AdminPathwayEdit from "./pages/admin/AdminPathwayEdit.jsx";
 
 import ReviewerDashboard from "./pages/reviewer/ReviewerDashboard.jsx";
 import ReviewerQueue from "./pages/reviewer/ReviewerQueue.jsx";
@@ -101,6 +104,9 @@ const App = () => {
             <Route path="queue/:id" element={<ReviewerCourseReview />} />
             <Route path="profile" element={<AdminProfile />} />
             <Route path="/admin/questions" element={<ManageQuestions />} />
+            <Route path="/admin/pathway-builder" element={<AdminPathwayBuilder />} />
+            <Route path="/admin/pathways" element={<AdminPathwayList />} />
+            <Route path="/admin/pathway-edit/:id" element={<AdminPathwayEdit />} />
           </Route>
         </Route>
 
