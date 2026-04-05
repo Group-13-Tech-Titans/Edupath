@@ -105,7 +105,7 @@ export default function AdminCourseRating() {
       return;
     }
 
-    // ✅ Later: POST to backend
+    //  Later: POST to backend
     // await axios.post(`/api/admin/courses/${id}/decision`, { decision, rating, notes })
 
     setSuccess("Decision published successfully ✅");

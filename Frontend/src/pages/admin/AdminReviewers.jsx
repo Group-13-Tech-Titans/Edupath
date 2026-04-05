@@ -1,16 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 import AdminFooter from "./AdminFooter.jsx";
 
-const LS_KEY = "edupath_reviewers_v1";
-
-// ✅ Mock data (shows on right side card on first load)
-const MOCK_REVIEWERS = [
-  { id: 1001, name: "Yasindu Gunasekara", email: "yasindu@edupath.com", specializationTag: "ui-ux" },
-  { id: 1002, name: "Kavindu Perera", email: "kavindu@edupath.com", specializationTag: "web-dev" },
-  { id: 1003, name: "Sahan Fernando", email: "sahan@edupath.com", specializationTag: "data-science" },
-  { id: 1004, name: "Dinuli Jayasinghe", email: "dinuli@edupath.com", specializationTag: "cyber" },
-  { id: 1005, name: "Shehan Wickramasinghe", email: "shehan@edupath.com", specializationTag: "mobile" },
-];
+const API_BASE = "http://localhost:5000/api/reviewers";
 
 const getInitials = (name = "") => {
   const parts = name.trim().split(" ").filter(Boolean);
@@ -21,62 +13,31 @@ const getInitials = (name = "") => {
 
 export default function AdminReviewers() {
   const [reviewers, setReviewers] = useState([]);
-
   const [form, setForm] = useState({
     name: "",
     email: "",
     password: "",
-    specializationTag: "",
+    expertise: "",
   });
-
   const [search, setSearch] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
 
-  // ✅ Load + seed reviewers (only once, if storage empty)
-  useEffect(() => {
-    const raw = localStorage.getItem(LS_KEY);
-
-    // If nothing saved yet -> seed mock
-    if (!raw) {
-      localStorage.setItem(LS_KEY, JSON.stringify(MOCK_REVIEWERS));
-      setReviewers(MOCK_REVIEWERS);
-      return;
-    }
-
-    let stored = [];
+  // Fetch reviewers from database
+  const fetchReviewers = async () => {
     try {
-      stored = JSON.parse(raw) || [];
-    } catch {
-      stored = [];
+      const res = await axios.get(API_BASE);
+      setReviewers(res.data);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to fetch reviewers");
     }
+  };
 
-    // If saved but empty -> seed mock
-    if (Array.isArray(stored) && stored.length === 0) {
-      localStorage.setItem(LS_KEY, JSON.stringify(MOCK_REVIEWERS));
-      setReviewers(MOCK_REVIEWERS);
-      return;
-    }
-
-    setReviewers(stored);
-  }, []);
-
-  // ✅ Save reviewers whenever list changes (skip first empty render)
   useEffect(() => {
-    if (!Array.isArray(reviewers)) return;
-    localStorage.setItem(LS_KEY, JSON.stringify(reviewers));
-  }, [reviewers]);
-
-  // Search filter
-  const filteredReviewers = useMemo(() => {
-    return reviewers.filter((r) =>
-      `${r.name} ${r.email} ${r.specializationTag}`
-        .toLowerCase()
-        .includes(search.toLowerCase())
-    );
-  }, [reviewers, search]);
+    fetchReviewers();
+  }, []);
 
   // Form handler
   const handleChange = (e) => {
@@ -84,12 +45,12 @@ export default function AdminReviewers() {
   };
 
   // Submit handler
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
-    if (!form.name || !form.email || !form.password) {
+    if (!form.name || !form.email || !form.password || !form.expertise) {
       setError("All fields are required!");
       return;
     }
@@ -99,43 +60,43 @@ export default function AdminReviewers() {
       return;
     }
 
-    const exists = reviewers.some((r) => r.email.toLowerCase() === form.email.toLowerCase());
-    if (exists) {
-      setError("Reviewer email already exists.");
-      return;
+    try {
+      const res = await axios.post(API_BASE, form);
+      setReviewers((prev) => [res.data, ...prev]);
+      setSuccess("Reviewer account created ✅");
+
+      setForm({
+        name: "",
+        email: "",
+        password: "",
+        expertise: "",
+      });
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.message || "Failed to create reviewer");
     }
-
-    const newReviewer = {
-      id: Date.now(),
-      name: form.name.trim(),
-      email: form.email.trim(),
-      specializationTag: (form.specializationTag || "data").trim(),
-      // NOTE: password is not saved in localStorage for basic safety.
-    };
-
-    setReviewers((prev) => [newReviewer, ...prev]);
-    setSuccess("Reviewer account created ✅");
-
-    setForm({
-      name: "",
-      email: "",
-      password: "",
-      specializationTag: "",
-    });
   };
+
+  const filteredReviewers = reviewers.filter((r) =>
+    `${r.name} ${r.email} ${r.expertise}`
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen from-emerald-50 to-white px-4 py-4">
       <div className="mx-auto max-w-6xl grid gap-5 lg:grid-cols-2">
+        {/* Create Reviewer Form */}
         <div className="rounded-[26px] bg-white/80 shadow-lg p-6 ring-1 ring-emerald-100">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">Create Reviewer</h2>
-            <p className="text-sm text-slate-500 mt-1">
-              Fill the form and create a new reviewer login.
-            </p>
-          </div>
+          <h2 className="text-lg font-bold text-slate-900">Create Reviewer</h2>
+          <p className="text-sm text-slate-500 mt-1">
+            Fill the form and create a new reviewer login.
+          </p>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {success && <p className="text-green-500 text-sm">{success}</p>}
+
             <div>
               <label className="text-sm font-semibold text-slate-700">Name</label>
               <input
@@ -181,18 +142,16 @@ export default function AdminReviewers() {
 
             <div>
               <label className="text-sm font-semibold text-slate-700">
-                Specialization Tag
+                Expertise
               </label>
               <input
-                name="specializationTag"
-                value={form.specializationTag}
+                name="expertise"
+                value={form.expertise}
                 onChange={handleChange}
                 placeholder="Eg: web-dev, ui-ux, data-science"
                 className="mt-2 w-full rounded-full border px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-emerald-100"
               />
             </div>
-
-            
 
             <button
               type="submit"
@@ -200,20 +159,15 @@ export default function AdminReviewers() {
             >
               Create reviewer
             </button>
-
-            <p className="text-xs text-slate-500">
-              Tip: Use specialization tags to assign reviewers for specific course categories.
-            </p>
           </form>
         </div>
 
+        {/* Existing Reviewers List */}
         <div className="rounded-[26px] bg-white/80 shadow-lg p-6 ring-1 ring-emerald-100">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">Existing reviewers</h2>
-            <p className="text-sm text-slate-500 mt-1">
-              Search and view created reviewer accounts.
-            </p>
-          </div>
+          <h2 className="text-lg font-bold text-slate-900">Existing reviewers</h2>
+          <p className="text-sm text-slate-500 mt-1">
+            Search and view created reviewer accounts.
+          </p>
 
           <input
             value={search}
@@ -229,31 +183,27 @@ export default function AdminReviewers() {
 
             {filteredReviewers.map((r) => (
               <div
-                key={r.id}
+                key={r._id || r.id}
                 className="flex items-center justify-between rounded-2xl border bg-white px-4 py-3 shadow-sm"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center font-bold text-emerald-700 text-sm shrink-0">
                     {getInitials(r.name)}
                   </div>
-
                   <div className="min-w-0">
                     <p className="font-semibold text-slate-800 truncate text-sm">{r.name}</p>
                     <p className="text-sm text-slate-500 truncate">{r.email}</p>
                   </div>
                 </div>
-
                 <span className="shrink-0 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                  {r.specializationTag}
+                  {r.expertise}
                 </span>
               </div>
             ))}
           </div>
-
-          
         </div>
-        
-      </div><br />
+      </div>
+      <br />
       <AdminFooter />
     </div>
   );
