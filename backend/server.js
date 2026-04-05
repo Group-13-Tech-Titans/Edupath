@@ -3,8 +3,11 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 
-const authRoutes = require("./auth/routes/authRoutes");
-const reviewerRoutes = require("./auth/routes/reviewersRoutes");
+
+
+
+const authRoutes = require("./auth/routes/authRoutes");  
+const reviewerRoutes = require("./auth/routes/reviewersRoutes"); // New route for reviewers
 
 const app = express();
 

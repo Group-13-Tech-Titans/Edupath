@@ -7,7 +7,7 @@ const router = express.Router();
 // GET all reviewers
 router.get("/", async (req, res) => {
   try {
-    const reviewers = await Reviewer.find().select("-password"); // hide password
+    const reviewers = await Reviewer.find().select("-password"); 
     res.json(reviewers);
   } catch (err) {
     res.status(500).json({ message: err.message });

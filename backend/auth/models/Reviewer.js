@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 
+
+// Reviewer Schema
 const reviewerSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },

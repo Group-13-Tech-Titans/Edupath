@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import AdminFooter from "./AdminFooter.jsx";
 
+
+
+//add update delete reviewer accounts
 const API_BASE = "http://localhost:5000/api/reviewers";
 
 const getInitials = (name = "") => {
