@@ -21,15 +21,17 @@ const stableHash = (input) => {
 
 const normalizeStatus = (status) => {
   const s = String(status ?? "").toLowerCase().trim();
-  if (s === "approved" || s === "approved ".trim() || s === "approved".toLowerCase()) return "approved";
+  if (s === "draft") return "draft";
+  if (s === "approved" || s.includes("approve")) return "approved";
   if (s === "pending" || s.includes("pending")) return "pending";
   if (s === "rejected" || s.includes("reject")) return "rejected";
-  // your backend might use "approved"/"pending"/"rejected" already; default:
   return "approved";
 };
 
 const statusPill = (status) => {
   const s = normalizeStatus(status);
+  if (s === "draft")
+    return { label: "Draft", cls: "bg-slate-100/70 text-slate-600 border-slate-200/70" };
   if (s === "approved")
     return { label: "Approved", cls: "bg-emerald-100/70 text-emerald-800 border-emerald-200/70" };
   if (s === "pending")
@@ -121,13 +123,13 @@ const EducatorCourses = () => {
   const [levelFilter, setLevelFilter] = useState("All Levels");
   const [statusFilter, setStatusFilter] = useState("All Status");
 
-  // Build filter options from existing courses
+  // Build category options only from educator's existing courses
   const categoryOptions = useMemo(() => {
     const set = new Set();
     myCourses.forEach((c) => {
       if (c.category) set.add(String(c.category));
     });
-    return ["All Categories", ...Array.from(set)];
+    return ["All Categories", ...Array.from(set).sort()];
   }, [myCourses]);
 
   const levelOptions = useMemo(() => {
@@ -142,7 +144,7 @@ const EducatorCourses = () => {
   }, [myCourses]);
 
   const statusOptions = useMemo(() => {
-    return ["All Status", "Approved", "Pending Review", "Rejected"];
+    return ["All Status", "Draft", "Approved", "Pending Review", "Rejected"];
   }, []);
 
   // Apply search + filters
@@ -170,6 +172,7 @@ const EducatorCourses = () => {
       // Status filter
       const matchesStatus =
         statusFilter === "All Status" ||
+        (statusFilter === "Draft" && st === "draft") ||
         (statusFilter === "Approved" && st === "approved") ||
         (statusFilter === "Pending Review" && st === "pending") ||
         (statusFilter === "Rejected" && st === "rejected");
@@ -191,6 +194,14 @@ const EducatorCourses = () => {
       const chipA = categoryChip(c.category || "Web");
       const chipB = levelChip(c.level || "Beginner");
       const pill = statusPill(c.status);
+      const st = normalizeStatus(c.status);
+
+      // Reviewer feedback (only populated for rejected courses)
+      const isRejected = st === "rejected";
+      const isDraft = st === "draft";
+      const reviewNotes = isRejected ? (c.review?.notes || null) : null;
+      const reviewerName = isRejected ? (c.review?.reviewerName || null) : null;
+      const reviewRating = isRejected ? (c.review?.rating ?? null) : null;
 
       return {
         ...c,
@@ -199,7 +210,12 @@ const EducatorCourses = () => {
         _rating: rating,
         _chipA: chipA,
         _chipB: chipB,
-        _pill: pill
+        _pill: pill,
+        _isRejected: isRejected,
+        _isDraft: isDraft,
+        _reviewNotes: reviewNotes,
+        _reviewerName: reviewerName,
+        _reviewRating: reviewRating
       };
     });
   }, [filtered]);
@@ -319,14 +335,35 @@ const EducatorCourses = () => {
                     {course._pill.label}
                   </span>
 
-                  {/* Placeholder page for later */}
                   <Link
-                    to={`/educator/courses/${course.id}`}
+                    to={(course._isRejected || course._isDraft) ? `/educator/edit/${course.id}` : `/educator/courses/${course.id}`}
                     className="rounded-full border border-black/20 bg-white/80 px-5 py-1.5 text-[11px] font-semibold text-text-dark hover:bg-white transition"
                   >
-                    Open
+                    {(course._isRejected || course._isDraft) ? "Edit" : "Open"}
                   </Link>
                 </div>
+
+                {/* Reviewer feedback — only visible on rejected courses */}
+                {course._isRejected && (
+                  <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 space-y-1">
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="text-[11px] font-semibold text-rose-700">
+                        Reviewer Feedback
+                      </p>
+                      {course._reviewRating != null && (
+                        <span className="text-[10px] text-rose-500 font-medium">
+                          ⭐ {course._reviewRating}/5
+                        </span>
+                      )}
+                    </div>
+                    {course._reviewerName && (
+                      <p className="text-[10px] text-rose-400">by {course._reviewerName}</p>
+                    )}
+                    <p className="text-[11px] text-rose-700 leading-relaxed">
+                      {course._reviewNotes || "No specific notes provided. Please review your content and resubmit."}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           ))}

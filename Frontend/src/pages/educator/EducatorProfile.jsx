@@ -1,16 +1,20 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
+import { useApp } from "../../context/AppProvider.jsx";
 
 /**
- * Changes made:
- * - Replaced native <select> with custom themed dropdown (every dropdown).
- * - Sidebar stops after notifications (self-start so it doesn't stretch).
- * - Default profile picture included + editable upload.
+ * EducatorProfile — connected to backend via PATCH /api/auth/profile
+ * - Loads real user data from currentUser (AppContext)
+ * - Save Profile: updates name + profile fields
+ * - Update Password: updates password (with confirmation check)
+ * - Update Changes: saves payout details inside profile.payout
+ * - Profile photo: local preview only (no upload endpoint yet)
  */
 
 const EducatorProfile = () => {
   const location = useLocation();
+  const { currentUser, updateUserProfile } = useApp();
 
   // ----- Section refs for smooth scroll -----
   const profileRef = useRef(null);
@@ -29,14 +33,13 @@ const EducatorProfile = () => {
   // ✅ Auto-scroll when arriving with /educator/profile#payout-details
   useEffect(() => {
     if (location.hash === "#payout-details") {
-      // allow layout to paint first
       setTimeout(() => {
         scrollToSection("payout", payoutRef);
       }, 0);
     }
   }, [location.hash]);
 
-  // ----- Better default profile image (inline SVG avatar) -----
+  // ----- Default profile avatar -----
   const defaultAvatar = useMemo(() => {
     const svg = encodeURIComponent(`
       <svg xmlns="http://www.w3.org/2000/svg" width="420" height="420">
@@ -70,33 +73,44 @@ const EducatorProfile = () => {
     setProfileImage(URL.createObjectURL(file));
   };
 
-  // ----- Mock user data (pre-filled) -----
+  // ----- Helper: split "First Last" name from DB -----
+  const splitName = (fullName) => {
+    if (!fullName) return { firstName: "", lastName: "" };
+    const parts = fullName.trim().split(" ");
+    const firstName = parts[0] || "";
+    const lastName = parts.slice(1).join(" ") || "";
+    return { firstName, lastName };
+  };
+
+  // ----- Profile form (populated from currentUser) -----
   const [profileForm, setProfileForm] = useState({
-    firstName: "Haseetha",
-    lastName: "Perera",
-    email: "haseetha@gmail.com",
-    contact: "077 123 4567",
-    expertiseArea: "Web Development",
-    yearsExperience: "3",
-    bio: "I help students learn practical skills with real-world examples...."
+    firstName: "",
+    lastName: "",
+    email: "",
+    contact: "",
+    expertiseArea: "",
+    yearsExperience: "",
+    bio: ""
   });
 
+  // ----- Payout form (stored inside profile.payout) -----
+  const [payoutForm, setPayoutForm] = useState({
+    bankName: "",
+    accountNumber: "",
+    accountHolder: "",
+    branch: "",
+    billingAddress: ""
+  });
+
+  // ----- Security form -----
   const [securityForm, setSecurityForm] = useState({
-    currentPassword: "************",
+    currentPassword: "",
     newPassword: "",
     confirmPassword: "",
     twoFA: "Disabled"
   });
 
-  const [payoutForm, setPayoutForm] = useState({
-    bankName: "Sampath Bank",
-    accountNumber: "**** **** 4481",
-    accountHolder: "Haseetha Perera",
-    branch: "Moratuwa",
-    billingAddress: "Address for records...."
-  });
-
-  // ----- Notifications (toggle flips true/false) -----
+  // ----- Notifications -----
   const [notifications, setNotifications] = useState({
     mentorshipRequests: true,
     reviewsRatings: true,
@@ -106,6 +120,149 @@ const EducatorProfile = () => {
 
   const toggleNotification = (key) => {
     setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // ----- Feedback states -----
+  const [profileMsg, setProfileMsg] = useState(null);   // { type: "success"|"error", text }
+  const [passwordMsg, setPasswordMsg] = useState(null);
+  const [payoutMsg, setPayoutMsg] = useState(null);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [savingPayout, setSavingPayout] = useState(false);
+
+  // ----- Populate forms from currentUser when it loads -----
+  useEffect(() => {
+    if (!currentUser) return;
+    const { firstName, lastName } = splitName(currentUser.name);
+    const p = currentUser.profile || {};
+    setProfileForm({
+      firstName,
+      lastName,
+      email: currentUser.email || "",
+      contact: p.contact || "",
+      expertiseArea: p.expertiseArea || "",
+      yearsExperience: p.yearsExperience || "",
+      bio: p.bio || ""
+    });
+    const payout = p.payout || {};
+    setPayoutForm({
+      bankName: payout.bankName || "",
+      accountNumber: payout.accountNumber || "",
+      accountHolder: payout.accountHolder || (currentUser.name || ""),
+      branch: payout.branch || "",
+      billingAddress: payout.billingAddress || ""
+    });
+    if (p.notifications) {
+      setNotifications(p.notifications);
+    }
+  }, [currentUser]);
+
+  // ----- Save Profile -----
+  const handleSaveProfile = async () => {
+    setSavingProfile(true);
+    setProfileMsg(null);
+    const fullName = `${profileForm.firstName.trim()} ${profileForm.lastName.trim()}`.trim();
+    const result = await updateUserProfile({
+      name: fullName,
+      profile: {
+        ...(currentUser?.profile || {}),
+        contact: profileForm.contact,
+        expertiseArea: profileForm.expertiseArea,
+        yearsExperience: profileForm.yearsExperience,
+        bio: profileForm.bio
+      }
+    });
+    setSavingProfile(false);
+    if (result.success) {
+      setProfileMsg({ type: "success", text: "Profile saved successfully." });
+    } else {
+      setProfileMsg({ type: "error", text: result.message || "Failed to save profile." });
+    }
+  };
+
+  // ----- Reset Profile (re-populate from currentUser) -----
+  const handleResetProfile = () => {
+    if (!currentUser) return;
+    const { firstName, lastName } = splitName(currentUser.name);
+    const p = currentUser.profile || {};
+    setProfileForm({
+      firstName,
+      lastName,
+      email: currentUser.email || "",
+      contact: p.contact || "",
+      expertiseArea: p.expertiseArea || "",
+      yearsExperience: p.yearsExperience || "",
+      bio: p.bio || ""
+    });
+    setProfileMsg(null);
+  };
+
+  // ----- Update Password -----
+  const handleUpdatePassword = async () => {
+    setPasswordMsg(null);
+    if (!securityForm.currentPassword) {
+      setPasswordMsg({ type: "error", text: "Please enter your current password." });
+      return;
+    }
+    if (!securityForm.newPassword) {
+      setPasswordMsg({ type: "error", text: "Please enter a new password." });
+      return;
+    }
+    if (securityForm.newPassword.length < 6) {
+      setPasswordMsg({ type: "error", text: "New password must be at least 6 characters." });
+      return;
+    }
+    if (securityForm.newPassword !== securityForm.confirmPassword) {
+      setPasswordMsg({ type: "error", text: "New passwords do not match." });
+      return;
+    }
+    if (securityForm.currentPassword === securityForm.newPassword) {
+      setPasswordMsg({ type: "error", text: "New password must be different from the current password." });
+      return;
+    }
+    setSavingPassword(true);
+    const result = await updateUserProfile({
+      password: securityForm.newPassword,
+      currentPassword: securityForm.currentPassword
+    });
+    setSavingPassword(false);
+    if (result.success) {
+      setPasswordMsg({ type: "success", text: "Password updated successfully." });
+      setSecurityForm((s) => ({ ...s, currentPassword: "", newPassword: "", confirmPassword: "" }));
+    } else {
+      setPasswordMsg({ type: "error", text: result.message || "Failed to update password." });
+    }
+  };
+
+  // ----- Save Payout -----
+  const handleSavePayout = async () => {
+    setSavingPayout(true);
+    setPayoutMsg(null);
+    const result = await updateUserProfile({
+      profile: {
+        ...(currentUser?.profile || {}),
+        payout: { ...payoutForm }
+      }
+    });
+    setSavingPayout(false);
+    if (result.success) {
+      setPayoutMsg({ type: "success", text: "Payout details saved successfully." });
+    } else {
+      setPayoutMsg({ type: "error", text: result.message || "Failed to save payout details." });
+    }
+  };
+
+  // ----- Reset Payout -----
+  const handleResetPayout = () => {
+    const payout = currentUser?.profile?.payout || {};
+    setPayoutForm({
+      bankName: payout.bankName || "",
+      accountNumber: payout.accountNumber || "",
+      accountHolder: payout.accountHolder || (currentUser?.name || ""),
+      branch: payout.branch || "",
+      billingAddress: payout.billingAddress || ""
+    });
+    setPayoutMsg(null);
   };
 
   // ----- Components -----
@@ -126,7 +283,6 @@ const EducatorProfile = () => {
     </button>
   );
 
-  // Sidebar item (matches screenshot style)
   const SideItem = ({ title, subtitle, active, onClick }) => (
     <button
       type="button"
@@ -142,11 +298,6 @@ const EducatorProfile = () => {
     </button>
   );
 
-  /**
-   * Custom themed dropdown (replaces <select>)
-   * - Smooth, matches mint theme
-   * - Click outside to close
-   */
   const CustomSelect = ({ value, options, onChange, placeholder = "Select..." }) => {
     const [open, setOpen] = useState(false);
     const rootRef = useRef(null);
@@ -170,11 +321,8 @@ const EducatorProfile = () => {
           <span className={value ? "text-text-dark" : "text-muted"}>
             {value || placeholder}
           </span>
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted">
-            ▾
-          </span>
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted">▾</span>
         </button>
-
         {open && (
           <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-primary/25 bg-white/95 shadow-lg backdrop-blur">
             <div className="max-h-56 overflow-auto py-1">
@@ -182,10 +330,7 @@ const EducatorProfile = () => {
                 <button
                   key={opt}
                   type="button"
-                  onClick={() => {
-                    onChange(opt);
-                    setOpen(false);
-                  }}
+                  onClick={() => { onChange(opt); setOpen(false); }}
                   className={`w-full px-4 py-2 text-left text-sm transition ${
                     opt === value
                       ? "bg-primary/15 text-text-dark font-semibold"
@@ -202,7 +347,20 @@ const EducatorProfile = () => {
     );
   };
 
-  // Field styles (kept consistent)
+  // Feedback banner
+  const FeedbackBanner = ({ msg }) => {
+    if (!msg) return null;
+    return (
+      <div className={`rounded-xl px-4 py-2 text-sm font-medium ${
+        msg.type === "success"
+          ? "bg-green-50 text-green-700 border border-green-200"
+          : "bg-red-50 text-red-700 border border-red-200"
+      }`}>
+        {msg.text}
+      </div>
+    );
+  };
+
   const labelCls = "block text-xs font-medium text-text-dark mb-1";
   const inputCls =
     "w-full rounded-xl border border-primary/30 bg-white px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/25";
@@ -213,20 +371,16 @@ const EducatorProfile = () => {
         {/* Header */}
         <div className="glass-card p-6 flex justify-between items-center">
           <div>
-            <h1 className="text-lg font-semibold text-text-dark">
-              Account Settings
-            </h1>
+            <h1 className="text-lg font-semibold text-text-dark">Account Settings</h1>
             <p className="text-xs text-muted mt-1">
               Update your educator profile, payout details, password, and notification preferences.
             </p>
           </div>
-          <button className="btn-primary px-6 py-2 text-sm">
-            Apply for Mentorship
-          </button>
+          <button className="btn-primary px-6 py-2 text-sm">Apply for Mentorship</button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* LEFT SIDEBAR (self-start prevents stretching) */}
+          {/* LEFT SIDEBAR */}
           <div className="glass-card p-5 space-y-4 self-start">
             <SideItem
               title="Profile"
@@ -256,6 +410,7 @@ const EducatorProfile = () => {
 
           {/* RIGHT CONTENT */}
           <div className="lg:col-span-3 space-y-6">
+
             {/* PROFILE */}
             <section ref={profileRef} className="glass-card p-6 space-y-4">
               <div>
@@ -265,23 +420,14 @@ const EducatorProfile = () => {
                 </p>
               </div>
 
-              {/* Profile photo centered */}
+              {/* Profile photo */}
               <div className="flex flex-col items-center gap-3">
                 <div className="h-28 w-28 overflow-hidden rounded-full border border-primary/30 shadow">
-                  <img
-                    src={profileImage}
-                    alt="Profile"
-                    className="h-full w-full object-cover"
-                  />
+                  <img src={profileImage} alt="Profile" className="h-full w-full object-cover" />
                 </div>
                 <label className="text-xs font-medium text-primary cursor-pointer hover:opacity-90">
                   Change Photo
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="hidden"
-                  />
+                  <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                 </label>
               </div>
 
@@ -291,9 +437,7 @@ const EducatorProfile = () => {
                   <input
                     className={inputCls}
                     value={profileForm.firstName}
-                    onChange={(e) =>
-                      setProfileForm((p) => ({ ...p, firstName: e.target.value }))
-                    }
+                    onChange={(e) => setProfileForm((p) => ({ ...p, firstName: e.target.value }))}
                   />
                 </div>
                 <div>
@@ -301,19 +445,13 @@ const EducatorProfile = () => {
                   <input
                     className={inputCls}
                     value={profileForm.lastName}
-                    onChange={(e) =>
-                      setProfileForm((p) => ({ ...p, lastName: e.target.value }))
-                    }
+                    onChange={(e) => setProfileForm((p) => ({ ...p, lastName: e.target.value }))}
                   />
                 </div>
 
                 <div>
                   <label className={labelCls}>Email</label>
-                  <input
-                    className={`${inputCls} opacity-80`}
-                    value={profileForm.email}
-                    readOnly
-                  />
+                  <input className={`${inputCls} opacity-80`} value={profileForm.email} readOnly />
                   <p className="mt-1 text-[11px] text-muted">
                     Use a verified email to receive payout updates.
                   </p>
@@ -323,9 +461,7 @@ const EducatorProfile = () => {
                   <input
                     className={inputCls}
                     value={profileForm.contact}
-                    onChange={(e) =>
-                      setProfileForm((p) => ({ ...p, contact: e.target.value }))
-                    }
+                    onChange={(e) => setProfileForm((p) => ({ ...p, contact: e.target.value }))}
                   />
                 </div>
 
@@ -333,15 +469,8 @@ const EducatorProfile = () => {
                   <label className={labelCls}>Expertise Area</label>
                   <CustomSelect
                     value={profileForm.expertiseArea}
-                    options={[
-                      "Web Development",
-                      "Cyber Security",
-                      "Data Science",
-                      "Cloud Computing"
-                    ]}
-                    onChange={(v) =>
-                      setProfileForm((p) => ({ ...p, expertiseArea: v }))
-                    }
+                    options={["Web Development", "Cyber Security", "Data Science", "Cloud Computing", "Mobile Development", "AI & Machine Learning", "UI/UX Design"]}
+                    onChange={(v) => setProfileForm((p) => ({ ...p, expertiseArea: v }))}
                   />
                 </div>
 
@@ -350,12 +479,7 @@ const EducatorProfile = () => {
                   <input
                     className={inputCls}
                     value={profileForm.yearsExperience}
-                    onChange={(e) =>
-                      setProfileForm((p) => ({
-                        ...p,
-                        yearsExperience: e.target.value
-                      }))
-                    }
+                    onChange={(e) => setProfileForm((p) => ({ ...p, yearsExperience: e.target.value }))}
                   />
                 </div>
               </div>
@@ -366,18 +490,23 @@ const EducatorProfile = () => {
                   className={inputCls}
                   rows={3}
                   value={profileForm.bio}
-                  onChange={(e) =>
-                    setProfileForm((p) => ({ ...p, bio: e.target.value }))
-                  }
+                  onChange={(e) => setProfileForm((p) => ({ ...p, bio: e.target.value }))}
                 />
               </div>
 
+              <FeedbackBanner msg={profileMsg} />
+
               <div className="flex justify-end gap-3">
-                <button type="button" className="btn-soft px-6 py-2 text-sm">
+                <button type="button" className="btn-soft px-6 py-2 text-sm" onClick={handleResetProfile}>
                   Reset
                 </button>
-                <button type="button" className="btn-primary px-6 py-2 text-sm">
-                  Save Profile
+                <button
+                  type="button"
+                  className="btn-primary px-6 py-2 text-sm"
+                  onClick={handleSaveProfile}
+                  disabled={savingProfile}
+                >
+                  {savingProfile ? "Saving..." : "Save Profile"}
                 </button>
               </div>
             </section>
@@ -386,9 +515,7 @@ const EducatorProfile = () => {
             <section ref={securityRef} className="glass-card p-6 space-y-4">
               <div>
                 <h2 className="font-semibold text-text-dark">Security</h2>
-                <p className="text-xs text-muted mt-1">
-                  Update your password to keep your account secure
-                </p>
+                <p className="text-xs text-muted mt-1">Update your password to keep your account secure.</p>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-4">
@@ -398,12 +525,8 @@ const EducatorProfile = () => {
                     className={inputCls}
                     type="password"
                     value={securityForm.currentPassword}
-                    onChange={(e) =>
-                      setSecurityForm((s) => ({
-                        ...s,
-                        currentPassword: e.target.value
-                      }))
-                    }
+                    placeholder="Enter current password"
+                    onChange={(e) => setSecurityForm((s) => ({ ...s, currentPassword: e.target.value }))}
                   />
                 </div>
 
@@ -413,10 +536,8 @@ const EducatorProfile = () => {
                     className={inputCls}
                     type="password"
                     value={securityForm.newPassword}
-                    onChange={(e) =>
-                      setSecurityForm((s) => ({ ...s, newPassword: e.target.value }))
-                    }
-                    placeholder="New Password"
+                    placeholder="New password (min. 6 characters)"
+                    onChange={(e) => setSecurityForm((s) => ({ ...s, newPassword: e.target.value }))}
                   />
                 </div>
 
@@ -426,13 +547,8 @@ const EducatorProfile = () => {
                     className={inputCls}
                     type="password"
                     value={securityForm.confirmPassword}
-                    onChange={(e) =>
-                      setSecurityForm((s) => ({
-                        ...s,
-                        confirmPassword: e.target.value
-                      }))
-                    }
-                    placeholder="New Password"
+                    placeholder="Confirm new password"
+                    onChange={(e) => setSecurityForm((s) => ({ ...s, confirmPassword: e.target.value }))}
                   />
                 </div>
 
@@ -446,22 +562,32 @@ const EducatorProfile = () => {
                 </div>
               </div>
 
+              <FeedbackBanner msg={passwordMsg} />
+
               <div className="flex justify-end gap-3">
-                <button type="button" className="btn-soft px-6 py-2 text-sm">
+                <button
+                  type="button"
+                  className="btn-soft px-6 py-2 text-sm"
+                  onClick={() => {
+                    setSecurityForm((s) => ({ ...s, currentPassword: "", newPassword: "", confirmPassword: "" }));
+                    setPasswordMsg(null);
+                  }}
+                >
                   Reset
                 </button>
-                <button type="button" className="btn-primary px-6 py-2 text-sm">
-                  Update Password
+                <button
+                  type="button"
+                  className="btn-primary px-6 py-2 text-sm"
+                  onClick={handleUpdatePassword}
+                  disabled={savingPassword}
+                >
+                  {savingPassword ? "Updating..." : "Update Password"}
                 </button>
               </div>
             </section>
 
             {/* PAYOUT */}
-            <section
-              id="payout-details"
-              ref={payoutRef}
-              className="glass-card p-6 space-y-4"
-            >
+            <section id="payout-details" ref={payoutRef} className="glass-card p-6 space-y-4">
               <div>
                 <h2 className="font-semibold text-text-dark">Payout Details</h2>
                 <p className="text-xs text-muted mt-1">
@@ -475,9 +601,7 @@ const EducatorProfile = () => {
                   <input
                     className={inputCls}
                     value={payoutForm.bankName}
-                    onChange={(e) =>
-                      setPayoutForm((p) => ({ ...p, bankName: e.target.value }))
-                    }
+                    onChange={(e) => setPayoutForm((p) => ({ ...p, bankName: e.target.value }))}
                   />
                 </div>
                 <div>
@@ -485,12 +609,7 @@ const EducatorProfile = () => {
                   <input
                     className={inputCls}
                     value={payoutForm.accountNumber}
-                    onChange={(e) =>
-                      setPayoutForm((p) => ({
-                        ...p,
-                        accountNumber: e.target.value
-                      }))
-                    }
+                    onChange={(e) => setPayoutForm((p) => ({ ...p, accountNumber: e.target.value }))}
                   />
                 </div>
                 <div>
@@ -498,12 +617,7 @@ const EducatorProfile = () => {
                   <input
                     className={inputCls}
                     value={payoutForm.accountHolder}
-                    onChange={(e) =>
-                      setPayoutForm((p) => ({
-                        ...p,
-                        accountHolder: e.target.value
-                      }))
-                    }
+                    onChange={(e) => setPayoutForm((p) => ({ ...p, accountHolder: e.target.value }))}
                   />
                 </div>
                 <div>
@@ -511,9 +625,7 @@ const EducatorProfile = () => {
                   <input
                     className={inputCls}
                     value={payoutForm.branch}
-                    onChange={(e) =>
-                      setPayoutForm((p) => ({ ...p, branch: e.target.value }))
-                    }
+                    onChange={(e) => setPayoutForm((p) => ({ ...p, branch: e.target.value }))}
                   />
                 </div>
               </div>
@@ -524,21 +636,23 @@ const EducatorProfile = () => {
                   className={inputCls}
                   rows={3}
                   value={payoutForm.billingAddress}
-                  onChange={(e) =>
-                    setPayoutForm((p) => ({
-                      ...p,
-                      billingAddress: e.target.value
-                    }))
-                  }
+                  onChange={(e) => setPayoutForm((p) => ({ ...p, billingAddress: e.target.value }))}
                 />
               </div>
 
+              <FeedbackBanner msg={payoutMsg} />
+
               <div className="flex justify-end gap-3">
-                <button type="button" className="btn-soft px-6 py-2 text-sm">
+                <button type="button" className="btn-soft px-6 py-2 text-sm" onClick={handleResetPayout}>
                   Reset
                 </button>
-                <button type="button" className="btn-primary px-6 py-2 text-sm">
-                  Update Changes
+                <button
+                  type="button"
+                  className="btn-primary px-6 py-2 text-sm"
+                  onClick={handleSavePayout}
+                  disabled={savingPayout}
+                >
+                  {savingPayout ? "Saving..." : "Update Changes"}
                 </button>
               </div>
             </section>
@@ -547,70 +661,40 @@ const EducatorProfile = () => {
             <section ref={notificationsRef} className="glass-card p-6 space-y-3">
               <div>
                 <h2 className="font-semibold text-text-dark">Notifications</h2>
-                <p className="text-xs text-muted mt-1">
-                  Choose which alerts you want to receive.
-                </p>
+                <p className="text-xs text-muted mt-1">Choose which alerts you want to receive.</p>
               </div>
 
               <div className="rounded-2xl border border-primary/25 bg-white/70 overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-4 border-b border-black/10">
                   <div>
-                    <p className="text-sm font-semibold text-text-dark">
-                      Mentorship Requests
-                    </p>
-                    <p className="text-xs text-muted">
-                      Get notified when a new mentorship request arrives.
-                    </p>
+                    <p className="text-sm font-semibold text-text-dark">Mentorship Requests</p>
+                    <p className="text-xs text-muted">Get notified when a new mentorship request arrives.</p>
                   </div>
-                  <Toggle
-                    enabled={notifications.mentorshipRequests}
-                    onClick={() => toggleNotification("mentorshipRequests")}
-                  />
+                  <Toggle enabled={notifications.mentorshipRequests} onClick={() => toggleNotification("mentorshipRequests")} />
                 </div>
 
                 <div className="flex items-center justify-between px-4 py-4 border-b border-black/10">
                   <div>
-                    <p className="text-sm font-semibold text-text-dark">
-                      Course Reviews & Ratings
-                    </p>
-                    <p className="text-xs text-muted">
-                      Receive alerts when students leave new feedback.
-                    </p>
+                    <p className="text-sm font-semibold text-text-dark">Course Reviews & Ratings</p>
+                    <p className="text-xs text-muted">Receive alerts when students leave new feedback.</p>
                   </div>
-                  <Toggle
-                    enabled={notifications.reviewsRatings}
-                    onClick={() => toggleNotification("reviewsRatings")}
-                  />
+                  <Toggle enabled={notifications.reviewsRatings} onClick={() => toggleNotification("reviewsRatings")} />
                 </div>
 
                 <div className="flex items-center justify-between px-4 py-4 border-b border-black/10">
                   <div>
-                    <p className="text-sm font-semibold text-text-dark">
-                      Payout Updates
-                    </p>
-                    <p className="text-xs text-muted">
-                      Get notified about payout approvals and failures.
-                    </p>
+                    <p className="text-sm font-semibold text-text-dark">Payout Updates</p>
+                    <p className="text-xs text-muted">Get notified about payout approvals and failures.</p>
                   </div>
-                  <Toggle
-                    enabled={notifications.payoutUpdates}
-                    onClick={() => toggleNotification("payoutUpdates")}
-                  />
+                  <Toggle enabled={notifications.payoutUpdates} onClick={() => toggleNotification("payoutUpdates")} />
                 </div>
 
                 <div className="flex items-center justify-between px-4 py-4">
                   <div>
-                    <p className="text-sm font-semibold text-text-dark">
-                      Software Updates
-                    </p>
-                    <p className="text-xs text-muted">
-                      New features and platform improvements.
-                    </p>
+                    <p className="text-sm font-semibold text-text-dark">Software Updates</p>
+                    <p className="text-xs text-muted">New features and platform improvements.</p>
                   </div>
-                  <Toggle
-                    enabled={notifications.softwareUpdates}
-                    onClick={() => toggleNotification("softwareUpdates")}
-                  />
+                  <Toggle enabled={notifications.softwareUpdates} onClick={() => toggleNotification("softwareUpdates")} />
                 </div>
               </div>
             </section>
@@ -620,25 +704,21 @@ const EducatorProfile = () => {
               <div>
                 <h2 className="font-semibold text-text-dark">Account Deactivation</h2>
                 <p className="text-xs text-muted mt-1">
-                  Caution. These actions may affect your account access and courses
+                  Caution. These actions may affect your account access and courses.
                 </p>
               </div>
 
               <div className="rounded-2xl border border-primary/25 bg-white/70 overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-4 border-b border-black/10">
                   <div>
-                    <p className="text-sm font-semibold text-text-dark">
-                      Deactivate Account
-                    </p>
+                    <p className="text-sm font-semibold text-text-dark">Deactivate Account</p>
                     <p className="text-xs text-muted">
                       Disable educator access temporarily. You can re-activate later (admin approval may be needed).
                     </p>
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      alert("Placeholder: Deactivate account flow will be implemented later.");
-                    }}
+                    onClick={() => alert("Placeholder: Deactivate account flow will be implemented later.")}
                     className="rounded-full border border-red-400 px-5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
                   >
                     Deactivate
@@ -647,9 +727,7 @@ const EducatorProfile = () => {
 
                 <div className="flex items-center justify-between px-4 py-4">
                   <div>
-                    <p className="text-sm font-semibold text-text-dark">
-                      Log out from all devices
-                    </p>
+                    <p className="text-sm font-semibold text-text-dark">Log out from all devices</p>
                     <p className="text-xs text-muted">For security, sign out everywhere.</p>
                   </div>
                   <button

@@ -27,11 +27,20 @@ export async function getAllCoursesAdmin() {
   return data.courses;
 }
 
-// Update course status (admin)
-export async function updateCourseStatus(courseId, status) {
+// Update course status + review (reviewer/admin)
+export async function updateCourseStatus(courseId, { status, decision, rating, notes }) {
   const data = await apiRequest(`/api/courses/${courseId}/status`, {
     method: "PATCH",
-    body: JSON.stringify({ status })
+    body: JSON.stringify({ status, decision, rating, notes })
+  });
+  return { success: true, course: data.course };
+}
+
+// Update an existing course (educator editing a draft)
+export async function updateCourseData(courseId, courseData) {
+  const data = await apiRequest(`/api/courses/${courseId}`, {
+    method: "PUT",
+    body: JSON.stringify(courseData)
   });
   return { success: true, course: data.course };
 }

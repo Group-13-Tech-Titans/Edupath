@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
+import * as authApi from "../../api/authApi.js";
 
 const TYPES = [
   { value: "all", label: "All Types" },
@@ -116,6 +117,8 @@ const ReviewerDashboard = () => {
   });
 
   const [isReviewerActive, setIsReviewerActive] = useState(true);
+  const [saveError, setSaveError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [profileDraft, setProfileDraft] = useState({
@@ -193,18 +196,40 @@ const ReviewerDashboard = () => {
     closeEdit();
   };
 
-  const updateChanges = () => {
+  const updateChanges = async () => {
     if (!isDirty.changed) return;
     if (!isDirty.passwordValid) return;
 
-    // NOTE: password update not persisted here; wire to API later.
-    setProfileSaved((prev) => ({
-      ...prev,
-      fullName: profileDraft.fullName.trim() || prev.fullName,
-      photoUrl: profileDraft.photoUrl,
-      domains: profileDraft.domains.length ? profileDraft.domains : prev.domains,
-    }));
-    closeEdit();
+    setSaveError("");
+    setSaving(true);
+
+    try {
+      const payload = {
+        name: profileDraft.fullName.trim() || profileSaved.fullName,
+        profile: {
+          photoUrl: profileDraft.photoUrl,
+          domains: profileDraft.domains
+        }
+      };
+
+      if (profileDraft.password.trim().length >= 6) {
+        payload.password = profileDraft.password.trim();
+      }
+
+      await authApi.updateProfile(payload);
+
+      setProfileSaved((prev) => ({
+        ...prev,
+        fullName: profileDraft.fullName.trim() || prev.fullName,
+        photoUrl: profileDraft.photoUrl,
+        domains: profileDraft.domains.length ? profileDraft.domains : prev.domains,
+      }));
+      closeEdit();
+    } catch (err) {
+      setSaveError(err.message || "Failed to save profile.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   // ---------------- Review Queue (5 mixed items) ----------------
@@ -677,6 +702,13 @@ const ReviewerDashboard = () => {
               <AddDomainRow onAdd={addDomain} />
             </div>
 
+            {/* Save error */}
+            {saveError && (
+              <div className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                {saveError}
+              </div>
+            )}
+
             {/* Bottom-right actions */}
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
@@ -690,15 +722,15 @@ const ReviewerDashboard = () => {
               <button
                 type="button"
                 onClick={updateChanges}
-                disabled={!isDirty.changed || !isDirty.passwordValid}
+                disabled={!isDirty.changed || !isDirty.passwordValid || saving}
                 className={[
                   "rounded-full px-5 py-2.5 text-sm font-extrabold shadow-[0_10px_18px_rgba(16,185,129,0.25)] active:scale-[0.98]",
-                  !isDirty.changed || !isDirty.passwordValid
+                  !isDirty.changed || !isDirty.passwordValid || saving
                     ? "bg-slate-200 text-slate-500 cursor-not-allowed shadow-none"
                     : "bg-gradient-to-r from-emerald-400 to-teal-400 text-white",
                 ].join(" ")}
               >
-                Update Changes
+                {saving ? "Saving..." : "Update Changes"}
               </button>
             </div>
           </div>

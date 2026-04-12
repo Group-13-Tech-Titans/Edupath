@@ -57,6 +57,7 @@ const ReviewerCourseReview = () => {
   const [rating, setRating] = useState(0);
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   if (!reviewItem) {
     return (
@@ -72,7 +73,7 @@ const ReviewerCourseReview = () => {
   };
 
   // Submit → Update + Dashboard
-  const onSubmit = () => {
+  const onSubmit = async () => {
     if (!notes.trim()) {
       setError("Review notes are mandatory.");
       return;
@@ -84,15 +85,21 @@ const ReviewerCourseReview = () => {
     }
 
     setError("");
+    setSubmitting(true);
 
-    submitReviewDecision({
+    const result = await submitReviewDecision({
       itemId: reviewItem.id,
-      itemType: reviewItem.type,
       decision,
       rating,
       notes: notes.trim(),
-      reviewer: currentUser,
     });
+
+    setSubmitting(false);
+
+    if (!result.success) {
+      setError(result.message || "Failed to submit review. Please try again.");
+      return;
+    }
 
     navigate("/reviewer", { replace: true });
   };
@@ -206,9 +213,10 @@ const ReviewerCourseReview = () => {
             <button
               type="button"
               onClick={onSubmit}
-              className="rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 px-8 py-2.5 text-sm font-extrabold text-white shadow-md active:scale-[0.98]"
+              disabled={submitting}
+              className="rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 px-8 py-2.5 text-sm font-extrabold text-white shadow-md active:scale-[0.98] disabled:opacity-60"
             >
-              Submit
+              {submitting ? "Submitting..." : "Submit"}
             </button>
           </div>
         </div>

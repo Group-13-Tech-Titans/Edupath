@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { mockCourses } from "../data/mockCourses.js";
 import * as authApi from "../api/authApi.js";
 import * as courseApi from "../api/courseApi.js";
 import { getToken, setToken } from "../api/client.js";
@@ -19,7 +18,7 @@ const defaultState = {
   currentUser: null,
   authLoading: true,
   users: [],
-  courses: mockCourses,
+  courses: [],
   mentorRequests: [],
   lessonProgress: {},
   payouts: {},
@@ -40,7 +39,7 @@ function loadState() {
       currentUser: null,
       authLoading: true,
       users: parsed.users || [],
-      courses: parsed.courses || mockCourses
+      courses: parsed.courses || []
     };
   } catch (e) {
     console.error("Failed to load state", e);
@@ -187,9 +186,26 @@ export const AppProvider = ({ children }) => {
     try {
       const courses = await courseApi.getMyCourses();
       const normalized = courses.map((c) => ({ ...c, id: c._id }));
-      setState((prev) => ({ ...prev, courses: [...normalized, ...prev.courses.filter(c => !c._id)] }));
+      setState((prev) => ({ ...prev, courses: normalized }));
     } catch (err) {
       console.error("Failed to fetch courses", err);
+    }
+  }, []);
+
+  const submitReviewDecision = useCallback(async ({ itemId, decision, rating, notes }) => {
+    const status = decision === "approved" ? "approved" : "rejected";
+    try {
+      const result = await courseApi.updateCourseStatus(itemId, { status, decision, rating, notes });
+      const updatedCourse = { ...result.course, id: result.course._id };
+      setState((prev) => ({
+        ...prev,
+        courses: prev.courses.map((c) =>
+          c.id === itemId || c._id === itemId ? { ...c, ...updatedCourse } : c
+        )
+      }));
+      return { success: true };
+    } catch (err) {
+      return { success: false, message: err.message || "Failed to submit review" };
     }
   }, []);
 
@@ -266,6 +282,16 @@ export const AppProvider = ({ children }) => {
     });
   }, []);
 
+  const updateUserProfile = useCallback(async (body) => {
+    try {
+      const result = await authApi.updateProfile(body);
+      setState((prev) => ({ ...prev, currentUser: normalizeUser(result.user) }));
+      return { success: true, user: result.user };
+    } catch (err) {
+      return { success: false, message: err.message || "Update failed" };
+    }
+  }, []);
+
   const value = {
     state,
     authLoading: state.authLoading,
@@ -286,11 +312,13 @@ export const AppProvider = ({ children }) => {
     verifyEducator,
     createCourse,
     fetchMyCourses,
+    submitReviewDecision,
     updateCourse,
     approveCourse,
     rejectCourse,
     saveMentorRequest,
-    markLessonCompleted
+    markLessonCompleted,
+    updateUserProfile
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

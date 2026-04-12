@@ -10,6 +10,7 @@ const roleMiddleware = require("../middleware/roleMiddleware");
 
 const crypto = require("crypto");
 const sendEmail = require("../../utils/sendEmail");
+const { welcomeEmail, passwordChangedEmail } = require("../../utils/emailTemplates");
 
 
 router.get(
@@ -52,6 +53,10 @@ router.post("/register", async (req, res) => {
     delete safe.password;
     safe.id = safe._id.toString();
     res.status(201).json({ message: "User registered", user: safe });
+
+    // Send welcome email (non-blocking — don't await so it doesn't slow the response)
+    sendEmail({ to: email, ...welcomeEmail({ name: name || email.split("@")[0], email, role: role || "pending" }) })
+      .catch((err) => console.error("Welcome email failed:", err.message));
   } catch (err) {
     if (err.code === 11000) {
       return res.status(400).json({ message: "Email already in use" });
@@ -155,16 +160,29 @@ router.get("/me", authMiddleware, (req, res) => {
 // UPDATE PROFILE (role, name, profile – for completing student/educator signup)
 router.patch("/profile", authMiddleware, async (req, res) => {
   try {
-    const { name, role, password, profile, status, specializationTag } = req.body;
+    const { name, role, password, currentPassword, profile, status, specializationTag } = req.body;
     const updates = {};
     if (name != null) updates.name = name;
     if (role != null) updates.role = role;
     if (status != null) updates.status = status;
     if (specializationTag != null) updates.specializationTag = specializationTag;
     if (profile != null) updates.profile = profile;
+
+    // If a new password is provided, verify the current password first
     if (password && password.length >= 6) {
+      if (!currentPassword) {
+        return res.status(400).json({ message: "Current password is required to set a new password." });
+      }
+      // Fetch the full user record (with password hash) to verify
+      const fullUser = await User.findById(req.user._id);
+      const match = await bcrypt.compare(currentPassword, fullUser.password);
+      if (!match) {
+        return res.status(400).json({ message: "Current password is incorrect." });
+      }
       updates.password = await bcrypt.hash(password, 10);
     }
+
+    const passwordChanged = !!updates.password;
 
     const user = await User.findByIdAndUpdate(
       req.user._id,
@@ -175,6 +193,12 @@ router.patch("/profile", authMiddleware, async (req, res) => {
     const safe = user.toObject();
     safe.id = safe._id.toString();
     res.json({ user: safe });
+
+    // Send password change notification (non-blocking)
+    if (passwordChanged) {
+      sendEmail({ to: user.email, ...passwordChangedEmail({ name: user.name, email: user.email }) })
+        .catch((err) => console.error("Password change email failed:", err.message));
+    }
   } catch (err) {
     res.status(500).json({ message: err.message || "Update failed" });
   }
