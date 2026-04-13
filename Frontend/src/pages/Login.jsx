@@ -12,22 +12,16 @@ const roleHomePath = {
 };
 
 const Login = () => {
-  const { login } = useApp();
+  const { login, verifyLoginOtp } = useApp();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [requiresTwoFactor, setRequiresTwoFactor] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    const res = await login(email.trim(), password);
-    if (!res.success) {
-      setError(res.message || "Unable to login");
-      return;
-    }
-    const user = res.user;
+  const redirectAfterLogin = (user) => {
     const fromState = location.state && location.state.from?.pathname;
     let target = fromState;
     if (!target) {
@@ -39,6 +33,32 @@ const Login = () => {
       }
     }
     navigate(target, { replace: true });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (requiresTwoFactor) {
+      const res = await verifyLoginOtp(email.trim(), otp.trim());
+      if (!res.success) {
+        setError(res.message || "Unable to verify code");
+        return;
+      }
+      redirectAfterLogin(res.user);
+      return;
+    }
+
+    const res = await login(email.trim(), password);
+    if (res.requiresTwoFactor) {
+      setRequiresTwoFactor(true);
+      setError("");
+      return;
+    }
+    if (!res.success) {
+      setError(res.message || "Unable to login");
+      return;
+    }
+    redirectAfterLogin(res.user);
   };
 
   return (
@@ -98,11 +118,17 @@ const Login = () => {
                 className="mt-1 w-full rounded-full border border-emerald-100 bg-white/80 px-4 py-2.5 text-sm outline-none ring-primary/40 placeholder:text-gray-400 focus:border-emerald-300 focus:ring"
                 placeholder="you@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setRequiresTwoFactor(false);
+                  setOtp("");
+                }}
+                readOnly={requiresTwoFactor}
                 required
               />
             </div>
-            <div>
+            {!requiresTwoFactor && (
+              <div>
               <div className="mb-1 flex items-center justify-between">
                 <label className="text-xs font-medium text-text-dark">
                   Password
@@ -121,7 +147,28 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
-            </div>
+              </div>
+            )}
+            {requiresTwoFactor && (
+              <div>
+                <label className="text-xs font-medium text-text-dark">
+                  Verification Code
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  className="mt-1 w-full rounded-full border border-emerald-100 bg-white/80 px-4 py-2.5 text-sm outline-none ring-primary/40 placeholder:text-gray-400 focus:border-emerald-300 focus:ring"
+                  placeholder="Enter the 6-digit code"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  required
+                />
+                <p className="mt-1 text-[11px] text-muted">
+                  We sent a verification code to your email.
+                </p>
+              </div>
+            )}
             <div className="flex items-center justify-between text-[11px] text-muted">
               <label className="flex items-center gap-2">
                 <input
@@ -140,8 +187,22 @@ const Login = () => {
               type="submit"
               className="btn-primary mt-1 w-full rounded-full py-2.5 text-sm"
             >
-              Sign in
+              {requiresTwoFactor ? "Verify Code" : "Sign in"}
             </button>
+            {requiresTwoFactor && (
+              <button
+                type="button"
+                className="w-full text-xs font-medium text-primary hover:underline"
+                onClick={() => {
+                  setRequiresTwoFactor(false);
+                  setOtp("");
+                  setPassword("");
+                  setError("");
+                }}
+              >
+                Back to login
+              </button>
+            )}
           </form>
 
           <p className="mt-4 text-center text-xs text-muted">

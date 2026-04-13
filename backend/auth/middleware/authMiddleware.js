@@ -11,6 +11,19 @@ module.exports = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id).select("-password");
     if (!user) return res.status(401).json({ message: "User not found" });
+    if (
+      decoded.authTokenVersion != null &&
+      decoded.authTokenVersion !== (user.authTokenVersion || 0)
+    ) {
+      return res.status(401).json({ message: "Session expired" });
+    }
+    if (
+      decoded.authTokenVersion == null &&
+      user.logoutAfter &&
+      (!decoded.iat || decoded.iat * 1000 < user.logoutAfter.getTime())
+    ) {
+      return res.status(401).json({ message: "Session expired" });
+    }
     req.user = user;
     next();
   } catch {

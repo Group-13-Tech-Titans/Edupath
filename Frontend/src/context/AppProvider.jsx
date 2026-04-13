@@ -82,6 +82,9 @@ export const AppProvider = ({ children }) => {
   const login = useCallback(async (email, password) => {
     try {
       const result = await authApi.login(email.trim(), password);
+      if (result.requiresTwoFactor) {
+        return result;
+      }
       setState((prev) => ({ ...prev, currentUser: normalizeUser(result.user) }));
       return { success: true, user: result.user };
     } catch (err) {
@@ -89,9 +92,29 @@ export const AppProvider = ({ children }) => {
     }
   }, []);
 
+  const verifyLoginOtp = useCallback(async (email, otp) => {
+    try {
+      const result = await authApi.verifyLoginOtp(email.trim(), otp);
+      setState((prev) => ({ ...prev, currentUser: normalizeUser(result.user) }));
+      return { success: true, user: result.user };
+    } catch (err) {
+      return { success: false, message: err.message || "Invalid verification code" };
+    }
+  }, []);
+
   const logout = useCallback(() => {
     setToken(null);
     setState((prev) => ({ ...prev, currentUser: null }));
+  }, []);
+
+  const logoutAllDevices = useCallback(async () => {
+    try {
+      await authApi.logoutAllDevices();
+      setState((prev) => ({ ...prev, currentUser: null }));
+      return { success: true };
+    } catch (err) {
+      return { success: false, message: err.message || "Failed to log out from all devices" };
+    }
   }, []);
 
   const signupAccount = useCallback(async (payload) => {
@@ -304,7 +327,9 @@ export const AppProvider = ({ children }) => {
     reviewHistory: state.reviewHistory,
     reviewerAccounts: state.reviewerAccounts,
     login,
+    verifyLoginOtp,
     logout,
+    logoutAllDevices,
     signupAccount,
     signupStudent,
     signupEducator,

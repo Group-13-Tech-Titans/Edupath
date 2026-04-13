@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 
@@ -14,7 +14,8 @@ import { useApp } from "../../context/AppProvider.jsx";
 
 const EducatorProfile = () => {
   const location = useLocation();
-  const { currentUser, updateUserProfile } = useApp();
+  const navigate = useNavigate();
+  const { currentUser, updateUserProfile, logoutAllDevices } = useApp();
 
   // ----- Section refs for smooth scroll -----
   const profileRef = useRef(null);
@@ -70,7 +71,16 @@ const EducatorProfile = () => {
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setProfileImage(URL.createObjectURL(file));
+    if (file.size > 2 * 1024 * 1024) {
+      setProfileMsg({ type: "error", text: "Profile photo must be 2MB or smaller." });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setProfileImage(reader.result);
+      setProfileMsg(null);
+    };
+    reader.readAsDataURL(file);
   };
 
   // ----- Helper: split "First Last" name from DB -----
@@ -129,6 +139,7 @@ const EducatorProfile = () => {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [savingPayout, setSavingPayout] = useState(false);
+  const [loggingOutAll, setLoggingOutAll] = useState(false);
 
   // ----- Populate forms from currentUser when it loads -----
   useEffect(() => {
@@ -140,7 +151,7 @@ const EducatorProfile = () => {
       lastName,
       email: currentUser.email || "",
       contact: p.contact || "",
-      expertiseArea: p.expertiseArea || "",
+      expertiseArea: p.expertiseArea || currentUser.specializationTag || "",
       yearsExperience: p.yearsExperience || "",
       bio: p.bio || ""
     });
@@ -155,6 +166,11 @@ const EducatorProfile = () => {
     if (p.notifications) {
       setNotifications(p.notifications);
     }
+    setProfileImage(p.profileImage || defaultAvatar);
+    setSecurityForm((s) => ({
+      ...s,
+      twoFA: currentUser.twoFactorEnabled || p.twoFactorEnabled ? "Enabled" : "Disabled"
+    }));
   }, [currentUser]);
 
   // ----- Save Profile -----
@@ -167,9 +183,12 @@ const EducatorProfile = () => {
       profile: {
         ...(currentUser?.profile || {}),
         contact: profileForm.contact,
-        expertiseArea: profileForm.expertiseArea,
+        expertiseArea: currentUser?.profile?.expertiseArea || currentUser?.specializationTag || profileForm.expertiseArea,
         yearsExperience: profileForm.yearsExperience,
-        bio: profileForm.bio
+        bio: profileForm.bio,
+        profileImage: profileImage === defaultAvatar
+          ? currentUser?.profile?.profileImage
+          : profileImage
       }
     });
     setSavingProfile(false);
@@ -190,47 +209,65 @@ const EducatorProfile = () => {
       lastName,
       email: currentUser.email || "",
       contact: p.contact || "",
-      expertiseArea: p.expertiseArea || "",
+      expertiseArea: p.expertiseArea || currentUser.specializationTag || "",
       yearsExperience: p.yearsExperience || "",
       bio: p.bio || ""
     });
+    setProfileImage(p.profileImage || defaultAvatar);
     setProfileMsg(null);
   };
 
   // ----- Update Password -----
   const handleUpdatePassword = async () => {
     setPasswordMsg(null);
-    if (!securityForm.currentPassword) {
-      setPasswordMsg({ type: "error", text: "Please enter your current password." });
-      return;
-    }
-    if (!securityForm.newPassword) {
-      setPasswordMsg({ type: "error", text: "Please enter a new password." });
-      return;
-    }
-    if (securityForm.newPassword.length < 6) {
-      setPasswordMsg({ type: "error", text: "New password must be at least 6 characters." });
-      return;
-    }
-    if (securityForm.newPassword !== securityForm.confirmPassword) {
-      setPasswordMsg({ type: "error", text: "New passwords do not match." });
-      return;
-    }
-    if (securityForm.currentPassword === securityForm.newPassword) {
-      setPasswordMsg({ type: "error", text: "New password must be different from the current password." });
-      return;
+    const isChangingPassword =
+      securityForm.currentPassword ||
+      securityForm.newPassword ||
+      securityForm.confirmPassword;
+
+    if (isChangingPassword) {
+      if (!securityForm.currentPassword) {
+        setPasswordMsg({ type: "error", text: "Please enter your current password." });
+        return;
+      }
+      if (!securityForm.newPassword) {
+        setPasswordMsg({ type: "error", text: "Please enter a new password." });
+        return;
+      }
+      if (securityForm.newPassword.length < 6) {
+        setPasswordMsg({ type: "error", text: "New password must be at least 6 characters." });
+        return;
+      }
+      if (securityForm.newPassword !== securityForm.confirmPassword) {
+        setPasswordMsg({ type: "error", text: "New passwords do not match." });
+        return;
+      }
+      if (securityForm.currentPassword === securityForm.newPassword) {
+        setPasswordMsg({ type: "error", text: "New password must be different from the current password." });
+        return;
+      }
     }
     setSavingPassword(true);
+    const twoFactorEnabled = securityForm.twoFA === "Enabled";
     const result = await updateUserProfile({
-      password: securityForm.newPassword,
-      currentPassword: securityForm.currentPassword
+      twoFactorEnabled,
+      profile: {
+        ...(currentUser?.profile || {}),
+        twoFactorEnabled
+      },
+      ...(isChangingPassword
+        ? {
+            password: securityForm.newPassword,
+            currentPassword: securityForm.currentPassword
+          }
+        : {})
     });
     setSavingPassword(false);
     if (result.success) {
-      setPasswordMsg({ type: "success", text: "Password updated successfully." });
+      setPasswordMsg({ type: "success", text: "Security settings updated successfully." });
       setSecurityForm((s) => ({ ...s, currentPassword: "", newPassword: "", confirmPassword: "" }));
     } else {
-      setPasswordMsg({ type: "error", text: result.message || "Failed to update password." });
+      setPasswordMsg({ type: "error", text: result.message || "Failed to update security settings." });
     }
   };
 
@@ -263,6 +300,20 @@ const EducatorProfile = () => {
       billingAddress: payout.billingAddress || ""
     });
     setPayoutMsg(null);
+  };
+
+  const handleLogoutAllDevices = async () => {
+    const confirmed = window.confirm("Log out from this browser and all other devices?");
+    if (!confirmed) return;
+
+    setLoggingOutAll(true);
+    const result = await logoutAllDevices();
+    setLoggingOutAll(false);
+    if (result.success) {
+      navigate("/login", { replace: true });
+      return;
+    }
+    alert(result.message || "Failed to log out from all devices.");
   };
 
   // ----- Components -----
@@ -467,11 +518,14 @@ const EducatorProfile = () => {
 
                 <div>
                   <label className={labelCls}>Expertise Area</label>
-                  <CustomSelect
+                  <input
+                    className={`${inputCls} cursor-not-allowed bg-gray-50 opacity-80`}
                     value={profileForm.expertiseArea}
-                    options={["Web Development", "Cyber Security", "Data Science", "Cloud Computing", "Mobile Development", "AI & Machine Learning", "UI/UX Design"]}
-                    onChange={(v) => setProfileForm((p) => ({ ...p, expertiseArea: v }))}
+                    readOnly
                   />
+                  <p className="mt-1 text-[11px] text-muted">
+                    To change your expertise area, please contact the admin.
+                  </p>
                 </div>
 
                 <div>
@@ -581,7 +635,7 @@ const EducatorProfile = () => {
                   onClick={handleUpdatePassword}
                   disabled={savingPassword}
                 >
-                  {savingPassword ? "Updating..." : "Update Password"}
+                  {savingPassword ? "Updating..." : "Update Security"}
                 </button>
               </div>
             </section>
@@ -732,10 +786,11 @@ const EducatorProfile = () => {
                   </div>
                   <button
                     type="button"
-                    onClick={() => alert("Placeholder: Logout from all devices will be implemented later.")}
+                    onClick={handleLogoutAllDevices}
+                    disabled={loggingOutAll}
                     className="btn-soft px-6 py-2 text-xs"
                   >
-                    Log Out
+                    {loggingOutAll ? "Logging Out..." : "Log Out"}
                   </button>
                 </div>
               </div>

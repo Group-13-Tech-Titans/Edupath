@@ -5,6 +5,21 @@ export async function login(email, password) {
     method: "POST",
     body: JSON.stringify({ email, password })
   });
+  if (data.requiresTwoFactor) {
+    return {
+      requiresTwoFactor: true,
+      message: data.message || "Verification code sent to your email"
+    };
+  }
+  setToken(data.token);
+  return { success: true, user: data.user };
+}
+
+export async function verifyLoginOtp(email, otp) {
+  const data = await apiRequest("/api/auth/verify-login-otp", {
+    method: "POST",
+    body: JSON.stringify({ email, otp })
+  });
   setToken(data.token);
   return { success: true, user: data.user };
 }
@@ -33,4 +48,12 @@ export async function updateProfile(body) {
     body: JSON.stringify(body)
   });
   return { success: true, user: data.user };
+}
+
+export async function logoutAllDevices() {
+  await apiRequest("/api/auth/logout-all", {
+    method: "POST"
+  });
+  setToken(null);
+  return { success: true };
 }

@@ -10,7 +10,7 @@ const roleMiddleware = require("../middleware/roleMiddleware");
 
 const crypto = require("crypto");
 const sendEmail = require("../../utils/sendEmail");
-const { welcomeEmail, passwordChangedEmail } = require("../../utils/emailTemplates");
+const { welcomeEmail, passwordChangedEmail, loginOtpEmail } = require("../../utils/emailTemplates");
 
 
 router.get(
@@ -67,23 +67,81 @@ router.post("/register", async (req, res) => {
 
 // LOGIN
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-  const user = await User.findOne({ email });
-  if (!user) return res.status(400).json({ message: "Invalid credentials" });
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ message: "Invalid credentials" });
 
-  const match = await bcrypt.compare(password, user.password);
-  if (!match) return res.status(400).json({ message: "Invalid credentials" });
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(400).json({ message: "Invalid credentials" });
 
-  const token = jwt.sign(
-    { id: user._id, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: "1d" }
-  );
+    if (user.twoFactorEnabled || user.profile?.twoFactorEnabled) {
+      const otp = crypto.randomInt(100000, 1000000).toString();
+      user.loginOtpHash = crypto.createHash("sha256").update(otp).digest("hex");
+      user.loginOtpExpire = Date.now() + 10 * 60 * 1000;
+      await user.save();
 
-  const safe = user.toObject();
-  delete safe.password;
-  safe.id = safe._id.toString();
-  res.json({ token, user: safe });
+      await sendEmail({
+        to: user.email,
+        ...loginOtpEmail({ name: user.name, email: user.email, otp })
+      });
+
+      return res.json({
+        requiresTwoFactor: true,
+        message: "Verification code sent to your email"
+      });
+    }
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role, authTokenVersion: user.authTokenVersion || 0 },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    const safe = user.toObject();
+    delete safe.password;
+    delete safe.loginOtpHash;
+    delete safe.loginOtpExpire;
+    safe.id = safe._id.toString();
+    res.json({ token, user: safe });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Login failed" });
+  }
+});
+
+router.post("/verify-login-otp", async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    const otpHash = crypto.createHash("sha256").update(String(otp || "")).digest("hex");
+    const user = await User.findOne({
+      email,
+      loginOtpHash: otpHash,
+      loginOtpExpire: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired verification code" });
+    }
+
+    user.loginOtpHash = undefined;
+    user.loginOtpExpire = undefined;
+    await user.save();
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role, authTokenVersion: user.authTokenVersion || 0 },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    const safe = user.toObject();
+    delete safe.password;
+    delete safe.loginOtpHash;
+    delete safe.loginOtpExpire;
+    safe.id = safe._id.toString();
+    res.json({ token, user: safe });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Verification failed" });
+  }
 });
 
 router.post("/forgot-password", async (req, res) => {
@@ -153,19 +211,40 @@ router.post("/reset-password/:token", async (req, res) => {
 router.get("/me", authMiddleware, (req, res) => {
   const safe = req.user.toObject ? req.user.toObject() : req.user;
   delete safe.password;
+  delete safe.loginOtpHash;
+  delete safe.loginOtpExpire;
   safe.id = safe._id.toString();
   res.json({ user: safe });
+});
+
+router.post("/logout-all", authMiddleware, async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.user._id, {
+      $inc: { authTokenVersion: 1 },
+      $set: { logoutAfter: new Date() }
+    });
+    res.json({ message: "Logged out from all devices" });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to log out from all devices" });
+  }
 });
 
 // UPDATE PROFILE (role, name, profile – for completing student/educator signup)
 router.patch("/profile", authMiddleware, async (req, res) => {
   try {
-    const { name, role, password, currentPassword, profile, status, specializationTag } = req.body;
+    const { name, role, password, currentPassword, profile, status, specializationTag, twoFactorEnabled } = req.body;
     const updates = {};
     if (name != null) updates.name = name;
     if (role != null) updates.role = role;
     if (status != null) updates.status = status;
     if (specializationTag != null) updates.specializationTag = specializationTag;
+    if (twoFactorEnabled != null) {
+      updates.twoFactorEnabled = !!twoFactorEnabled;
+      if (!updates.twoFactorEnabled) {
+        updates.loginOtpHash = undefined;
+        updates.loginOtpExpire = undefined;
+      }
+    }
     if (profile != null) updates.profile = profile;
 
     // If a new password is provided, verify the current password first
@@ -191,6 +270,8 @@ router.patch("/profile", authMiddleware, async (req, res) => {
     ).select("-password");
 
     const safe = user.toObject();
+    delete safe.loginOtpHash;
+    delete safe.loginOtpExpire;
     safe.id = safe._id.toString();
     res.json({ user: safe });
 

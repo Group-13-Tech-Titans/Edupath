@@ -107,6 +107,21 @@ exports.passwordChangedEmail = ({ name, email }) => ({
 // ─────────────────────────────────────────────
 // 3. Course submitted for review
 // ─────────────────────────────────────────────
+exports.loginOtpEmail = ({ name, email, otp }) => ({
+  subject: "Your EduPath login verification code",
+  html: wrapper(`
+    ${heading("Login Verification Code")}
+    ${para(`Hi ${name || email},`)}
+    ${para("Use this code to finish signing in to your EduPath account:")}
+    <div style="margin:20px 0;padding:18px;background:#f0faf8;border:1px solid #b8ead8;border-radius:12px;text-align:center;">
+      <p style="margin:0;color:#1a2e2b;font-size:30px;font-weight:700;letter-spacing:6px;">${otp}</p>
+    </div>
+    ${para("This code expires in 10 minutes.")}
+    ${para("If you did not try to sign in, you can ignore this email.")}
+  `),
+  text: `Hi ${name || email}, your EduPath login verification code is ${otp}. It expires in 10 minutes.`
+});
+
 exports.courseSubmittedEmail = ({ educatorName, educatorEmail, courseTitle, category, level }) => ({
   subject: `Your course "${courseTitle}" has been submitted for review`,
   html: wrapper(`
