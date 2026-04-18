@@ -26,6 +26,9 @@ app.use("/api/step-quiz", require("./modules/quiz/routes/stepQuizRoutes"));
 // Admin routes
 app.use("/api/admin", require("./modules/admin/routes/adminRoutes"));
 
+// Mentor routes
+app.use("/api/mentor", require("./modules/mentor/routes/mentorRoutes"));
+
 app.get("/test", (req, res) => {
   res.send("Working");
 });
