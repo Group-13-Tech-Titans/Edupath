@@ -125,6 +125,7 @@ export default function MentorDashboard() {
           <Link to="/MentorProfile" className="font-medium text-slate-800 transition-colors hover:text-teal-500" style={{ textDecoration: "none" }}>
             Profile
           </Link>
+          <Link to="/MentorResources" className="font-medium text-slate-800 transition-colors hover:text-teal-500">Resources</Link>    
         </nav>
 
         {/* Logout Button */}

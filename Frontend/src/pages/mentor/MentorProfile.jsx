@@ -110,12 +110,13 @@ export default function MentorProfile() {
           <Link to="/MentorSessions" className="font-medium text-[#2c3e50] transition-colors duration-300 hover:text-[#5DD9C1]">
             Sessions
           </Link>
-          <Link to="/MentorResources" className="font-medium text-[#2c3e50] transition-colors duration-300 hover:text-[#5DD9C1]">
-            Resources
-          </Link>
           <Link to="/MentorProfile" className="font-medium text-[#5DD9C1] transition-colors duration-300 hover:text-[#5DD9C1]">
             Profile
           </Link>
+          <Link to="/MentorResources" className="font-medium text-[#2c3e50] transition-colors duration-300 hover:text-[#5DD9C1]">
+            Resources
+          </Link>
+          
         </nav>
 
         <div className="flex w-[150px] justify-end">

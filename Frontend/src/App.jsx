@@ -50,6 +50,7 @@ import MentorShareResource from "./pages/mentor/MentorShareResource.jsx";
 import MentorStudents from "./pages/mentor/MentorStudents.jsx";
 import MentorSettings from "./pages/mentor/MentorSettings.jsx";
 import MentorShareProfile from "./pages/mentor/MentorShareProfile.jsx";
+import MentorResources from "./pages/mentor/MentorResources";
 
 import ComingSoon from "./pages/ComingSoon.jsx";
 import NotFound from "./pages/NotFound.jsx";
@@ -102,11 +103,11 @@ const App = () => {
         {/* Mentor test routes (unprotected) - quick access for development/testing */}
         <Route path="/MentorDashboard" element={<MentorDashboard />} />
         <Route path="/MentorSessions" element={<MentorSessions />} />
-        <Route path="/MentorResources" element={<MentorShareResource />} />
         <Route path="/MentorStudents" element={<MentorStudents />} />
         <Route path="/MentorProfile" element={<MentorProfile />} />
         <Route path="/MentorSettings" element={<MentorSettings />} />
         <Route path="/MentorShareProfile" element={<MentorShareProfile />} />
+        <Route path="/MentorResources" element={<MentorResources />} />
         
 
 

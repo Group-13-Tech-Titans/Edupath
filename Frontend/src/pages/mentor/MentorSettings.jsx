@@ -236,6 +236,9 @@ export default function MentorSettingsInlineLikeDashboard() {
           >
             Profile
           </Link>
+          <Link to="/MentorSettings" className="font-medium text-slate-800 transition-colors hover:text-teal-500">
+          Resources
+          </Link>
           
         </nav>
 

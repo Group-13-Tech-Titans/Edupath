@@ -202,6 +202,10 @@ const initialTab = queryParams.get("tab");
           <Link to="/MentorProfile" className="font-medium text-slate-800 transition-colors hover:text-teal-500" style={{ textDecoration: "none" }}>
             Profile
           </Link>
+          <Link to="/MentorResources" className="font-medium text-slate-800 transition-colors hover:text-teal-500" style={{ textDecoration: "none" }}>
+            Resources
+          </Link>
+
         </nav>
 
         {/* Logout Button */}

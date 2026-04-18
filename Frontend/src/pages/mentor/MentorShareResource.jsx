@@ -22,7 +22,7 @@ const MentorShareResource = () => {
 
   const mentorEmail = currentUser?.email;
   const myAssigned = useMemo(
-    () => assignedStudents.filter((a) => a.mentorEmail === mentorEmail),
+    () => (assignedStudents || []).filter((a) => a.mentorEmail === mentorEmail),
     [assignedStudents, mentorEmail]
   );
 
