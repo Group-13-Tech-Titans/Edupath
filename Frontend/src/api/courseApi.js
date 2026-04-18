@@ -27,6 +27,18 @@ export async function getAllCoursesAdmin() {
   return data.courses;
 }
 
+// Get pending courses that match the logged-in reviewer specializations
+export async function getReviewerQueue() {
+  const data = await apiRequest("/api/courses/reviewer/queue");
+  return data.courses;
+}
+
+// Get a single course by ID
+export async function getCourseById(courseId) {
+  const data = await apiRequest(`/api/courses/${courseId}`);
+  return data.course;
+}
+
 // Update course status + review (reviewer/admin)
 export async function updateCourseStatus(courseId, { status, decision, rating, notes }) {
   const data = await apiRequest(`/api/courses/${courseId}/status`, {
@@ -45,8 +57,34 @@ export async function updateCourseData(courseId, courseData) {
   return { success: true, course: data.course };
 }
 
-// Delete a course
-export async function deleteCourse(courseId) {
-  await apiRequest(`/api/courses/${courseId}`, { method: "DELETE" });
-  return { success: true };
+// Move a course to trash (soft delete)
+export async function moveCourseToTrash(courseId) {
+  const data = await apiRequest(`/api/courses/${courseId}/trash`, {
+    method: "PATCH"
+  });
+  return { success: true, course: data.course };
+}
+
+// Restore a course from trash
+export async function restoreCourseFromTrash(courseId) {
+  const data = await apiRequest(`/api/courses/${courseId}/restore`, {
+    method: "PATCH"
+  });
+  return { success: true, course: data.course };
+}
+
+// Permanently delete a trashed course
+export async function permanentlyDeleteCourse(courseId) {
+  const data = await apiRequest(`/api/courses/${courseId}/permanent`, {
+    method: "DELETE"
+  });
+  return { success: true, deletedCourseId: data.deletedCourseId };
+}
+
+// Empty trash for the logged-in educator
+export async function emptyCourseTrash() {
+  const data = await apiRequest("/api/courses/trash/empty", {
+    method: "DELETE"
+  });
+  return { success: true, deletedCount: data.deletedCount || 0 };
 }

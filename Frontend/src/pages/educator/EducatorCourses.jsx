@@ -1,380 +1,645 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 
-// ---- Mock image pool (theme vibe) ----
-const mockImages = [
-  "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1200&q=60",
-  "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=1200&q=60",
-  "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=60",
-  "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=60"
-];
-
-// Stable hash so mock details don't change when filtering/sorting
-const stableHash = (input) => {
-  const str = String(input ?? "");
-  let h = 0;
-  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
-  return h;
-};
+/* ─── Helpers ─────────────────────────────────────────────────────────────── */
 
 const normalizeStatus = (status) => {
   const s = String(status ?? "").toLowerCase().trim();
-  if (s === "draft") return "draft";
+  if (s === "draft")                            return "draft";
   if (s === "approved" || s.includes("approve")) return "approved";
-  if (s === "pending" || s.includes("pending")) return "pending";
-  if (s === "rejected" || s.includes("reject")) return "rejected";
+  if (s === "pending"  || s.includes("pending")) return "pending";
+  if (s === "rejected" || s.includes("reject"))  return "rejected";
   return "approved";
 };
 
-const statusPill = (status) => {
+const isTrashed = (c) => Boolean(c?.trashedAt);
+
+const statusMeta = (status) => {
   const s = normalizeStatus(status);
-  if (s === "draft")
-    return { label: "Draft", cls: "bg-slate-100/70 text-slate-600 border-slate-200/70" };
-  if (s === "approved")
-    return { label: "Approved", cls: "bg-emerald-100/70 text-emerald-800 border-emerald-200/70" };
-  if (s === "pending")
-    return { label: "Pending Review", cls: "bg-amber-100/70 text-amber-900 border-amber-200/70" };
-  return { label: "Rejected", cls: "bg-rose-100/70 text-rose-800 border-rose-200/70" };
+  if (s === "draft")    return { label: "Draft",    cls: "bg-slate-100 text-slate-600 border-slate-200" };
+  if (s === "approved") return { label: "Approved", cls: "bg-primary/10 text-primary border-primary/20" };
+  if (s === "pending")  return { label: "Pending",  cls: "bg-amber-50 text-amber-700 border-amber-200" };
+  return                       { label: "Rejected", cls: "bg-rose-50 text-rose-600 border-rose-200" };
 };
 
-const categoryChip = (category) => {
-  const c = String(category ?? "").toLowerCase();
-  if (c.includes("web")) return { label: "WEB", icon: "🌐" };
-  if (c.includes("data")) return { label: "DATA", icon: "📊" };
-  if (c.includes("design") || c.includes("ui")) return { label: "DESIGN", icon: "🎨" };
-  // fallback
-  const short = String(category || "COURSE").toUpperCase();
-  return { label: short.length > 10 ? short.slice(0, 10) : short, icon: "📚" };
-};
+/* ─── Sub-components ──────────────────────────────────────────────────────── */
 
-const levelChip = (level) => {
-  const l = String(level ?? "").toLowerCase();
-  if (l.includes("beginner")) return { label: "BEGINNER", icon: "🧑‍🎓" };
-  if (l.includes("intermediate")) return { label: "INTERMEDIATE", icon: "🧠" };
-  if (l.includes("advanced")) return { label: "ADVANCED", icon: "🚀" };
-  return { label: "BEGINNER", icon: "🧑‍🎓" };
-};
+const TrashIcon = () => (
+  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 4h6M4 8h16m-2 0-.8 11H6.8L6 8" />
+  </svg>
+);
 
-// Custom themed dropdown (matches your mint theme)
-const CustomSelect = ({ value, options, onChange, placeholder }) => {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef(null);
+const RestoreIcon = () => (
+  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 4v6h6M3.51 15a9 9 0 1 0 .49-4.5" />
+  </svg>
+);
 
-  useEffect(() => {
-    const onDoc = (e) => {
-      if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, []);
+const WarningIcon = () => (
+  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 9v4m0 4h.01M10.3 4.4 2.7 18a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 4.4a2 2 0 0 0-3.4 0z" />
+  </svg>
+);
+
+/* Confirm dialog overlay */
+const ConfirmDialog = ({ course, onConfirm, onCancel, busy }) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+    <button type="button" className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onCancel} aria-label="Cancel" />
+    <div className="relative glass-card w-full max-w-sm p-6">
+      <h3 className="font-semibold text-text-dark">Move to Trash?</h3>
+      <p className="mt-2 text-xs text-muted">
+        "<span className="font-medium text-text-dark">{course.title}</span>" will be moved to the trash bin. You can restore it later.
+      </p>
+      <div className="mt-5 flex justify-end gap-3">
+        <button type="button" onClick={onCancel} className="btn-outline px-5 py-2 text-xs">Cancel</button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={busy}
+          className="rounded-full bg-rose-500 px-5 py-2 text-xs font-medium text-white hover:bg-rose-600 transition disabled:opacity-60"
+        >
+          {busy ? "Moving..." : "Move to Trash"}
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+const DeleteConfirmDialog = ({ request, count, onConfirm, onCancel, busy }) => {
+  if (!request) return null;
+
+  const isEmptyTrash = request.type === "empty";
+  const title = isEmptyTrash ? "Empty Trash Bin?" : "Delete Course Permanently?";
+  const description = isEmptyTrash
+    ? `This will permanently delete ${count} trashed course${count !== 1 ? "s" : ""}. You cannot restore them later.`
+    : `"${request.course?.title}" will be permanently deleted. You cannot restore it later.`;
+  const confirmText = isEmptyTrash ? "Empty Trash" : "Delete Permanently";
+  const busyText = isEmptyTrash ? "Emptying..." : "Deleting...";
 
   return (
-    <div ref={rootRef} className="relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
       <button
         type="button"
-        onClick={() => setOpen((s) => !s)}
-        className="glass-card w-full px-5 py-3 text-sm font-semibold text-text-dark hover:bg-white/80 transition text-left"
-      >
-        <span>{value || placeholder}</span>
-        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted">▾</span>
-      </button>
-
-      {open && (
-        <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-primary/25 bg-white/95 shadow-lg backdrop-blur">
-          <div className="max-h-56 overflow-auto py-1">
-            {options.map((opt) => (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => {
-                  onChange(opt);
-                  setOpen(false);
-                }}
-                className={`w-full px-4 py-2 text-left text-sm transition ${
-                  opt === value ? "bg-primary/15 text-text-dark font-semibold" : "hover:bg-primary/10 text-text-dark"
-                }`}
-              >
-                {opt}
-              </button>
-            ))}
+        className="absolute inset-0 bg-black/35 backdrop-blur-sm"
+        onClick={onCancel}
+        aria-label="Cancel permanent delete"
+      />
+      <div className="relative w-full max-w-md rounded-lg border border-rose-100 bg-white p-6 shadow-2xl">
+        <div className="flex items-start gap-4">
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-rose-50 text-rose-500">
+            <WarningIcon />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-text-dark">{title}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted">{description}</p>
           </div>
         </div>
-      )}
+
+        <div className="mt-5 rounded-lg border border-rose-100 bg-rose-50 px-4 py-3">
+          <p className="text-xs font-semibold text-rose-700">This action cannot be undone.</p>
+        </div>
+
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={busy}
+            className="btn-outline px-5 py-2 text-xs disabled:opacity-60"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={busy}
+            className="rounded-lg bg-rose-500 px-5 py-2 text-xs font-semibold text-white hover:bg-rose-600 transition disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {busy ? busyText : confirmText}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
 
+/* Course card */
+const CourseCard = ({ course, onTrash }) => {
+  const { label, cls } = statusMeta(course.status);
+  const st = normalizeStatus(course.status);
+  const isDraft = st === "draft";
+  const isRejected = st === "rejected";
+  const reviewNotes = course.review?.notes || null;
+  const reviewRating = course.review?.rating ?? null;
+  const reviewerName = course.review?.reviewerName || null;
+  const hasReview = Boolean(reviewNotes || reviewRating != null || reviewerName);
+
+  return (
+    <div className="glass-card flex flex-col overflow-hidden transition hover:-translate-y-1 hover:shadow-2xl">
+      {/* Thumbnail */}
+      <div className="relative h-36 w-full overflow-hidden bg-primary/5">
+        {course.thumbnailUrl ? (
+          <img src={course.thumbnailUrl} alt={course.title} className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-xs font-semibold uppercase tracking-wide text-muted opacity-70">Course</div>
+        )}
+        <span className={`absolute right-3 top-3 rounded-full border px-2.5 py-1 text-[10px] font-semibold ${cls}`}>
+          {label}
+        </span>
+      </div>
+
+      {/* Body */}
+      <div className="flex flex-1 flex-col p-4">
+        <p className="text-sm font-semibold text-text-dark line-clamp-2 leading-snug">{course.title}</p>
+
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {course.category && (
+            <span className="rounded-full bg-black/5 border border-black/10 px-2.5 py-0.5 text-[10px] font-semibold text-muted">
+              {course.category}
+            </span>
+          )}
+          {course.level && (
+            <span className="rounded-full bg-black/5 border border-black/10 px-2.5 py-0.5 text-[10px] font-semibold text-muted">
+              {course.level}
+            </span>
+          )}
+        </div>
+
+        <p className="mt-2 text-[11px] text-muted line-clamp-2 flex-1">
+          {course.description || "No description provided."}
+        </p>
+
+        {/* Reviewer feedback */}
+        {hasReview && (
+          <div className={`mt-3 rounded-xl border px-3 py-2 ${
+            isRejected
+              ? "border-rose-200 bg-rose-50"
+              : "border-primary/20 bg-primary/5"
+          }`}>
+            <div className="flex items-center justify-between gap-2">
+              <p className={`text-[10px] font-semibold mb-0.5 ${isRejected ? "text-rose-700" : "text-primary"}`}>
+                Reviewer Feedback
+                {reviewerName && (
+                  <span className={`font-normal ${isRejected ? "text-rose-500" : "text-primary/80"}`}> - {reviewerName}</span>
+                )}
+              </p>
+              {reviewRating != null && (
+                <span className={`text-[10px] font-medium ${isRejected ? "text-rose-500" : "text-primary/80"}`}>
+                  {reviewRating}/5
+                </span>
+              )}
+            </div>
+            <p className={`text-[10px] line-clamp-2 ${isRejected ? "text-rose-700" : "text-text-dark"}`}>
+              {reviewNotes || "No specific notes provided."}
+            </p>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="mt-4 flex items-center justify-between gap-2">
+          <Link
+            to={(isDraft || isRejected) ? `/educator/edit/${course.id}` : `/educator/courses/${course.id}`}
+            className="btn-primary flex-1 px-4 py-2 text-xs text-center"
+          >
+            {(isDraft || isRejected) ? "Edit" : "Manage"}
+          </Link>
+          <button
+            type="button"
+            onClick={() => onTrash(course)}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-rose-200 bg-white text-rose-400 hover:bg-rose-50 transition"
+            title="Move to trash"
+          >
+            <TrashIcon />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── Main component ──────────────────────────────────────────────────────── */
+
 const EducatorCourses = () => {
-  const { currentUser, courses, fetchMyCourses } = useApp();
+  const {
+    currentUser,
+    courses,
+    fetchMyCourses,
+    moveCourseToTrash,
+    restoreCourseFromTrash,
+    permanentlyDeleteCourse,
+    emptyCourseTrash
+  } = useApp();
 
-  useEffect(() => {
-    fetchMyCourses();
-  }, [fetchMyCourses]);
+  useEffect(() => { fetchMyCourses(); }, [fetchMyCourses]);
 
-  const myCourses = useMemo(() => {
-    return courses.filter((c) => c.createdByEducatorEmail === currentUser?.email);
-  }, [courses, currentUser?.email]);
+  const myCourses = useMemo(
+    () => courses.filter((c) => c.createdByEducatorEmail === currentUser?.email),
+    [courses, currentUser?.email]
+  );
 
-  // Search + filters state
-  const [query, setQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("All Categories");
-  const [levelFilter, setLevelFilter] = useState("All Levels");
-  const [statusFilter, setStatusFilter] = useState("All Status");
+  const activeCourses  = useMemo(() => myCourses.filter((c) => !isTrashed(c)), [myCourses]);
+  const trashedCourses = useMemo(() => myCourses.filter(isTrashed),            [myCourses]);
 
-  // Build category options only from educator's existing courses
-  const categoryOptions = useMemo(() => {
-    const set = new Set();
-    myCourses.forEach((c) => {
-      if (c.category) set.add(String(c.category));
-    });
-    return ["All Categories", ...Array.from(set).sort()];
-  }, [myCourses]);
+  /* ── State ── */
+  const [activeTab,      setActiveTab]      = useState("all");
+  const [query,          setQuery]          = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("All");
+  const [statusFilter,   setStatusFilter]   = useState("All");
+  const [levelFilter,    setLevelFilter]    = useState("All");
+  const [courseToTrash,  setCourseToTrash]  = useState(null);
+  const [trashBusy,      setTrashBusy]      = useState(false);
+  const [trashError,     setTrashError]     = useState("");
+  const [restoreBusyId,  setRestoreBusyId]  = useState("");
+  const [deleteBusyId,   setDeleteBusyId]   = useState("");
+  const [emptyBusy,      setEmptyBusy]      = useState(false);
+  const [deleteRequest,  setDeleteRequest]  = useState(null);
 
-  const levelOptions = useMemo(() => {
-    const set = new Set();
-    myCourses.forEach((c) => {
-      if (c.level) set.add(String(c.level));
-    });
-    // Ensure common ones exist (even if not present yet)
-    const defaults = ["Beginner", "Intermediate", "Advanced"];
-    defaults.forEach((d) => set.add(d));
-    return ["All Levels", ...Array.from(set)];
-  }, [myCourses]);
+  /* ── Filter options ── */
+  const categories = useMemo(() => {
+    const s = new Set(activeCourses.map((c) => c.category).filter(Boolean));
+    return ["All", ...Array.from(s).sort()];
+  }, [activeCourses]);
 
-  const statusOptions = useMemo(() => {
-    return ["All Status", "Draft", "Approved", "Pending Review", "Rejected"];
-  }, []);
+  const levels = useMemo(() => {
+    const s = new Set(activeCourses.map((c) => c.level).filter(Boolean));
+    ["Beginner", "Intermediate", "Advanced"].forEach((l) => s.add(l));
+    return ["All", ...Array.from(s)];
+  }, [activeCourses]);
 
-  // Apply search + filters
+  /* ── Filtered list ── */
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
+    let base = activeTab === "drafts"
+      ? activeCourses.filter((c) => normalizeStatus(c.status) === "draft")
+      : activeCourses;
 
-    return myCourses.filter((c) => {
-      const title = String(c.title ?? "").toLowerCase();
-      const desc = String(c.description ?? "").toLowerCase();
-      const cat = String(c.category ?? "").toLowerCase();
-      const lvl = String(c.level ?? "").toLowerCase();
-      const st = normalizeStatus(c.status);
-
-      // Search
-      const matchesQuery = !q || title.includes(q) || desc.includes(q) || cat.includes(q);
-
-      // Category filter
-      const matchesCategory =
-        categoryFilter === "All Categories" || String(c.category ?? "") === categoryFilter;
-
-      // Level filter
-      const matchesLevel =
-        levelFilter === "All Levels" || String(c.level ?? "") === levelFilter;
-
-      // Status filter
-      const matchesStatus =
-        statusFilter === "All Status" ||
-        (statusFilter === "Draft" && st === "draft") ||
-        (statusFilter === "Approved" && st === "approved") ||
-        (statusFilter === "Pending Review" && st === "pending") ||
-        (statusFilter === "Rejected" && st === "rejected");
-
-      return matchesQuery && matchesCategory && matchesLevel && matchesStatus;
+    return base.filter((c) => {
+      const matchQ  = !q || (c.title || "").toLowerCase().includes(q) || (c.description || "").toLowerCase().includes(q);
+      const matchCat = categoryFilter === "All" || c.category === categoryFilter;
+      const matchSt  = statusFilter   === "All" || statusMeta(c.status).label === statusFilter;
+      const matchLv  = levelFilter    === "All" || c.level === levelFilter;
+      return matchQ && matchCat && matchSt && matchLv;
     });
-  }, [myCourses, query, categoryFilter, levelFilter, statusFilter]);
+  }, [activeCourses, activeTab, query, categoryFilter, statusFilter, levelFilter]);
 
-  // Decorate each course with stable mock visuals (based on course.id)
-  const cards = useMemo(() => {
-    return filtered.map((c) => {
-      const h = stableHash(c.id ?? c.title);
-      const image = c.thumbnailUrl || mockImages[h % mockImages.length];
+  /* ── Trash actions ── */
+  const confirmTrash = async () => {
+    if (!courseToTrash) return;
+    setTrashError("");
+    setTrashBusy(true);
+    const result = await moveCourseToTrash(courseToTrash.id);
+    setTrashBusy(false);
+    if (!result.success) { setTrashError(result.message || "Failed to move to trash."); return; }
+    setCourseToTrash(null);
+  };
 
-      // Stable mock stats (unless your course already has these fields)
-      const durationHrs = c.durationHours ?? [22, 18, 24, 16][h % 4];
-      const rating = c.rating ?? [4.8, 4.7, 4.9, 4.6][h % 4];
+  const handleRestore = async (courseId) => {
+    setTrashError("");
+    setRestoreBusyId(courseId);
+    const result = await restoreCourseFromTrash(courseId);
+    if (!result.success) setTrashError(result.message || "Failed to restore course.");
+    setRestoreBusyId("");
+  };
 
-      const chipA = categoryChip(c.category || "Web");
-      const chipB = levelChip(c.level || "Beginner");
-      const pill = statusPill(c.status);
-      const st = normalizeStatus(c.status);
+  const requestPermanentDelete = (course) => {
+    setDeleteRequest({ type: "single", course });
+  };
 
-      // Reviewer feedback (only populated for rejected courses)
-      const isRejected = st === "rejected";
-      const isDraft = st === "draft";
-      const reviewNotes = isRejected ? (c.review?.notes || null) : null;
-      const reviewerName = isRejected ? (c.review?.reviewerName || null) : null;
-      const reviewRating = isRejected ? (c.review?.rating ?? null) : null;
+  const requestEmptyTrash = () => {
+    if (trashedCourses.length === 0) return;
+    setDeleteRequest({ type: "empty" });
+  };
 
-      return {
-        ...c,
-        _img: image,
-        _duration: durationHrs,
-        _rating: rating,
-        _chipA: chipA,
-        _chipB: chipB,
-        _pill: pill,
-        _isRejected: isRejected,
-        _isDraft: isDraft,
-        _reviewNotes: reviewNotes,
-        _reviewerName: reviewerName,
-        _reviewRating: reviewRating
-      };
-    });
-  }, [filtered]);
+  const confirmPermanentAction = async () => {
+    if (!deleteRequest) return;
+    setTrashError("");
+
+    if (deleteRequest.type === "empty") {
+      setEmptyBusy(true);
+      const result = await emptyCourseTrash();
+      if (!result.success) {
+        setTrashError(result.message || "Failed to empty trash.");
+      } else {
+        setDeleteRequest(null);
+      }
+      setEmptyBusy(false);
+      return;
+    }
+
+    const course = deleteRequest.course;
+    if (!course) return;
+    setDeleteBusyId(course.id);
+    const result = await permanentlyDeleteCourse(course.id);
+    if (!result.success) {
+      setTrashError(result.message || "Failed to permanently delete course.");
+    } else {
+      setDeleteRequest(null);
+    }
+    setDeleteBusyId("");
+  };
+
+  const cancelPermanentAction = () => {
+    if (emptyBusy || deleteBusyId) return;
+    setDeleteRequest(null);
+  };
+
+  const draftCount = activeCourses.filter((c) => normalizeStatus(c.status) === "draft").length;
 
   return (
     <PageShell>
       <div className="space-y-5">
-        {/* Hero */}
-        <div className="glass-card p-6 relative overflow-hidden">
-          <div className="flex items-start justify-between gap-4">
-            <div className="max-w-2xl">
-              <h1 className="text-xl font-semibold text-text-dark">My Published Courses</h1>
-              <p className="mt-1 text-xs text-muted">
-                Manage your courses, track approval status, and quickly search by title, category, or
-                level. Click a course to edit or view details.
-              </p>
-            </div>
 
-            <div className="flex items-center gap-3">
-              {/* 1) dynamic count + remove emoji */}
-              <span className="pill">{myCourses.length} courses</span>
-
-              <Link to="/educator/publish" className="btn-primary text-xs px-5 py-2">
-                + Create Course
-              </Link>
-            </div>
+        {/* Header */}
+        <div className="glass-card p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-lg font-semibold text-text-dark">My Courses</h1>
+            <p className="mt-1 text-xs text-muted">
+              Manage, search and track all your courses.
+            </p>
           </div>
-
-          {/* Decorative circles */}
-          <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-primary/10" />
-          <div className="pointer-events-none absolute -right-10 top-10 h-52 w-52 rounded-full bg-primary/10" />
-        </div>
-
-        {/* Search + Filters */}
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-          <div className="flex-1">
-            <div className="glass-card px-4 py-3 flex items-center gap-3">
-              <span className="text-muted">🔎</span>
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search your courses..."
-                className="w-full bg-transparent outline-none text-sm text-text-dark placeholder:text-muted"
-              />
-            </div>
-          </div>
-
-          {/* 3) Real filtering dropdowns */}
-          <div className="w-full lg:w-52">
-            <CustomSelect
-              value={categoryFilter}
-              options={categoryOptions}
-              onChange={setCategoryFilter}
-              placeholder="All Categories"
-            />
-          </div>
-
-          <div className="w-full lg:w-44">
-            <CustomSelect
-              value={levelFilter}
-              options={levelOptions}
-              onChange={setLevelFilter}
-              placeholder="All Levels"
-            />
-          </div>
-
-          <div className="w-full lg:w-44">
-            <CustomSelect
-              value={statusFilter}
-              options={statusOptions}
-              onChange={setStatusFilter}
-              placeholder="All Status"
-            />
+          <div className="flex items-center gap-3">
+            <span className="rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-xs font-semibold text-primary">
+              {activeCourses.length} courses
+            </span>
+            <Link to="/educator/publish" className="btn-primary px-5 py-2 text-xs">
+              + Create Course
+            </Link>
           </div>
         </div>
 
-        {/* Grid */}
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {cards.map((course) => (
-            <div
-              key={course.id}
-              className="glass-card overflow-hidden p-0 hover:-translate-y-1 hover:shadow-2xl transition"
+        {trashError && (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-600">
+            {trashError}
+          </div>
+        )}
+
+        <div className="grid gap-5 lg:grid-cols-[200px_minmax(0,1fr)]">
+
+          {/* ── Sidebar ── */}
+          <div className="glass-card h-fit p-4 space-y-1">
+            {[
+              { key: "all",    label: "All Courses",   count: activeCourses.length },
+              { key: "drafts", label: "Drafts",        count: draftCount },
+            ].map(({ key, label, count }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => { setActiveTab(key); setCategoryFilter("All"); setStatusFilter("All"); setLevelFilter("All"); }}
+                className={`w-full flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                  activeTab === key
+                    ? "bg-primary text-white"
+                    : "text-text-dark hover:bg-primary/5"
+                }`}
+              >
+                <span>{label}</span>
+                <span className={`text-[10px] font-semibold ${activeTab === key ? "opacity-80" : "text-muted"}`}>
+                  {count}
+                </span>
+              </button>
+            ))}
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("trash")}
+              className={`w-full flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                activeTab === "trash"
+                  ? "bg-rose-500 text-white"
+                  : "text-rose-500 hover:bg-rose-50"
+              }`}
             >
-              <div className="h-40 w-full overflow-hidden">
-                <img
-                  src={course._img}
-                  alt={course.title}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
+              <span>Trash Bin</span>
+              <span className="text-[10px] opacity-80">{trashedCourses.length}</span>
+            </button>
+
+            {/* Category filter (only in all/drafts tab) */}
+            {activeTab !== "trash" && categories.length > 1 && (
+              <div className="pt-3 border-t border-black/5">
+                <p className="px-1 pb-2 text-[10px] font-semibold uppercase tracking-wide text-muted">Category</p>
+                <div className="space-y-0.5">
+                  {categories.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setCategoryFilter(cat)}
+                      className={`w-full rounded-xl px-3 py-2 text-left text-[11px] font-semibold transition ${
+                        categoryFilter === cat
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted hover:text-text-dark hover:bg-black/5"
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── Main content ── */}
+          {activeTab !== "trash" ? (
+            <div className="space-y-4">
+
+              {/* Search + filters */}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="flex flex-1 items-center gap-2 rounded-2xl border border-black/10 bg-white/80 px-4 py-2.5">
+                  <svg className="h-3.5 w-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                  </svg>
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search courses..."
+                    className="w-full bg-transparent text-sm text-text-dark outline-none placeholder:text-muted"
+                  />
+                </div>
+
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="rounded-2xl border border-black/10 bg-white/80 px-4 py-2.5 text-xs font-medium text-text-dark outline-none"
+                >
+                  {["All", "Draft", "Pending", "Approved", "Rejected"].map((s) => (
+                    <option key={s} value={s}>{s === "All" ? "All Statuses" : s}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={levelFilter}
+                  onChange={(e) => setLevelFilter(e.target.value)}
+                  className="rounded-2xl border border-black/10 bg-white/80 px-4 py-2.5 text-xs font-medium text-text-dark outline-none"
+                >
+                  {levels.map((l) => (
+                    <option key={l} value={l}>{l === "All" ? "All Levels" : l}</option>
+                  ))}
+                </select>
               </div>
 
-              <div className="p-4">
-                <h3 className="text-sm font-semibold text-text-dark">{course.title}</h3>
-                <p className="mt-2 text-[11px] text-muted line-clamp-3">
-                  {course.description || "A short course description will appear here."}
-                </p>
+              {/* Results count */}
+              <p className="text-xs text-muted">
+                {filtered.length} course{filtered.length !== 1 ? "s" : ""} found
+              </p>
 
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="pill-soft">
-                    {course._chipA.icon} {course._chipA.label}
-                  </span>
-                  <span className="pill">
-                    {course._chipB.icon} {course._chipB.label}
-                  </span>
+              {/* Empty state */}
+              {filtered.length === 0 && (
+                <div className="glass-card px-6 py-16 text-center">
+                  <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-2xl">
+                    No courses
+                  </div>
+                  <p className="text-sm font-semibold text-text-dark">No courses found</p>
+                  <p className="mt-1 text-xs text-muted">
+                    {query || categoryFilter !== "All" || statusFilter !== "All" || levelFilter !== "All"
+                      ? "Try adjusting your search or filters."
+                      : "Create your first course to get started."}
+                  </p>
+                  {!query && categoryFilter === "All" && statusFilter === "All" && levelFilter === "All" && (
+                    <Link to="/educator/publish" className="btn-primary mt-4 inline-flex px-6 py-2 text-xs">
+                      + Create Course
+                    </Link>
+                  )}
                 </div>
+              )}
 
-                <div className="mt-3 flex items-center gap-2">
-                  <span className="pill">⏱ {course._duration}h</span>
-                  <span className="pill">⭐ {course._rating}</span>
+              {/* Course grid */}
+              {filtered.length > 0 && (
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {filtered.map((course) => (
+                    <CourseCard
+                      key={course.id}
+                      course={course}
+                      onTrash={setCourseToTrash}
+                    />
+                  ))}
                 </div>
+              )}
+            </div>
 
-                <div className="mt-4 flex items-center justify-between">
-                  <span
-                    className={`rounded-full border px-4 py-1 text-[11px] font-semibold ${course._pill.cls}`}
-                  >
-                    {course._pill.label}
-                  </span>
-
-                  <Link
-                    to={(course._isRejected || course._isDraft) ? `/educator/edit/${course.id}` : `/educator/courses/${course.id}`}
-                    className="rounded-full border border-black/20 bg-white/80 px-5 py-1.5 text-[11px] font-semibold text-text-dark hover:bg-white transition"
-                  >
-                    {(course._isRejected || course._isDraft) ? "Edit" : "Open"}
-                  </Link>
-                </div>
-
-                {/* Reviewer feedback — only visible on rejected courses */}
-                {course._isRejected && (
-                  <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 space-y-1">
-                    <div className="flex items-center justify-between gap-1">
-                      <p className="text-[11px] font-semibold text-rose-700">
-                        Reviewer Feedback
+          ) : (
+            /* ── Trash tab ── */
+            <div className="space-y-4">
+              <div className="glass-card overflow-hidden">
+                <div className="border-b border-black/5 bg-white/70 px-5 py-5">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-base font-semibold text-text-dark">Trash Bin</p>
+                      <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted">
+                        Courses moved to trash are hidden from My Courses. Restore them when needed or permanently remove them from your account.
                       </p>
-                      {course._reviewRating != null && (
-                        <span className="text-[10px] text-rose-500 font-medium">
-                          ⭐ {course._reviewRating}/5
-                        </span>
-                      )}
                     </div>
-                    {course._reviewerName && (
-                      <p className="text-[10px] text-rose-400">by {course._reviewerName}</p>
-                    )}
-                    <p className="text-[11px] text-rose-700 leading-relaxed">
-                      {course._reviewNotes || "No specific notes provided. Please review your content and resubmit."}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                      <span className="rounded-lg bg-slate-100 border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">
+                        {trashedCourses.length} trashed
+                      </span>
+                      <button
+                        type="button"
+                        onClick={requestEmptyTrash}
+                        disabled={emptyBusy || trashedCourses.length === 0}
+                        className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-white px-4 py-2 text-xs font-semibold text-rose-500 hover:bg-rose-50 transition disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <TrashIcon />
+                        {emptyBusy ? "Emptying..." : "Empty Trash"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {trashedCourses.length === 0 ? (
+                  <div className="px-6 py-16 text-center">
+                    <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-lg border border-slate-200 bg-slate-50 text-slate-400">
+                      <TrashIcon />
+                    </div>
+                    <p className="text-sm font-semibold text-text-dark">Trash is empty</p>
+                    <p className="mt-1 text-xs text-muted">Courses you move to trash will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-black/5">
+                    {trashedCourses.map((course) => {
+                      const { label, cls } = statusMeta(course.status);
+                      const trashedDate = course.trashedAt
+                        ? new Date(course.trashedAt).toLocaleDateString()
+                        : "Unknown date";
+
+                      return (
+                        <div
+                          key={course.id}
+                          className="flex flex-col gap-4 px-5 py-4 transition hover:bg-white/65 lg:flex-row lg:items-center lg:justify-between"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="truncate text-sm font-semibold text-text-dark">{course.title}</p>
+                              <span className={`rounded-lg border px-2.5 py-1 text-[10px] font-semibold ${cls}`}>
+                                {label}
+                              </span>
+                            </div>
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {course.category && (
+                                <span className="rounded-lg border border-black/10 bg-black/5 px-2.5 py-1 text-[10px] font-semibold text-muted">
+                                  {course.category}
+                                </span>
+                              )}
+                              {course.level && (
+                                <span className="rounded-lg border border-black/10 bg-black/5 px-2.5 py-1 text-[10px] font-semibold text-muted">
+                                  {course.level}
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-2 text-xs text-muted">Moved to trash on {trashedDate}</p>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleRestore(course.id)}
+                              disabled={restoreBusyId === course.id || deleteBusyId === course.id}
+                              className="btn-soft flex items-center gap-2 px-5 py-2 text-xs disabled:opacity-60"
+                            >
+                              <RestoreIcon />
+                              {restoreBusyId === course.id ? "Restoring..." : "Restore"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => requestPermanentDelete(course)}
+                              disabled={deleteBusyId === course.id || restoreBusyId === course.id}
+                              className="rounded-lg border border-rose-200 bg-white px-5 py-2 text-xs font-semibold text-rose-500 hover:bg-rose-50 transition disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {deleteBusyId === course.id ? "Deleting..." : "Delete Permanently"}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
-            </div>
-          ))}
 
-          {cards.length === 0 && (
-            <div className="glass-card p-6 text-sm text-muted sm:col-span-2 lg:col-span-4">
-              No courses found. Try different filters, or create a new course.
+              {trashedCourses.length > 0 && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-800">
+                  Permanent deletion removes the course from the trash bin and cannot be undone. Restore any course you want to keep before emptying the trash.
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
+
+      {/* Confirm trash dialog */}
+      {courseToTrash && (
+        <ConfirmDialog
+          course={courseToTrash}
+          onConfirm={confirmTrash}
+          onCancel={() => setCourseToTrash(null)}
+          busy={trashBusy}
+        />
+      )}
+
+      <DeleteConfirmDialog
+        request={deleteRequest}
+        count={trashedCourses.length}
+        onConfirm={confirmPermanentAction}
+        onCancel={cancelPermanentAction}
+        busy={emptyBusy || Boolean(deleteBusyId)}
+      />
     </PageShell>
   );
 };

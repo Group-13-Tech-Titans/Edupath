@@ -11,22 +11,19 @@ module.exports = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id).select("-password");
     if (!user) return res.status(401).json({ message: "User not found" });
+
+    // If the token carries a version number, reject it if it no longer matches
+    // (this is what makes "logout from all devices" work)
     if (
       decoded.authTokenVersion != null &&
-      decoded.authTokenVersion !== (user.authTokenVersion || 0)
+      Number(decoded.authTokenVersion) !== Number(user.authTokenVersion || 0)
     ) {
-      return res.status(401).json({ message: "Session expired" });
+      return res.status(401).json({ message: "Session expired. Please log in again." });
     }
-    if (
-      decoded.authTokenVersion == null &&
-      user.logoutAfter &&
-      (!decoded.iat || decoded.iat * 1000 < user.logoutAfter.getTime())
-    ) {
-      return res.status(401).json({ message: "Session expired" });
-    }
+
     req.user = user;
     next();
-  } catch {
-    res.status(401).json({ message: "Invalid token" });
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid or expired token" });
   }
 };

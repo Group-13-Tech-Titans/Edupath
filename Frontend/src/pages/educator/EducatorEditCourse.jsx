@@ -27,7 +27,7 @@ const EducatorEditCourse = () => {
       thumbnailFile: null, thumbnailUrl: ""
     };
 
-    // Parse specializationTag — could be comma-separated
+    // Parse specializationTag - could be comma-separated
     const existingTags = course.specializationTag
       ? course.specializationTag.split(",").map(t => t.trim()).filter(Boolean)
       : [];
@@ -313,7 +313,7 @@ const EducatorEditCourse = () => {
                   <div className="mt-2 mb-2">
                     <img src={form.thumbnailUrl} alt="Current thumbnail"
                       className="h-20 w-32 rounded-xl object-cover border border-black/10" />
-                    <p className="text-[11px] text-muted mt-1">Current thumbnail — upload a new one to replace it.</p>
+                    <p className="text-[11px] text-muted mt-1">Current thumbnail - upload a new one to replace it.</p>
                   </div>
                 )}
                 <input type="file" accept="image/*" onChange={handleThumbnail}
@@ -339,7 +339,7 @@ const EducatorEditCourse = () => {
                         className="inline-flex items-center gap-1 rounded-full bg-primary text-white px-3 py-1 text-[11px] font-semibold">
                         #{tag}
                         <button type="button" onClick={() => toggleTag(tag)}
-                          disabled={!isVerified} className="ml-0.5 hover:opacity-70">×</button>
+                          disabled={!isVerified} className="ml-0.5 hover:opacity-70">x</button>
                       </span>
                     ))}
                   </div>

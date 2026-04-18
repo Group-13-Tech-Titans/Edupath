@@ -37,6 +37,15 @@ export async function register(payload) {
   return { success: true };
 }
 
+export async function registerEducator(payload) {
+  const data = await apiRequest("/api/auth/register-educator", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+  setToken(data.token);
+  return { success: true, user: data.user };
+}
+
 export async function getMe() {
   const data = await apiRequest("/api/auth/me");
   return data.user;
@@ -51,9 +60,6 @@ export async function updateProfile(body) {
 }
 
 export async function logoutAllDevices() {
-  await apiRequest("/api/auth/logout-all", {
-    method: "POST"
-  });
-  setToken(null);
+  await apiRequest("/api/auth/logout-all", { method: "POST" });
   return { success: true };
 }

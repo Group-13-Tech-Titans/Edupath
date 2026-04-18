@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema({
   },
   status: { type: String, default: null },
   specializationTag: { type: String, default: null },
+  specializationTags: [{ type: String }],
   twoFactorEnabled: { type: Boolean, default: false },
   loginOtpHash: String,
   loginOtpExpire: Date,
@@ -20,7 +21,5 @@ const userSchema = new mongoose.Schema({
   resetPasswordToken: String,
   resetPasswordExpire: Date,
 });
-
-
 
 module.exports = mongoose.model("User", userSchema);

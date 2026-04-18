@@ -2,14 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
-
-const ALL_TAGS = [
-  "web-dev", "data-science", "ai-ml", "cyber-security",
-  "mobile-dev", "ui-ux", "commerce", "business",
-  "accounting", "marketing", "art-design", "photography",
-  "music", "science", "mathematics", "language",
-  "health", "engineering", "law", "other"
-];
+import { getSpecializations } from "../../api/specializationApi.js";
 
 const EducatorPublish = () => {
   const { currentUser, createCourse } = useApp();
@@ -18,6 +11,11 @@ const EducatorPublish = () => {
   const storageKey = useMemo(() => {
     const email = currentUser?.email || "unknown";
     return `edupath_publish_content_${email}`;
+  }, [currentUser?.email]);
+
+  const formStorageKey = useMemo(() => {
+    const email = currentUser?.email || "unknown";
+    return `edupath_publish_form_${email}`;
   }, [currentUser?.email]);
 
   const [contentItems, setContentItems] = useState([]);
@@ -39,13 +37,78 @@ const EducatorPublish = () => {
     level: "",
     price: "",
     duration: "",
-    specializationTags: [],   // now an array
+    specializationTags: [],
     thumbnailFile: null,
-    thumbnailUrl: ""
+    thumbnailUrl: "",
+    thumbnailName: ""
   });
 
+  // Restore saved form data on mount (survives navigating to Add Content and back)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(formStorageKey);
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      setForm((prev) => ({
+        ...prev,
+        title: saved.title || "",
+        description: saved.description || "",
+        category: saved.category || "",
+        level: saved.level || "",
+        price: saved.price || "",
+        duration: saved.duration || "",
+        specializationTags: Array.isArray(saved.specializationTags) ? saved.specializationTags : [],
+        thumbnailUrl: saved.thumbnailUrl || "",
+        thumbnailName: saved.thumbnailName || "",
+        thumbnailFile: null // File objects can't be serialised; user re-selects only if they want to change it
+      }));
+    } catch {
+      // ignore bad data
+    }
+  }, [formStorageKey]);
+
+  // Persist form to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      const toSave = {
+        title: form.title,
+        description: form.description,
+        category: form.category,
+        level: form.level,
+        price: form.price,
+        duration: form.duration,
+        specializationTags: form.specializationTags,
+        thumbnailUrl: form.thumbnailUrl,
+        thumbnailName: form.thumbnailFile?.name || form.thumbnailName || ""
+      };
+      localStorage.setItem(formStorageKey, JSON.stringify(toSave));
+    } catch {
+      // ignore storage errors
+    }
+  }, [form, formStorageKey]);
+
+  const [specializations, setSpecializations] = useState([]);
+  const [specializationsLoading, setSpecializationsLoading] = useState(true);
   const [tagSearch, setTagSearch] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    getSpecializations()
+      .then((items) => {
+        if (alive) setSpecializations(Array.isArray(items) ? items : []);
+      })
+      .catch(() => {
+        if (alive) setError("Unable to load course specializations. Please try again.");
+      })
+      .finally(() => {
+        if (alive) setSpecializationsLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const isVerified = currentUser?.status === "VERIFIED";
   const hasContent = contentItems.length > 0;
@@ -70,7 +133,6 @@ const EducatorPublish = () => {
     reader.readAsDataURL(file);
   };
 
-  // Toggle a tag on/off
   const toggleTag = (tag) => {
     setForm((p) => {
       const exists = p.specializationTags.includes(tag);
@@ -83,14 +145,15 @@ const EducatorPublish = () => {
     });
   };
 
-  // Filtered tags based on search input
   const filteredTags = useMemo(() => {
+    const tags = specializations.map((item) => item.slug || item.name).filter(Boolean);
     const q = tagSearch.trim().toLowerCase();
-    if (!q) return ALL_TAGS;
-    return ALL_TAGS.filter((t) => t.includes(q));
-  }, [tagSearch]);
+    if (!q) return tags;
+    return tags.filter((tag) => tag.toLowerCase().includes(q));
+  }, [specializations, tagSearch]);
 
   // Full form complete check (for Publish)
+  // thumbnailUrl covers the case where a thumbnail was picked before navigating away and back
   const isFormComplete = useMemo(() => {
     return Boolean(
       form.title.trim() &&
@@ -99,8 +162,7 @@ const EducatorPublish = () => {
       form.level.trim() &&
       String(form.price).trim() &&
       String(form.duration).trim() &&
-      form.specializationTags.length > 0 &&
-      form.thumbnailFile
+      (form.thumbnailFile || form.thumbnailUrl)
     );
   }, [form]);
 
@@ -109,6 +171,10 @@ const EducatorPublish = () => {
   // Draft only needs a title
   const canDraft = isVerified && form.title.trim().length > 0;
 
+  const selectedSpecialization = useMemo(() => {
+    return specializations.find((item) => item.name === form.category);
+  }, [specializations, form.category]);
+
   const buildCoursePayload = (status) => ({
     title: form.title.trim(),
     description: form.description.trim(),
@@ -116,8 +182,8 @@ const EducatorPublish = () => {
     level: form.level.trim(),
     price: Number(form.price) || 0,
     duration: Number(form.duration) || 0,
-    specializationTag: form.specializationTags.join(","),
-    thumbnailName: form.thumbnailFile?.name || "",
+    specializationTag: selectedSpecialization?.slug || form.category.trim(),
+    thumbnailName: form.thumbnailFile?.name || form.thumbnailName || "",
     thumbnailUrl: form.thumbnailUrl || "",
     rating: 0,
     educatorName: currentUser?.name || "Educator",
@@ -133,9 +199,10 @@ const EducatorPublish = () => {
     navigate("/educator/add-content", { state: { backTo: "/educator/publish" } });
   };
 
-  // Draft — only needs title, saves with status "draft"
+  // Draft - only needs title, saves with status "draft"
   const handleSaveDraft = async (e) => {
     e?.preventDefault?.();
+    if (submitting) return;
     setError("");
     if (!isVerified) {
       setError("Your educator profile must be verified before saving a draft.");
@@ -145,38 +212,51 @@ const EducatorPublish = () => {
       setError("Please enter at least a course title to save a draft.");
       return;
     }
-    const res = await createCourse(buildCoursePayload("draft"));
-    if (!res.success) {
-      setError(res.message || "Failed to save draft.");
-      return;
+    setSubmitting(true);
+    try {
+      const res = await createCourse(buildCoursePayload("draft"));
+      if (!res.success) {
+        setError(res.message || "Failed to save draft.");
+        return;
+      }
+      localStorage.removeItem(storageKey);
+      localStorage.removeItem(formStorageKey);
+      navigate("/educator/courses");
+    } finally {
+      setSubmitting(false);
     }
-    localStorage.removeItem(storageKey);
-    navigate("/educator/courses");
   };
 
-  // Publish — needs everything
+  // Publish - needs everything
   const handlePublish = async (e) => {
     e.preventDefault();
+    if (submitting) return;
     setError("");
     if (!isVerified) {
       setError("Your educator profile must be verified before publishing.");
       return;
     }
     if (!isFormComplete) {
-      setError("Please fill all fields (including thumbnail and at least one tag) before publishing.");
+      setError("Please fill all fields, including category and thumbnail, before publishing.");
       return;
     }
     if (!hasContent) {
       setError("Please add at least one course content item before publishing.");
       return;
     }
-    const res = await createCourse(buildCoursePayload("pending"));
-    if (!res.success) {
-      setError(res.message || "Failed to publish course.");
-      return;
+    setSubmitting(true);
+    try {
+      const res = await createCourse(buildCoursePayload("pending"));
+      if (!res.success) {
+        setError(res.message || "Failed to publish course.");
+        return;
+      }
+      localStorage.removeItem(storageKey);
+      localStorage.removeItem(formStorageKey);
+      navigate("/educator/courses");
+    } finally {
+      setSubmitting(false);
     }
-    localStorage.removeItem(storageKey);
-    navigate("/educator/courses");
   };
 
   return (
@@ -287,31 +367,23 @@ const EducatorPublish = () => {
                   name="category"
                   value={form.category}
                   onChange={handleChange}
-                  disabled={!isVerified}
+                  disabled={!isVerified || specializationsLoading}
                   className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-4 py-2.5 outline-none ring-primary/40 focus:ring disabled:cursor-not-allowed disabled:bg-gray-100"
                 >
-                  <option value="" disabled>Select Category</option>
-                  <option value="Information Technology">Information Technology</option>
-                  <option value="Web Development">Web Development</option>
-                  <option value="Data Science">Data Science</option>
-                  <option value="Artificial Intelligence">Artificial Intelligence</option>
-                  <option value="Cyber Security">Cyber Security</option>
-                  <option value="Mobile Development">Mobile Development</option>
-                  <option value="Commerce">Commerce</option>
-                  <option value="Business Management">Business Management</option>
-                  <option value="Accounting & Finance">Accounting & Finance</option>
-                  <option value="Marketing">Marketing</option>
-                  <option value="Art & Design">Art & Design</option>
-                  <option value="Photography & Video">Photography & Video</option>
-                  <option value="Music">Music</option>
-                  <option value="Science">Science</option>
-                  <option value="Mathematics">Mathematics</option>
-                  <option value="Language & Communication">Language & Communication</option>
-                  <option value="Health & Medicine">Health & Medicine</option>
-                  <option value="Engineering">Engineering</option>
-                  <option value="Law">Law</option>
-                  <option value="Other">Other</option>
+                  <option value="" disabled>
+                    {specializationsLoading ? "Loading categories..." : "Select Category"}
+                  </option>
+                  {specializations.map((specialization) => (
+                    <option key={specialization._id || specialization.slug} value={specialization.name}>
+                      {specialization.name}
+                    </option>
+                  ))}
                 </select>
+                {!specializationsLoading && specializations.length === 0 && (
+                  <p className="mt-1 text-[11px] text-rose-500">
+                    No specializations found. Add them in the database first.
+                  </p>
+                )}
               </div>
 
               {/* Difficulty */}
@@ -370,15 +442,15 @@ const EducatorPublish = () => {
                   disabled={!isVerified}
                   className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-[11px] outline-none disabled:cursor-not-allowed disabled:bg-gray-100"
                 />
-                {form.thumbnailFile?.name && (
-                  <p className="mt-1 text-[11px] text-muted">Selected: {form.thumbnailFile.name}</p>
+                {(form.thumbnailFile?.name || form.thumbnailName) && (
+                  <p className="mt-1 text-[11px] text-muted">Selected: {form.thumbnailFile?.name || form.thumbnailName}</p>
                 )}
               </div>
 
-              {/* Specialization Tags — searchable multi-select */}
+              {/* Specialization Tags - searchable multi-select */}
               <div>
-                <label className="font-semibold text-text-dark">Specialization Tags</label>
-                <p className="mt-1 text-[11px] text-muted">Search and select one or more tags.</p>
+                <label className="font-semibold text-text-dark">Related Specialization Tags</label>
+                <p className="mt-1 text-[11px] text-muted">Optional tags loaded from the specialization database.</p>
 
                 {/* Search input */}
                 <input
@@ -405,7 +477,7 @@ const EducatorPublish = () => {
                           disabled={!isVerified}
                           className="ml-0.5 hover:opacity-70"
                         >
-                          ×
+                          x
                         </button>
                       </span>
                     ))}
@@ -439,7 +511,7 @@ const EducatorPublish = () => {
                 </div>
 
                 {form.specializationTags.length === 0 && (
-                  <p className="mt-1 text-[11px] text-rose-500">Please select at least one tag.</p>
+                  <p className="mt-1 text-[11px] text-muted">No optional tags selected.</p>
                 )}
               </div>
 
@@ -449,6 +521,7 @@ const EducatorPublish = () => {
                   type="button"
                   onClick={() => {
                     localStorage.removeItem(storageKey);
+                    localStorage.removeItem(formStorageKey);
                     navigate("/educator");
                   }}
                   className="rounded-full border border-red-300 bg-white px-7 py-2 text-xs font-semibold text-red-500 hover:bg-red-50 transition"
@@ -459,18 +532,18 @@ const EducatorPublish = () => {
                 <button
                   type="button"
                   onClick={handleSaveDraft}
-                  disabled={!canDraft}
+                  disabled={!canDraft || submitting}
                   className="btn-soft px-7 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Save Draft
+                  {submitting ? "Saving..." : "Save Draft"}
                 </button>
 
                 <button
                   type="submit"
-                  disabled={!canPublish}
+                  disabled={!canPublish || submitting}
                   className="btn-primary px-8 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Publish
+                  {submitting ? "Publishing..." : "Publish"}
                 </button>
               </div>
             </div>

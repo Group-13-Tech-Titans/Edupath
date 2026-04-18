@@ -3,6 +3,31 @@ import { Link } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 
+const normalizeStatus = (status) => {
+  const s = String(status ?? "").toLowerCase().trim();
+  if (s === "draft") return "draft";
+  if (s === "approved" || s.includes("approve")) return "approved";
+  if (s === "pending" || s.includes("pending")) return "pending";
+  if (s === "rejected" || s.includes("reject")) return "rejected";
+  return "approved";
+};
+
+const statusMeta = (st) => {
+  if (st === "draft")    return { label: "Draft",           cls: "bg-slate-100 text-slate-600 border-slate-200" };
+  if (st === "approved") return { label: "Published",       cls: "bg-primary/10 text-primary border-primary/20" };
+  if (st === "pending")  return { label: "Pending Approval",cls: "bg-amber-50 text-amber-700 border-amber-200" };
+  return                        { label: "Rejected",        cls: "bg-rose-50 text-rose-600 border-rose-200" };
+};
+
+const StatCard = ({ label, value }) => (
+  <div className="glass-card p-5">
+    <div>
+      <p className="text-xs text-muted">{label}</p>
+      <p className="mt-0.5 text-2xl font-semibold text-text-dark">{value}</p>
+    </div>
+  </div>
+);
+
 const EducatorDashboard = () => {
   const { currentUser, courses, fetchMyCourses } = useApp();
 
@@ -10,204 +35,174 @@ const EducatorDashboard = () => {
     fetchMyCourses();
   }, [fetchMyCourses]);
 
-  const normalizeStatus = (status) => {
-    const s = String(status ?? "").toLowerCase().trim();
-    if (s === "draft") return "draft";
-    if (s === "approved" || s.includes("approve")) return "approved";
-    if (s === "pending" || s.includes("pending")) return "pending";
-    if (s === "rejected" || s.includes("reject")) return "rejected";
-    return "approved";
-  };
-
-  // Same source of truth as EducatorCourses.jsx
-  const myCourses = useMemo(() => {
-    return courses.filter((c) => c.createdByEducatorEmail === currentUser?.email);
-  }, [courses, currentUser?.email]);
+  const myCourses = useMemo(
+    () => courses.filter((c) => c.createdByEducatorEmail === currentUser?.email),
+    [courses, currentUser?.email]
+  );
 
   const publishedCount = useMemo(
-    () => myCourses.filter((c) => normalizeStatus(c.status) === "approved").length,
+    () => myCourses.filter((c) => !c.trashedAt && normalizeStatus(c.status) === "approved").length,
     [myCourses]
   );
 
-  // Keep the existing list UI exactly the same; only swap the data
+  const pendingCount = useMemo(
+    () => myCourses.filter((c) => !c.trashedAt && normalizeStatus(c.status) === "pending").length,
+    [myCourses]
+  );
+
   const courseRows = useMemo(() => {
-    return myCourses.map((c) => {
-      const st = normalizeStatus(c.status);
+    return myCourses
+      .filter((c) => !c.trashedAt)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 5)
+      .map((c) => {
+        const st = normalizeStatus(c.status);
+        const { label, cls } = statusMeta(st);
 
-      const statusLabel =
-        st === "draft" ? "Draft"
-        : st === "approved" ? "Published"
-        : st === "pending" ? "Pending Approval"
-        : "Rejected";
+        const reviewNotes = c.review?.notes || null;
+        const reviewerName = c.review?.reviewerName || null;
+        const reviewRating = c.review?.rating ?? c.rating ?? null;
 
-      const meta =
-        st === "draft"
-          ? "Not submitted yet — continue editing"
-          : st === "pending"
-            ? "Pending admin review"
-            : st === "rejected"
-              ? "Requires changes — see reviewer feedback below"
-              : `Rating ${c.rating ?? "—"} · ${c.level ?? "All levels"}`;
+        const meta =
+          st === "draft"    ? "Not submitted yet - continue editing" :
+          st === "pending"  ? "Pending admin review" :
+          st === "rejected" ? "Requires changes - see feedback below" :
+          `Rating ${reviewRating ?? "-"} - ${c.level ?? "All levels"}`;
 
-      // Pull reviewer feedback from the course review object
-      const reviewNotes = c.review?.notes || null;
-      const reviewerName = c.review?.reviewerName || null;
-      const reviewRating = c.review?.rating ?? null;
-
-      return {
-        id: c.id,
-        title: c.title,
-        meta,
-        status: statusLabel,
-        isDraft: st === "draft",
-        isRejected: st === "rejected",
-        reviewNotes,
-        reviewerName,
-        reviewRating
-      };
-    });
+        return {
+          id: c.id,
+          title: c.title,
+          meta,
+          statusLabel: label,
+          statusCls: cls,
+          isDraft: st === "draft",
+          isRejected: st === "rejected",
+          hasReview: Boolean(reviewNotes || reviewerName || reviewRating != null),
+          reviewNotes,
+          reviewerName,
+          reviewRating,
+        };
+      });
   }, [myCourses]);
-
-  const statusStyle = (status) => {
-    if (status === "Draft")
-      return "bg-slate-100/70 text-slate-600 border-slate-200/70";
-    if (status === "Published")
-      return "bg-green-100/70 text-green-700 border-green-200/70";
-    if (status === "Pending Approval")
-      return "bg-yellow-100/70 text-yellow-800 border-yellow-200/70";
-    if (status === "Rejected")
-      return "bg-red-100/70 text-red-700 border-red-200/70";
-    return "bg-white/70 text-text-dark border-black/10";
-  };
 
   return (
     <PageShell>
       <div className="space-y-6">
+
         {/* Header */}
-        <div className="glass-card p-6 flex justify-between items-center">
+        <div className="glass-card p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-lg font-semibold text-text-dark">
-              Educator Dashboard
-            </h1>
-            <p className="text-xs text-muted mt-1">
-              Track your courses, earnings and performance.
-            </p>
+            <h1 className="text-lg font-semibold text-text-dark">Educator Dashboard</h1>
+            <p className="mt-1 text-xs text-muted">Track your courses, earnings and performance.</p>
           </div>
-
-          {/* same width, no animation */}
-          <div className="flex flex-col gap-3 items-end">
-            {/* placeholder button, no link for now */}
-            <button className="btn-soft w-52 px-6 py-2 text-sm">
-              Register as Mentor
-            </button>
-
-            {/* ✅ Link to Publish new Course */}
-            <Link to="/educator/publish" className="btn-primary w-52 px-6 py-2 text-sm text-center">
-              Publish new Course
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button className="btn-soft px-6 py-2 text-sm">Register as Mentor</button>
+            <Link to="/educator/publish" className="btn-primary px-6 py-2 text-sm text-center">
+              Publish New Course
             </Link>
           </div>
         </div>
 
         {/* Stats */}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="glass-card p-5">
-            <p className="text-xs text-muted">Published Courses</p>
-            <p className="text-3xl font-semibold mt-2">{publishedCount}</p>
-          </div>
-
-          <div className="glass-card p-5">
-            <p className="text-xs text-muted">Active Students</p>
-            <p className="text-3xl font-semibold mt-2">1,248</p>
-          </div>
-
-          <div className="glass-card p-5">
-            <p className="text-xs text-muted">This Month Earnings</p>
-            <p className="text-3xl font-semibold mt-2">Rs 182,000</p>
-          </div>
-
-          <div className="glass-card p-5">
-            <p className="text-xs text-muted">Pending Requests</p>
-            <p className="text-3xl font-semibold mt-2">12</p>
-          </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard label="Published Courses" value={publishedCount} />
+          <StatCard label="Active Students"   value="1,248" />
+          <StatCard label="Monthly Earnings"  value="Rs 182,000" />
+          <StatCard label="Pending Reviews"   value={pendingCount} />
         </div>
 
         {/* Your Courses */}
         <div className="glass-card p-6">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-text-dark">Your Courses</h2>
-
-            {/* View All restored */}
-            <Link
-              to="/educator/courses"
-              className="text-sm font-semibold text-primary hover:opacity-90"
-            >
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="font-semibold text-text-dark">Recent Courses</h2>
+              <p className="mt-0.5 text-xs text-muted">Your 5 most recently created courses.</p>
+            </div>
+            <Link to="/educator/courses" className="text-xs font-semibold text-primary hover:opacity-80 transition">
               View All
             </Link>
           </div>
 
-          <div className="mt-4 space-y-3">
-            {courseRows.map((c) => (
-              <div
-                key={c.id}
-                className="rounded-2xl bg-white/80 border border-black/5 px-4 py-3 shadow-sm flex flex-col gap-2"
-              >
-                {/* Top row: title + actions */}
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="font-semibold text-sm text-text-dark">{c.title}</p>
-                    <p className="text-xs text-muted mt-1">{c.meta}</p>
-                  </div>
-
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span
-                      className={`px-4 py-1 text-xs rounded-full border ${statusStyle(c.status)}`}
-                    >
-                      {c.status}
-                    </span>
-
-                    <Link
-                      to={(c.isDraft || c.isRejected) ? `/educator/edit/${c.id}` : `/educator/courses/${c.id}`}
-                      className="btn-primary px-5 py-2 text-xs"
-                    >
-                      {(c.isDraft || c.isRejected) ? "Edit" : "Manage"}
-                    </Link>
-                  </div>
-                </div>
-
-                {/* Reviewer feedback — only shown on rejected courses */}
-                {c.isRejected && (
-                  <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 space-y-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs font-semibold text-rose-700">
-                        Reviewer Feedback
-                        {c.reviewerName && (
-                          <span className="font-normal text-rose-500"> — {c.reviewerName}</span>
-                        )}
-                      </p>
-                      {c.reviewRating != null && (
-                        <span className="text-[11px] text-rose-500 font-medium">
-                          Rating: {c.reviewRating}/5
-                        </span>
-                      )}
+          {courseRows.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-black/10 bg-white/50 px-6 py-12 text-center">
+              <p className="text-sm font-medium text-muted">No courses yet.</p>
+              <p className="mt-1 text-xs text-muted">Create your first course to get started.</p>
+              <Link to="/educator/publish" className="btn-primary mt-4 inline-flex px-6 py-2 text-xs">
+                + Create Course
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {courseRows.map((c) => (
+                <div
+                  key={c.id}
+                  className="rounded-2xl bg-white/80 border border-black/5 px-4 py-4 shadow-sm flex flex-col gap-2 transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm text-text-dark truncate">{c.title}</p>
+                      <p className="text-xs text-muted mt-0.5">{c.meta}</p>
                     </div>
-                    <p className="text-xs text-rose-700">
-                      {c.reviewNotes || "No specific notes were provided. Please review your course content and resubmit."}
-                    </p>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className={`px-3 py-1 text-[11px] font-semibold rounded-full border ${c.statusCls}`}>
+                        {c.statusLabel}
+                      </span>
+                      <Link
+                        to={(c.isDraft || c.isRejected) ? `/educator/edit/${c.id}` : `/educator/courses/${c.id}`}
+                        className="btn-primary px-5 py-2 text-xs"
+                      >
+                        {(c.isDraft || c.isRejected) ? "Edit" : "Manage"}
+                      </Link>
+                    </div>
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
+
+                  {c.hasReview && (
+                    <div className={`rounded-xl border px-4 py-3 space-y-1 ${
+                      c.isRejected
+                        ? "border-rose-200 bg-rose-50"
+                        : "border-primary/20 bg-primary/5"
+                    }`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className={`text-xs font-semibold ${c.isRejected ? "text-rose-700" : "text-primary"}`}>
+                          Reviewer Feedback
+                          {c.reviewerName && (
+                            <span className={`font-normal ${c.isRejected ? "text-rose-500" : "text-primary/80"}`}> - {c.reviewerName}</span>
+                          )}
+                        </p>
+                        {c.reviewRating != null && (
+                          <span className={`text-[11px] font-medium ${c.isRejected ? "text-rose-500" : "text-primary/80"}`}>
+                            Rating: {c.reviewRating}/5
+                          </span>
+                        )}
+                      </div>
+                      <p className={`text-xs ${c.isRejected ? "text-rose-700" : "text-text-dark"}`}>
+                        {c.reviewNotes || "No specific notes provided."}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Course Performance */}
         <div className="glass-card p-6">
-          <h2 className="font-semibold text-text-dark">Course Performance</h2>
-
-          <div className="mt-4 rounded-2xl border border-dashed border-black/10 bg-white/60 px-4 py-24 text-center text-sm text-muted">
-            Revenue / Enrollment graph placeholder
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="font-semibold text-text-dark">Course Performance</h2>
+              <p className="mt-0.5 text-xs text-muted">Revenue and enrollment trends.</p>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-dashed border-black/10 bg-white/50 px-4 py-20 text-center">
+            <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-xl">
+              Chart
+            </div>
+            <p className="text-sm font-medium text-muted">Analytics coming soon</p>
+            <p className="mt-1 text-xs text-muted">Revenue and enrollment charts will appear here.</p>
           </div>
         </div>
+
       </div>
     </PageShell>
   );

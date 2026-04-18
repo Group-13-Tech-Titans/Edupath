@@ -4,7 +4,7 @@ import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 
 /**
- * EducatorProfile — connected to backend via PATCH /api/auth/profile
+ * EducatorProfile - connected to backend via PATCH /api/auth/profile
  * - Loads real user data from currentUser (AppContext)
  * - Save Profile: updates name + profile fields
  * - Update Password: updates password (with confirmation check)
@@ -31,7 +31,7 @@ const EducatorProfile = () => {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  // ✅ Auto-scroll when arriving with /educator/profile#payout-details
+  // Auto-scroll when arriving with /educator/profile#payout-details
   useEffect(() => {
     if (location.hash === "#payout-details") {
       setTimeout(() => {
@@ -372,7 +372,7 @@ const EducatorProfile = () => {
           <span className={value ? "text-text-dark" : "text-muted"}>
             {value || placeholder}
           </span>
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted">▾</span>
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted">v</span>
         </button>
         {open && (
           <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-primary/25 bg-white/95 shadow-lg backdrop-blur">
@@ -420,14 +420,16 @@ const EducatorProfile = () => {
     <PageShell>
       <div className="space-y-6">
         {/* Header */}
-        <div className="glass-card p-6 flex justify-between items-center">
+        <div className="glass-card p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-lg font-semibold text-text-dark">Account Settings</h1>
-            <p className="text-xs text-muted mt-1">
+            <p className="mt-1 text-xs text-muted">
               Update your educator profile, payout details, password, and notification preferences.
             </p>
           </div>
-          <button className="btn-primary px-6 py-2 text-sm">Apply for Mentorship</button>
+          <button className="btn-primary px-6 py-2 text-sm self-start sm:self-auto">
+            Apply for Mentorship
+          </button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -762,43 +764,39 @@ const EducatorProfile = () => {
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-primary/25 bg-white/70 overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-4 border-b border-black/10">
-                  <div>
-                    <p className="text-sm font-semibold text-text-dark">Deactivate Account</p>
-                    <p className="text-xs text-muted">
-                      Disable educator access temporarily. You can re-activate later (admin approval may be needed).
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => alert("Placeholder: Deactivate account flow will be implemented later.")}
-                    className="rounded-full border border-red-400 px-5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
-                  >
-                    Deactivate
-                  </button>
-                </div>
-
+              <div className="rounded-2xl border border-primary/25 bg-white/70 overflow-hidden divide-y divide-black/5">
                 <div className="flex items-center justify-between px-4 py-4">
                   <div>
-                    <p className="text-sm font-semibold text-text-dark">Log out from all devices</p>
-                    <p className="text-xs text-muted">For security, sign out everywhere.</p>
+                    <p className="text-sm font-semibold text-text-dark">Log Out of All Devices</p>
+                    <p className="text-xs text-muted">Signs you out from every browser and device.</p>
                   </div>
                   <button
                     type="button"
                     onClick={handleLogoutAllDevices}
                     disabled={loggingOutAll}
-                    className="btn-soft px-6 py-2 text-xs"
+                    className="btn-soft px-5 py-2 text-xs disabled:opacity-60"
                   >
-                    {loggingOutAll ? "Logging Out..." : "Log Out"}
+                    {loggingOutAll ? "Logging out…" : "Log Out All"}
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between px-4 py-4">
+                  <div>
+                    <p className="text-sm font-semibold text-rose-600">Deactivate Account</p>
+                    <p className="text-xs text-muted">
+                      Permanently disables your account. Contact support to reactivate.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="rounded-full border border-rose-300 bg-white px-5 py-2 text-xs font-semibold text-rose-500 hover:bg-rose-50 transition"
+                  >
+                    Deactivate
                   </button>
                 </div>
               </div>
-
-              <div className="pt-2 text-center text-xs text-muted">
-                © 2026 EduPath. All rights reserved.
-              </div>
             </section>
+
           </div>
         </div>
       </div>

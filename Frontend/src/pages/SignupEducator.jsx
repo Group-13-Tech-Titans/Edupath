@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import PageShell from "../components/PageShell.jsx";
 import { useApp } from "../context/AppProvider.jsx";
+import { getSpecializations } from "../api/specializationApi.js";
 
 const SignupEducator = () => {
   const { signupEducator } = useApp();
@@ -15,7 +16,26 @@ const SignupEducator = () => {
     specializationTag: "",
     credentialsLink: ""
   });
+  const [specializations, setSpecializations] = useState([]);
+  const [specializationsLoading, setSpecializationsLoading] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    let alive = true;
+    getSpecializations()
+      .then((items) => {
+        if (alive) setSpecializations(Array.isArray(items) ? items : []);
+      })
+      .catch(() => {
+        if (alive) setError("Unable to load specializations. Please try again.");
+      })
+      .finally(() => {
+        if (alive) setSpecializationsLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -101,15 +121,29 @@ const SignupEducator = () => {
               />
             </div>
             <div>
-              <label className="text-xs font-medium">Expertise / specialization tag</label>
-              <input
+              <label className="text-xs font-medium">Specialization</label>
+              <select
                 name="specializationTag"
                 value={form.specializationTag}
                 onChange={handleChange}
-                placeholder="e.g. web-dev, data-science"
+                disabled={specializationsLoading}
                 required
                 className="mt-1 w-full rounded-2xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none ring-primary/40 focus:ring"
-              />
+              >
+                <option value="" disabled>
+                  {specializationsLoading ? "Loading specializations..." : "Select specialization"}
+                </option>
+                {specializations.map((specialization) => (
+                  <option key={specialization._id || specialization.slug} value={specialization.slug}>
+                    {specialization.name}
+                  </option>
+                ))}
+              </select>
+              {!specializationsLoading && specializations.length === 0 && (
+                <p className="mt-1 text-[11px] text-rose-500">
+                  No specializations found. Add them in the database first.
+                </p>
+              )}
             </div>
             <div>
               <label className="text-xs font-medium">

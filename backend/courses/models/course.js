@@ -14,6 +14,7 @@ const courseSchema = new mongoose.Schema({
   educatorName: { type: String },
   createdByEducatorEmail: { type: String, required: true },
   status: { type: String, enum: ["draft", "pending", "approved", "rejected"], default: "pending" },
+  trashedAt: { type: Date, default: null },
   content: { type: mongoose.Schema.Types.Mixed, default: {} },
   review: {
     decision: { type: String },
