@@ -1,8 +1,30 @@
-import React from "react";
+import React, { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 export default function MentorProfile() {
   const navigate = useNavigate();
+
+  // Load saved photo from localStorage (shared with Dashboard)
+  const [photo, setPhoto] = useState(() => localStorage.getItem("mentorPhoto") || null);
+  const fileInputRef = useRef(null);
+
+  // Load social links, certifications, mentoring focus, expertise from localStorage (saved in Settings)
+  const socialLinks = JSON.parse(localStorage.getItem("mentorSocialLinks") || "{}");
+  const certifications = JSON.parse(localStorage.getItem("mentorCertifications") || "[]");
+  const mentoringFocus = JSON.parse(localStorage.getItem("mentorMentoringFocus") || "[]");
+  const expertiseTags = JSON.parse(localStorage.getItem("mentorExpertiseTags") || "[]");
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target.result;
+      setPhoto(dataUrl);
+      localStorage.setItem("mentorPhoto", dataUrl); // save so Dashboard can read it
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -10,22 +32,11 @@ export default function MentorProfile() {
     navigate("/login");
   };
 
-  const expertise = [
-    "JavaScript",
-    "React.js",
-    "Node.js",
-    "TypeScript",
-    "Python",
-    "AWS",
-    "MongoDB",
-    "PostgreSQL",
-    "Docker",
-    "GraphQL",
-    "REST APIs",
-    "Microservices",
-    "CI/CD",
-    "System Design",
-    "Agile/Scrum",
+  // Use tags from Settings if available, otherwise use defaults
+  const expertise = expertiseTags.length > 0 ? expertiseTags : [
+    "JavaScript", "React.js", "Node.js", "TypeScript", "Python",
+    "AWS", "MongoDB", "PostgreSQL", "Docker", "GraphQL",
+    "REST APIs", "Microservices", "CI/CD", "System Design", "Agile/Scrum",
   ];
 
   const experience = [
@@ -110,13 +121,15 @@ export default function MentorProfile() {
           <Link to="/MentorSessions" className="font-medium text-[#2c3e50] transition-colors duration-300 hover:text-[#5DD9C1]">
             Sessions
           </Link>
-          <Link to="/MentorProfile" className="font-medium text-[#5DD9C1] transition-colors duration-300 hover:text-[#5DD9C1]">
-            Profile
-          </Link>
           <Link to="/MentorResources" className="font-medium text-[#2c3e50] transition-colors duration-300 hover:text-[#5DD9C1]">
             Resources
           </Link>
-          
+          <Link to="/MentorMessages" className="font-medium text-[#2c3e50] transition-colors duration-300 hover:text-[#5DD9C1]">
+            Messages
+          </Link>
+          <Link to="/MentorProfile" className="font-medium text-[#5DD9C1] transition-colors duration-300 hover:text-[#5DD9C1]">
+            Profile
+          </Link>
         </nav>
 
         <div className="flex w-[150px] justify-end">
@@ -134,11 +147,24 @@ export default function MentorProfile() {
       {/* Profile Header */}
       <section className="mb-5 rounded-2xl bg-white p-10 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
         <div className="mb-[30px] flex flex-col gap-[30px] md:flex-row md:items-start">
-          <img
-            src="data:image/svg+xml,%3Csvg width='150' height='150' viewBox='0 0 150 150' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='75' cy='75' r='75' fill='%235DD9C1'/%3E%3Cpath d='M75 70C88.255 70 99 59.255 99 46C99 32.745 88.255 22 75 22C61.745 22 51 32.745 51 46C51 59.255 61.745 70 75 70Z' fill='white'/%3E%3Cpath d='M75 80C54.29 80 37.5 89.455 37.5 100V128H112.5V100C112.5 89.455 95.71 80 75 80Z' fill='white'/%3E%3C/svg%3E"
-            alt="Dr. Sarah Johnson"
-            className="h-[150px] w-[150px] rounded-full border-[5px] border-[#5DD9C1] object-cover"
-          />
+          {/* Clickable profile photo */}
+          <div className="relative flex-shrink-0 cursor-pointer group" onClick={() => fileInputRef.current.click()}>
+            <img
+              src={photo || "data:image/svg+xml,%3Csvg width='150' height='150' viewBox='0 0 150 150' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='75' cy='75' r='75' fill='%235DD9C1'/%3E%3Cpath d='M75 70C88.255 70 99 59.255 99 46C99 32.745 88.255 22 75 22C61.745 22 51 32.745 51 46C51 59.255 61.745 70 75 70Z' fill='white'/%3E%3Cpath d='M75 80C54.29 80 37.5 89.455 37.5 100V128H112.5V100C112.5 89.455 95.71 80 75 80Z' fill='white'/%3E%3C/svg%3E"}
+              alt="Profile Photo"
+              className="h-[150px] w-[150px] rounded-full border-[5px] border-[#5DD9C1] object-cover"
+            />
+            {/* Hover overlay */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+              <svg className="h-8 w-8 text-white mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+              <span className="text-xs text-white font-semibold">Change Photo</span>
+            </div>
+            {/* Hidden file input */}
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+          </div>
 
           <div className="flex-1">
             <h1 className="mb-2 text-[32px] font-bold text-[#2c3e50]">Dr. Sarah Johnson</h1>
@@ -169,6 +195,13 @@ export default function MentorProfile() {
                 className="rounded-[10px] bg-[#5DD9C1] px-6 py-3 text-[14px] font-semibold text-white transition-all duration-300 hover:-translate-y-[2px] hover:bg-[#4AC4AD] hover:shadow-[0_4px_12px_rgba(93,217,193,0.3)]"
               >
                 Edit Profile
+              </Link>
+
+              <Link
+                to="/MentorSettings"
+                className="rounded-[10px] border-2 border-[#5DD9C1] bg-white px-[22px] py-[10px] text-[14px] font-semibold text-[#5DD9C1] transition-all duration-300 hover:bg-[#5DD9C1] hover:text-white"
+              >
+                Settings
               </Link>
 
               <Link
@@ -326,11 +359,30 @@ export default function MentorProfile() {
 
     <h4 className="mb-[10px] mt-5 text-[14px] font-semibold text-[#2c3e50]">Social Links</h4>
 
-    <div className="mt-[15px] flex gap-[15px]">
-      <SocialLink icon={<LinkedInIcon />} />
-      <SocialLink icon={<GitHubIcon />} />
-      <SocialLink icon={<TwitterIcon />} />
-      <SocialLink icon={<RedditIcon />} />
+    <div className="mt-[15px] flex flex-col gap-3">
+      {socialLinks.linkedin && (
+        <a href={socialLinks.linkedin} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-[13px] text-[#5DD9C1] hover:underline">
+          <LinkedInIcon /> {socialLinks.linkedin}
+        </a>
+      )}
+      {socialLinks.github && (
+        <a href={socialLinks.github} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-[13px] text-[#5DD9C1] hover:underline">
+          <GitHubIcon /> {socialLinks.github}
+        </a>
+      )}
+      {socialLinks.twitter && (
+        <a href={socialLinks.twitter} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-[13px] text-[#5DD9C1] hover:underline">
+          <TwitterIcon /> {socialLinks.twitter}
+        </a>
+      )}
+      {socialLinks.website && (
+        <a href={socialLinks.website} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-[13px] text-[#5DD9C1] hover:underline">
+          <RedditIcon /> {socialLinks.website}
+        </a>
+      )}
+      {!socialLinks.linkedin && !socialLinks.github && !socialLinks.twitter && !socialLinks.website && (
+        <p className="text-[13px] text-[#7f8c8d]">No social links added yet. Add them in Settings.</p>
+      )}
     </div>
   </section>
 
@@ -349,18 +401,11 @@ export default function MentorProfile() {
     <SectionTitle icon={<TargetIcon />} title="Mentoring Focus" />
 
     <div className="flex flex-wrap gap-[10px]">
-      {[
-        "Career Guidance",
-        "Portfolio Review",
-        "Interview Prep",
-        "Resume Feedback",
-        "Full-Stack Projects",
-        "Coding Best Practices",
-      ].map((item) => (
-        <span
-          key={item}
-          className="rounded-[20px] bg-[#E8F8F5] px-4 py-2 text-[13px] font-semibold text-[#5DD9C1]"
-        >
+      {(mentoringFocus.length > 0 ? mentoringFocus : [
+        "Career Guidance", "Portfolio Review", "Interview Prep",
+        "Resume Feedback", "Full-Stack Projects", "Coding Best Practices",
+      ]).map((item) => (
+        <span key={item} className="rounded-[20px] bg-[#E8F8F5] px-4 py-2 text-[13px] font-semibold text-[#5DD9C1]">
           {item}
         </span>
       ))}
@@ -372,20 +417,27 @@ export default function MentorProfile() {
     <SectionTitle icon={<CertificateIcon />} title="Certifications" />
 
     <div className="flex flex-col gap-3">
-      <div className="rounded-xl bg-[#f8f9fa] p-4">
-        <p className="text-[14px] font-semibold text-[#2c3e50]">AWS Certified Developer</p>
-        <p className="mt-1 text-[13px] text-[#7f8c8d]">Amazon Web Services</p>
-      </div>
-
-      <div className="rounded-xl bg-[#f8f9fa] p-4">
-        <p className="text-[14px] font-semibold text-[#2c3e50]">Google Cloud Associate</p>
-        <p className="mt-1 text-[13px] text-[#7f8c8d]">Google Cloud Platform</p>
-      </div>
-
-      <div className="rounded-xl bg-[#f8f9fa] p-4">
-        <p className="text-[14px] font-semibold text-[#2c3e50]">Professional Scrum Master</p>
-        <p className="mt-1 text-[13px] text-[#7f8c8d]">Scrum.org</p>
-      </div>
+      {certifications.length > 0 ? certifications.map((cert, i) => (
+        <div key={i} className="rounded-xl bg-[#f8f9fa] p-4">
+          <p className="text-[14px] font-semibold text-[#2c3e50]">{cert.name}</p>
+          <p className="mt-1 text-[13px] text-[#7f8c8d]">{cert.issuer}{cert.year ? ` • ${cert.year}` : ""}</p>
+        </div>
+      )) : (
+        <>
+          <div className="rounded-xl bg-[#f8f9fa] p-4">
+            <p className="text-[14px] font-semibold text-[#2c3e50]">AWS Certified Developer</p>
+            <p className="mt-1 text-[13px] text-[#7f8c8d]">Amazon Web Services</p>
+          </div>
+          <div className="rounded-xl bg-[#f8f9fa] p-4">
+            <p className="text-[14px] font-semibold text-[#2c3e50]">Google Cloud Associate</p>
+            <p className="mt-1 text-[13px] text-[#7f8c8d]">Google Cloud Platform</p>
+          </div>
+          <div className="rounded-xl bg-[#f8f9fa] p-4">
+            <p className="text-[14px] font-semibold text-[#2c3e50]">Professional Scrum Master</p>
+            <p className="mt-1 text-[13px] text-[#7f8c8d]">Scrum.org</p>
+          </div>
+        </>
+      )}
     </div>
   </section>
 

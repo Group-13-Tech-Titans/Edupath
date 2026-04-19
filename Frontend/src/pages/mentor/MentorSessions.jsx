@@ -198,12 +198,14 @@ const initialTab = queryParams.get("tab");
           <Link to="/MentorSessions" className="font-medium text-teal-500 transition-colors hover:text-teal-500">
             Sessions
           </Link>
-          
-          <Link to="/MentorProfile" className="font-medium text-slate-800 transition-colors hover:text-teal-500" style={{ textDecoration: "none" }}>
-            Profile
-          </Link>
           <Link to="/MentorResources" className="font-medium text-slate-800 transition-colors hover:text-teal-500" style={{ textDecoration: "none" }}>
             Resources
+          </Link>
+          <Link to="/MentorMessages" className="font-medium text-slate-800 transition-colors hover:text-teal-500" style={{ textDecoration: "none" }}>
+            Messages
+          </Link>
+          <Link to="/MentorProfile" className="font-medium text-slate-800 transition-colors hover:text-teal-500" style={{ textDecoration: "none" }}>
+            Profile
           </Link>
 
         </nav>

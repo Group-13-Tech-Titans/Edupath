@@ -92,7 +92,24 @@ export default function MentorResources() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!form.title.trim()) return;
+
+    // Validation — show message for each missing required field
+    if (!form.title.trim()) {
+      alert("Please enter a Resource Title.");
+      return;
+    }
+    if (form.shareWith === "specific" && !form.studentId) {
+      alert("Please select a Student to share with.");
+      return;
+    }
+    if (form.shareWith === "group" && !form.courseGroup) {
+      alert("Please select a Course Group to share with.");
+      return;
+    }
+    if ((form.type === "video" || form.type === "pdfppt" || form.type === "quiz") && !form.url.trim()) {
+      alert("Please enter a URL for this " + (form.type === "video" ? "Video" : form.type === "pdfppt" ? "PDF/PPT" : "Quiz") + " resource.");
+      return;
+    }
 
     const student = MOCK_STUDENTS.find((s) => s.id === form.studentId);
 
@@ -112,6 +129,7 @@ export default function MentorResources() {
     setResources((prev) => [newResource, ...prev]);
     setForm(emptyForm);
     setModalOpen(false);
+    alert("Resource shared successfully!");
   };
 
   const handleDelete = (id) => {
@@ -155,8 +173,9 @@ export default function MentorResources() {
           <Link to="/MentorDashboard" className="font-medium text-slate-800 transition-colors hover:text-teal-500">Dashboard</Link>
           <Link to="/MentorStudents"  className="font-medium text-slate-800 transition-colors hover:text-teal-500">My Students</Link>
           <Link to="/MentorSessions"  className="font-medium text-slate-800 transition-colors hover:text-teal-500">Sessions</Link>
-          <Link to="/MentorProfile"   className="font-medium text-slate-800 transition-colors hover:text-teal-500">Profile</Link>
           <Link to="/MentorResources" className="font-medium text-teal-500">Resources</Link>
+          <Link to="/MentorMessages"   className="font-medium text-slate-800 transition-colors hover:text-teal-500">Messages</Link>
+          <Link to="/MentorProfile"   className="font-medium text-slate-800 transition-colors hover:text-teal-500">Profile</Link>
 
         </nav>
 
@@ -432,9 +451,9 @@ export default function MentorResources() {
               </div>
 
               {/* URL */}
-              {(form.type === "video" || form.type === "pdfppt") && (
+              {(form.type === "video" || form.type === "pdfppt" || form.type === "quiz") && (
                 <div>
-                  <label className="mb-1 block text-sm font-bold text-slate-700">Resource URL <span className="font-normal text-slate-400">(optional)</span></label>
+                  <label className="mb-1 block text-sm font-bold text-slate-700">Resource URL {form.type === "quiz" ? "(Quiz Link)" : ""} <span className="font-normal text-red-400">*</span></label>
                   <input name="url" value={form.url} onChange={handleChange} type="url"
                     placeholder="https://..."
                     className="w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-teal-400" />

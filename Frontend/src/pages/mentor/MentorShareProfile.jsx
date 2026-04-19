@@ -264,15 +264,23 @@ export default function MentorShareProfile() {
           >
             Sessions
           </Link>
+          <Link to="/MentorResources" className="font-medium text-slate-800 transition-colors hover:text-teal-500">
+          Resources
+          </Link>
+          <Link
+            to="/MentorMessages"
+            className="font-medium text-slate-800 transition-colors hover:text-teal-500"  
+          >
+            Messages
+          </Link>
+
           <Link
             to="/MentorProfile"
             className="font-medium text-slate-800 transition-colors hover:text-teal-500"
           >
             Profile
           </Link>
-          <Link to="/MentorResources" className="font-medium text-slate-800 transition-colors hover:text-teal-500">
-          Resources
-          </Link>
+          
         </nav>
 
         <div className="w-[150px] flex justify-end">
