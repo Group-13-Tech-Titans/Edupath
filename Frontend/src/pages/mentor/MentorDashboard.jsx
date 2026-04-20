@@ -129,7 +129,7 @@ export default function MentorDashboard() {
         time: "Tomorrow, 5:00 PM - 6:30 PM",
         desc: "Topics: Custom hooks, Context API optimization, Performance tuning • 6 students enrolled",
         status: "Scheduled",
-        actions: ["View Details", "Prepare Materials"],
+        actions: ["Join Session", "View Detailss"],
       },
     ],
     []

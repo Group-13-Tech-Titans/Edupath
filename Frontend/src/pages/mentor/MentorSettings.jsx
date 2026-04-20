@@ -11,7 +11,8 @@ export default function MentorSettingsInlineLikeDashboard() {
   };
 
   const [activeTab, setActiveTab] = useState("account");
-  const [isDirty, setIsDirty]     = useState(false);
+  const isDirtyRef = useRef(false);           // tracks changes WITHOUT re-rendering
+  const [isDirty, setIsDirty] = useState(false); // only for status label display
 
   // ── Profile photo shared with Profile + Dashboard via localStorage ──
   const [photo, setPhoto] = useState(() => localStorage.getItem("mentorPhoto") || null);
@@ -83,9 +84,16 @@ export default function MentorSettingsInlineLikeDashboard() {
     if (toastTimer.current) clearTimeout(toastTimer.current);
     setToastState((t) => ({ ...t, open: false }));
   };
-  const markDirty = () => setIsDirty(true);
+  const dirtyTimer = useRef(null);
+  const markDirty = () => {
+    isDirtyRef.current = true;            // instant, no re-render
+    if (!isDirty) {                       // only trigger re-render if status label needs to change
+      clearTimeout(dirtyTimer.current);
+      dirtyTimer.current = setTimeout(() => setIsDirty(true), 300);
+    }
+  };
   const toggle = (key) => { setToggles((p) => ({ ...p, [key]: !p[key] })); markDirty(); };
-  const discardChanges = () => { setIsDirty(false); showToast("Cancelled", "Changes were discarded."); };
+  const discardChanges = () => { isDirtyRef.current = false; setIsDirty(false); showToast("Cancelled", "Changes were discarded."); };
 
   // ── Validation on Save ──────────────────────────────────────────
   const saveChanges = () => {
@@ -119,6 +127,7 @@ export default function MentorSettingsInlineLikeDashboard() {
     localStorage.setItem("mentorMentoringFocus", JSON.stringify(mentoringFocus));
     localStorage.setItem("mentorExpertiseTags", JSON.stringify(expertiseTags));
 
+    isDirtyRef.current = false;
     setIsDirty(false);
     showToast("Saved!", "Your settings have been saved successfully. Changes are now visible on your profile.");
   };
@@ -129,10 +138,10 @@ export default function MentorSettingsInlineLikeDashboard() {
   };
 
   useEffect(() => {
-    const fn = (e) => { if (!isDirty) return; e.preventDefault(); e.returnValue = ""; };
+    const fn = (e) => { if (!isDirtyRef.current) return; e.preventDefault(); e.returnValue = ""; };
     window.addEventListener("beforeunload", fn);
     return () => window.removeEventListener("beforeunload", fn);
-  }, [isDirty]);
+  }, []);
 
   const status = useMemo(() =>
     isDirty
@@ -339,19 +348,19 @@ export default function MentorSettingsInlineLikeDashboard() {
                 <SectionTitle icon={<SettingsUserOutlineIcon />} title="Account Information" />
                 <div className="grid gap-4 md:grid-cols-2">
                   <Field label="First Name *">
-                    <input ref={firstNameRef} defaultValue="Sarah" onChange={markDirty} className={inputCls} />
+                    <input ref={firstNameRef} defaultValue="Sarah" onBlur={markDirty} className={inputCls} />
                   </Field>
                   <Field label="Last Name *">
-                    <input ref={lastNameRef} defaultValue="Johnson" onChange={markDirty} className={inputCls} />
+                    <input ref={lastNameRef} defaultValue="Johnson" onBlur={markDirty} className={inputCls} />
                   </Field>
                   <Field label="Email Address *" hint="Visible to students as contact.">
-                    <input ref={emailRef} type="email" defaultValue="sarah.johnson@email.com" onChange={markDirty} className={inputCls} />
+                    <input ref={emailRef} type="email" defaultValue="sarah.johnson@email.com" onBlur={markDirty} className={inputCls} />
                   </Field>
                   <Field label="Phone (Optional)">
-                    <input type="tel" defaultValue="+1 (555) 123-4567" onChange={markDirty} className={inputCls} />
+                    <input type="tel" defaultValue="+1 (555) 123-4567" onBlur={markDirty} className={inputCls} />
                   </Field>
                   <Field label="Location *">
-                    <input ref={locationRef} defaultValue="San Francisco, CA" onChange={markDirty} className={inputCls} />
+                    <input ref={locationRef} defaultValue="San Francisco, CA" onBlur={markDirty} className={inputCls} />
                   </Field>
                   <Field label="Time Zone">
                     <Select defaultValue="IST (UTC+5:30) - Sri Lanka/India">
@@ -365,14 +374,14 @@ export default function MentorSettingsInlineLikeDashboard() {
                     </Select>
                   </Field>
                   <Field label="Professional Title *" hint="e.g. Senior Full-Stack Developer & Mentor">
-                    <input ref={titleRef} defaultValue="Senior Full-Stack Developer & Technical Mentor" onChange={markDirty} className={inputCls} />
+                    <input ref={titleRef} defaultValue="Senior Full-Stack Developer & Technical Mentor" onBlur={markDirty} className={inputCls} />
                   </Field>
                   <Field label="Subject / Field *" hint="e.g. Web Development, Data Science">
-                    <input ref={subjectRef} defaultValue="Web Development" onChange={markDirty} className={inputCls} />
+                    <input ref={subjectRef} defaultValue="Web Development" onBlur={markDirty} className={inputCls} />
                   </Field>
                   <div className="md:col-span-2">
                     <Field label="Short Bio *" hint="Shown on your public mentor profile.">
-                      <textarea ref={bioRef} defaultValue="Mentor focused on practical, project-based learning and career guidance for modern web development." onChange={markDirty}
+                      <textarea ref={bioRef} defaultValue="Mentor focused on practical, project-based learning and career guidance for modern web development." onBlur={markDirty}
                         className="min-h-[100px] w-full resize-y rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100" />
                     </Field>
                   </div>
@@ -424,17 +433,17 @@ export default function MentorSettingsInlineLikeDashboard() {
                     <div key={i} className="rounded-xl border-2 border-slate-100 bg-slate-50 p-4 space-y-3">
                       <div className="grid gap-3 md:grid-cols-2">
                         <Field label="Job Title">
-                          <input defaultValue={exp.role} onChange={markDirty} className={inputCls} />
+                          <input defaultValue={exp.role} onBlur={markDirty} className={inputCls} />
                         </Field>
                         <Field label="Company">
-                          <input defaultValue={exp.company} onChange={markDirty} className={inputCls} />
+                          <input defaultValue={exp.company} onBlur={markDirty} className={inputCls} />
                         </Field>
                         <Field label="Duration" hint="e.g. Jan 2020 - Present">
-                          <input defaultValue={exp.duration} onChange={markDirty} className={inputCls} />
+                          <input defaultValue={exp.duration} onBlur={markDirty} className={inputCls} />
                         </Field>
                       </div>
                       <Field label="Description">
-                        <textarea defaultValue={exp.description} onChange={markDirty} rows={2}
+                        <textarea defaultValue={exp.description} onBlur={markDirty} rows={2}
                           className="w-full resize-y rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-teal-400" />
                       </Field>
                       <button type="button" onClick={() => { setExperiences((p) => p.filter((_, j) => j !== i)); markDirty(); }}
@@ -456,13 +465,13 @@ export default function MentorSettingsInlineLikeDashboard() {
                     <div key={i} className="rounded-xl border-2 border-slate-100 bg-slate-50 p-4 space-y-3">
                       <div className="grid gap-3 md:grid-cols-2">
                         <Field label="Degree / Qualification">
-                          <input defaultValue={edu.degree} onChange={markDirty} className={inputCls} />
+                          <input defaultValue={edu.degree} onBlur={markDirty} className={inputCls} />
                         </Field>
                         <Field label="Institution">
-                          <input defaultValue={edu.institution} onChange={markDirty} className={inputCls} />
+                          <input defaultValue={edu.institution} onBlur={markDirty} className={inputCls} />
                         </Field>
                         <Field label="Year" hint="e.g. 2010 - 2014">
-                          <input defaultValue={edu.year} onChange={markDirty} className={inputCls} />
+                          <input defaultValue={edu.year} onBlur={markDirty} className={inputCls} />
                         </Field>
                       </div>
                       <button type="button" onClick={() => { setEducations((p) => p.filter((_, j) => j !== i)); markDirty(); }}
@@ -481,19 +490,19 @@ export default function MentorSettingsInlineLikeDashboard() {
                 <p className="mb-4 text-xs text-slate-500">These links appear on your public profile page.</p>
                 <div className="grid gap-4 md:grid-cols-2">
                   <Field label="LinkedIn URL">
-                    <input value={socialLinks.linkedin} onChange={(e) => { setSocialLinks((p) => ({ ...p, linkedin: e.target.value })); markDirty(); }}
+                    <input defaultValue={socialLinks.linkedin} onBlur={(e) => { setSocialLinks((p) => ({ ...p, linkedin: e.target.value })); markDirty(); }}
                       placeholder="https://linkedin.com/in/yourname" className={inputCls} />
                   </Field>
                   <Field label="GitHub URL">
-                    <input value={socialLinks.github} onChange={(e) => { setSocialLinks((p) => ({ ...p, github: e.target.value })); markDirty(); }}
+                    <input defaultValue={socialLinks.github} onBlur={(e) => { setSocialLinks((p) => ({ ...p, github: e.target.value })); markDirty(); }}
                       placeholder="https://github.com/yourname" className={inputCls} />
                   </Field>
                   <Field label="Twitter / X URL">
-                    <input value={socialLinks.twitter} onChange={(e) => { setSocialLinks((p) => ({ ...p, twitter: e.target.value })); markDirty(); }}
+                    <input defaultValue={socialLinks.twitter} onBlur={(e) => { setSocialLinks((p) => ({ ...p, twitter: e.target.value })); markDirty(); }}
                       placeholder="https://twitter.com/yourname" className={inputCls} />
                   </Field>
                   <Field label="Personal Website">
-                    <input value={socialLinks.website} onChange={(e) => { setSocialLinks((p) => ({ ...p, website: e.target.value })); markDirty(); }}
+                    <input defaultValue={socialLinks.website} onBlur={(e) => { setSocialLinks((p) => ({ ...p, website: e.target.value })); markDirty(); }}
                       placeholder="https://yourwebsite.com" className={inputCls} />
                   </Field>
                 </div>
@@ -508,15 +517,15 @@ export default function MentorSettingsInlineLikeDashboard() {
                     <div key={i} className="rounded-xl border-2 border-slate-100 bg-slate-50 p-4 space-y-3">
                       <div className="grid gap-3 md:grid-cols-2">
                         <Field label="Certification Name">
-                          <input defaultValue={cert.name} onChange={(e) => { const c = [...certifications]; c[i] = { ...c[i], name: e.target.value }; setCertifications(c); markDirty(); }}
+                          <input defaultValue={cert.name} onBlur={(e) => { const c = [...certifications]; c[i] = { ...c[i], name: e.target.value }; setCertifications(c); markDirty(); }}
                             className={inputCls} placeholder="e.g. AWS Certified Developer" />
                         </Field>
                         <Field label="Issuing Organisation">
-                          <input defaultValue={cert.issuer} onChange={(e) => { const c = [...certifications]; c[i] = { ...c[i], issuer: e.target.value }; setCertifications(c); markDirty(); }}
+                          <input defaultValue={cert.issuer} onBlur={(e) => { const c = [...certifications]; c[i] = { ...c[i], issuer: e.target.value }; setCertifications(c); markDirty(); }}
                             className={inputCls} placeholder="e.g. Amazon Web Services" />
                         </Field>
                         <Field label="Year Obtained">
-                          <input defaultValue={cert.year} onChange={(e) => { const c = [...certifications]; c[i] = { ...c[i], year: e.target.value }; setCertifications(c); markDirty(); }}
+                          <input defaultValue={cert.year} onBlur={(e) => { const c = [...certifications]; c[i] = { ...c[i], year: e.target.value }; setCertifications(c); markDirty(); }}
                             className={inputCls} placeholder="e.g. 2023" />
                         </Field>
                       </div>
@@ -579,10 +588,10 @@ export default function MentorSettingsInlineLikeDashboard() {
                 </Field>
                 <div className="space-y-4">
                   <Field label="Preferred Start Time">
-                    <input type="time" defaultValue="09:00" onChange={markDirty} className={inputCls} />
+                    <input type="time" defaultValue="09:00" onBlur={markDirty} className={inputCls} />
                   </Field>
                   <Field label="Preferred End Time">
-                    <input type="time" defaultValue="18:00" onChange={markDirty} className={inputCls} />
+                    <input type="time" defaultValue="18:00" onBlur={markDirty} className={inputCls} />
                   </Field>
                   <Field label="Response Time">
                     <Select defaultValue="Within 2 hours">
@@ -726,16 +735,8 @@ export default function MentorSettingsInlineLikeDashboard() {
       )}
 
       {/* Modals */}
-      <ModalShell open={modal === "reset"} title="Reset Password" onClose={() => setModal(null)}>
-        <div className="space-y-4">
-          <Field label="Current Password"><input type="password" placeholder="••••••••" className={inputCls} /></Field>
-          <Field label="New Password"><input type="password" placeholder="Create a strong password" className={inputCls} /></Field>
-          <Field label="Confirm New Password"><input type="password" placeholder="Re-type new password" className={inputCls} /></Field>
-          <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={() => setModal(null)} className="rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-semibold text-teal-500 transition hover:bg-teal-400 hover:text-white">Cancel</button>
-            <button type="button" onClick={() => { setModal(null); showToast("Updated", "Password changed successfully."); }} className="rounded-xl bg-teal-400 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-500">Update</button>
-          </div>
-        </div>
+      <ModalShell open={modal === "reset"} title="Reset Password" onClose={() => { setModal(null); }}>
+        <PasswordModal onClose={() => setModal(null)} showToast={showToast} />
       </ModalShell>
 
       <ModalShell open={modal === "devices"} title="Signed-in Devices" onClose={() => setModal(null)}>
@@ -775,6 +776,65 @@ export default function MentorSettingsInlineLikeDashboard() {
           <button type="button" onClick={doDelete} className="rounded-xl border-2 border-teal-500 bg-white px-5 py-2.5 text-sm font-semibold text-teal-600 transition hover:bg-teal-500 hover:text-white">Delete</button>
         </div>
       </ModalShell>
+    </div>
+  );
+}
+
+/* ── Password Modal with validation ──────────────────────────── */
+function PasswordModal({ onClose, showToast }) {
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw]         = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [errors, setErrors]       = useState({});
+
+  const validate = () => {
+    const e = {};
+    if (!currentPw.trim())        e.current  = "Current password is required.";
+    if (!newPw.trim())            e.newPw    = "New password is required.";
+    else if (newPw.length < 6)    e.newPw    = "Password must be at least 6 characters.";
+    if (!confirmPw.trim())        e.confirm  = "Please confirm your new password.";
+    else if (newPw !== confirmPw) e.confirm  = "Passwords do not match.";
+    if (currentPw && newPw && currentPw === newPw) e.newPw = "New password must be different from current.";
+    return e;
+  };
+
+  const handleUpdate = () => {
+    const e = validate();
+    setErrors(e);
+    if (Object.keys(e).length > 0) return;
+    onClose();
+    showToast("Password updated!", "Your password has been changed successfully.");
+  };
+
+  const inputCls = "w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100";
+  const errCls   = "mt-1 text-xs text-red-500 font-semibold";
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-[13px] font-extrabold text-slate-800 mb-2">Current Password</label>
+        <input type="password" placeholder="••••••••" value={currentPw} onChange={(e) => { setCurrentPw(e.target.value); setErrors((p) => ({ ...p, current: "" })); }}
+          className={`${inputCls} ${errors.current ? "border-red-400" : ""}`} />
+        {errors.current && <p className={errCls}>{errors.current}</p>}
+      </div>
+      <div>
+        <label className="block text-[13px] font-extrabold text-slate-800 mb-2">New Password</label>
+        <input type="password" placeholder="At least 6 characters" value={newPw} onChange={(e) => { setNewPw(e.target.value); setErrors((p) => ({ ...p, newPw: "" })); }}
+          className={`${inputCls} ${errors.newPw ? "border-red-400" : ""}`} />
+        {errors.newPw && <p className={errCls}>{errors.newPw}</p>}
+      </div>
+      <div>
+        <label className="block text-[13px] font-extrabold text-slate-800 mb-2">Confirm New Password</label>
+        <input type="password" placeholder="Re-type new password" value={confirmPw} onChange={(e) => { setConfirmPw(e.target.value); setErrors((p) => ({ ...p, confirm: "" })); }}
+          className={`${inputCls} ${errors.confirm ? "border-red-400" : ""}`} />
+        {errors.confirm && <p className={errCls}>{errors.confirm}</p>}
+      </div>
+      <div className="flex justify-end gap-3 pt-2">
+        <button type="button" onClick={onClose}
+          className="rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-semibold text-teal-500 transition hover:bg-teal-400 hover:text-white">Cancel</button>
+        <button type="button" onClick={handleUpdate}
+          className="rounded-xl bg-teal-400 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-500">Update Password</button>
+      </div>
     </div>
   );
 }
