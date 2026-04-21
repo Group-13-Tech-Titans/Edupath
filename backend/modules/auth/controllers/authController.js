@@ -74,7 +74,6 @@ exports.googleLogin = async (req, res) => {
   }
 };
 
-// Role Selection
 
 exports.selectRole = async (req, res) => {
   try {
@@ -116,10 +115,11 @@ exports.register = async (req, res) => {
     const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ message: "Email already in use" });
 
+    // Hash passwords before saving to DB
     const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
     const user = await User.create({
-      name: name || email.split("@")[0],
+      name: name || email.split("@")[0], // Fallback name generation
       email,
       password: hashedPassword,
       role: "pending",
@@ -128,12 +128,14 @@ exports.register = async (req, res) => {
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
+    // Strip password hash from the object before sending to client
     const safe = user.toObject();
     delete safe.password;
     safe.id = safe._id.toString();
 
     return res.status(201).json({ message: "User registered", token, user: safe });
   } catch (err) {
+    // Handle MongoDB Duplicate Key Error (11000) gracefully
     if (err.code === 11000) return res.status(400).json({ message: "Email already in use" });
     res.status(500).json({ message: err.message || "Registration failed" });
   }
@@ -143,6 +145,7 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
+
     if (!user) return res.status(400).json({ message: "Invalid credentials" });
 
     const match = await bcrypt.compare(password, user.password);
@@ -166,7 +169,9 @@ exports.forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
 
+    // Generate a cryptographically secure random token (not a JWT)
     const resetToken = crypto.randomBytes(32).toString("hex");
+    // Hash the token before saving to the DB. If DB is breached, reset tokens are safe.
     const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
 
     user.resetPasswordToken = hashedToken;
@@ -197,16 +202,19 @@ exports.resetPassword = async (req, res) => {
     const { password } = req.body;
     const resetToken = req.params.token;
 
+    // Re-hash the provided token to compare against the DB
     const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
 
     const user = await User.findOne({
       resetPasswordToken: hashedToken,
-      resetPasswordExpire: { $gt: Date.now() }
+      resetPasswordExpire: { $gt: Date.now() } // Ensure token hasn't expired
     });
 
     if (!user) return res.status(400).json({ message: "Invalid or expired token" });
 
     user.password = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+
+    // Invalidate the token immediately use
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
     await user.save();
@@ -218,6 +226,7 @@ exports.resetPassword = async (req, res) => {
 };
 
 exports.getCurrentUser = (req, res) => {
+  // `req.user` is populated by authMiddleware
   const safe = req.user.toObject ? req.user.toObject() : req.user;
   delete safe.password;
   safe.id = safe._id.toString();
@@ -227,6 +236,8 @@ exports.getCurrentUser = (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const { name, role, password, profile, status, specializationTag } = req.body;
+
+    // Build update object dynamically to prevent overwriting with nulls
     const updates = {};
     if (name != null) updates.name = name;
     if (role != null) updates.role = role;
@@ -258,6 +269,7 @@ exports.changePassword = async (req, res) => {
     const user = await User.findById(req.user._id).select("+password");
     if (!user) return res.status(404).json({ message: "User not found" });
 
+    // Handling Google users setting a password for the first time
     if (user.password) {
       if (!currentPassword) return res.status(400).json({ message: "Current password is required" });
       const isMatch = await bcrypt.compare(currentPassword, user.password);
@@ -293,7 +305,7 @@ exports.createAdminUser = async (req, res) => {
       role: role || "student",
       specializationTag: role === "reviewer" ? specializationTag : null,
       authProvider: "local",
-      isVerified: true, 
+      isVerified: true, // Auto-verified by Admin
     });
 
     const safe = newUser.toObject();
