@@ -154,7 +154,7 @@ const App = () => {
         </Route>
 
         {/* Mentor Routes (Keep these for now, maybe add Protection later) */}
-        <Route path="/mentor" element={<MentorLayout />}>
+         <Route path="/mentor" element={<MentorLayout />}>
           <Route index element={<MentorDashboard />} />
           <Route path="sessions" element={<MentorSessions />} />
           <Route path="students" element={<MentorStudents />} />
@@ -165,7 +165,8 @@ const App = () => {
           <Route path="messages" element={<MentorMessages />} />
           <Route path="student-details/:id" element={<MentorStudentDetails />} />
           <Route path="analytics" element={<MentorAnalytics />} />
-        </Route>
+        </Route> 
+
 
         {/* Misc Routes */}
         <Route path="/coming-soon" element={<ComingSoon />} />

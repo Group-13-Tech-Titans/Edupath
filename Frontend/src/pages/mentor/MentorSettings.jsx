@@ -200,26 +200,7 @@ export default function MentorSettingsInlineLikeDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-200 to-teal-300 p-5 text-slate-800">
-
-      {/* Header */}
-      <header className="mb-5 flex items-center justify-between rounded-2xl bg-white px-6 py-5 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
-        <div className="flex items-center gap-2 text-xl font-bold text-slate-800"><EduPathLogo /><span>EduPath</span></div>
-        <nav className="relative z-50 hidden flex-1 items-center justify-center gap-8 md:flex">
-          <Link to="/MentorDashboard" className="font-medium text-slate-800 transition-colors hover:text-teal-500">Dashboard</Link>
-          <Link to="/MentorStudents"  className="font-medium text-slate-800 transition-colors hover:text-teal-500">My Students</Link>
-          <Link to="/MentorSessions"  className="font-medium text-slate-800 transition-colors hover:text-teal-500">Sessions</Link>
-          <Link to="/MentorResources" className="font-medium text-slate-800 transition-colors hover:text-teal-500">Resources</Link>
-          <Link to="/MentorMessages"  className="font-medium text-slate-800 transition-colors hover:text-teal-500">Messages</Link>
-          <Link to="/MentorProfile"   className="font-medium text-slate-800 transition-colors hover:text-teal-500">Profile</Link>
-        </nav>
-        <div className="w-[150px] flex justify-end">
-          <button type="button" onClick={handleLogout}
-            className="inline-flex items-center gap-2 rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-semibold text-teal-500 transition hover:bg-teal-400 hover:text-white">
-            <LogoutIcon /> Logout
-          </button>
-        </div>
-      </header>
+    <>
 
       {/* Page header */}
       <div className="mb-5 flex flex-col gap-4 rounded-2xl bg-white p-7 shadow-[0_4px_20px_rgba(0,0,0,0.08)] md:flex-row md:items-center md:justify-between">
@@ -713,50 +694,6 @@ export default function MentorSettingsInlineLikeDashboard() {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="mt-5 rounded-2xl bg-white px-7 py-8 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
-        <div className="mx-auto max-w-6xl">
-          <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
-            <div className="max-w-sm">
-              <div className="mb-4 flex items-center gap-2 text-xl font-bold text-slate-800"><EduPathLogo /><span>EduPath</span></div>
-              <p className="mb-4 text-sm leading-6 text-slate-700">Empowering learners worldwide with quality education and personalized learning paths.</p>
-              <div className="flex gap-3">
-                <SocialIcon><FacebookIcon /></SocialIcon><SocialIcon><TwitterIcon /></SocialIcon>
-                <SocialIcon><LinkedInIcon /></SocialIcon><SocialIcon><InstagramIcon /></SocialIcon>
-              </div>
-            </div>
-            <div className="grid gap-6 sm:grid-cols-3">
-              <div>
-                <p className="mb-3 text-sm font-extrabold text-slate-800">Platform</p>
-                <ul className="space-y-2 text-sm text-slate-600">
-                  <li><Link className="hover:text-teal-500" to="/MentorDashboard">Dashboard</Link></li>
-                  <li><Link className="hover:text-teal-500" to="/MentorStudents">My Students</Link></li>
-                  <li><Link className="hover:text-teal-500" to="/MentorSessions">Sessions</Link></li>
-                  <li><Link className="hover:text-teal-500" to="/MentorSettings">Settings</Link></li>
-                </ul>
-              </div>
-              <div>
-                <p className="mb-3 text-sm font-extrabold text-slate-800">Support</p>
-                <ul className="space-y-2 text-sm text-slate-600">
-                  <li><a className="hover:text-teal-500" href="#help">Help Center</a></li>
-                  <li><a className="hover:text-teal-500" href="#terms">Terms</a></li>
-                  <li><a className="hover:text-teal-500" href="#privacy">Privacy</a></li>
-                </ul>
-              </div>
-              <div>
-                <p className="mb-3 text-sm font-extrabold text-slate-800">Contact</p>
-                <ul className="space-y-2 text-sm text-slate-600">
-                  <li>support@edupath.lk</li><li>+94 11 234 5678</li><li>Sri Lanka</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-          <div className="mt-8 border-t border-slate-100 pt-4 text-center text-xs text-slate-500">
-            © {new Date().getFullYear()} EduPath. All rights reserved.
-          </div>
-        </div>
-      </footer>
-
       {/* Toast */}
       {toastState.open && (
         <div className="fixed bottom-5 left-1/2 z-[1100] w-[min(520px,92%)] -translate-x-1/2 rounded-2xl border border-black/5 bg-white p-4 shadow-[0_10px_30px_rgba(0,0,0,0.18)]">
@@ -812,91 +749,6 @@ export default function MentorSettingsInlineLikeDashboard() {
           <button type="button" onClick={doDelete} className="rounded-xl border-2 border-teal-500 bg-white px-5 py-2.5 text-sm font-semibold text-teal-600 transition hover:bg-teal-500 hover:text-white">Delete</button>
         </div>
       </ModalShell>
-    </div>
+    </>
   );
 }
-
-/* ── Password Modal with validation ──────────────────────────── */
-function PasswordModal({ onClose, showToast }) {
-  const [currentPw, setCurrentPw] = useState("");
-  const [newPw, setNewPw]         = useState("");
-  const [confirmPw, setConfirmPw] = useState("");
-  const [errors, setErrors]       = useState({});
-
-  const validate = () => {
-    const e = {};
-    if (!currentPw.trim())        e.current  = "Current password is required.";
-    if (!newPw.trim())            e.newPw    = "New password is required.";
-    else if (newPw.length < 6)    e.newPw    = "Password must be at least 6 characters.";
-    if (!confirmPw.trim())        e.confirm  = "Please confirm your new password.";
-    else if (newPw !== confirmPw) e.confirm  = "Passwords do not match.";
-    if (currentPw && newPw && currentPw === newPw) e.newPw = "New password must be different from current.";
-    return e;
-  };
-
-  const handleUpdate = () => {
-    const e = validate();
-    setErrors(e);
-    if (Object.keys(e).length > 0) return;
-    onClose();
-    showToast("Password updated!", "Your password has been changed successfully.");
-  };
-
-  const inputCls = "w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100";
-  const errCls   = "mt-1 text-xs text-red-500 font-semibold";
-
-  return (
-    <div className="space-y-4">
-      <div>
-        <label className="block text-[13px] font-extrabold text-slate-800 mb-2">Current Password</label>
-        <input type="password" placeholder="••••••••" value={currentPw} onChange={(e) => { setCurrentPw(e.target.value); setErrors((p) => ({ ...p, current: "" })); }}
-          className={`${inputCls} ${errors.current ? "border-red-400" : ""}`} />
-        {errors.current && <p className={errCls}>{errors.current}</p>}
-      </div>
-      <div>
-        <label className="block text-[13px] font-extrabold text-slate-800 mb-2">New Password</label>
-        <input type="password" placeholder="At least 6 characters" value={newPw} onChange={(e) => { setNewPw(e.target.value); setErrors((p) => ({ ...p, newPw: "" })); }}
-          className={`${inputCls} ${errors.newPw ? "border-red-400" : ""}`} />
-        {errors.newPw && <p className={errCls}>{errors.newPw}</p>}
-      </div>
-      <div>
-        <label className="block text-[13px] font-extrabold text-slate-800 mb-2">Confirm New Password</label>
-        <input type="password" placeholder="Re-type new password" value={confirmPw} onChange={(e) => { setConfirmPw(e.target.value); setErrors((p) => ({ ...p, confirm: "" })); }}
-          className={`${inputCls} ${errors.confirm ? "border-red-400" : ""}`} />
-        {errors.confirm && <p className={errCls}>{errors.confirm}</p>}
-      </div>
-      <div className="flex justify-end gap-3 pt-2">
-        <button type="button" onClick={onClose}
-          className="rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-semibold text-teal-500 transition hover:bg-teal-400 hover:text-white">Cancel</button>
-        <button type="button" onClick={handleUpdate}
-          className="rounded-xl bg-teal-400 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-500">Update Password</button>
-      </div>
-    </div>
-  );
-}
-
-/* ── Icons ────────────────────────────────────────────────────── */
-function EduPathLogo() {
-  return (
-    <svg viewBox="0 0 40 40" className="h-8 w-8" fill="none">
-      <circle cx="20" cy="20" r="18" fill="#5DD9C1" opacity="0.2" />
-      <path d="M20 8L12 12L20 16L28 12L20 8Z" fill="#5DD9C1" />
-      <path d="M12 20L20 24L28 20" stroke="#5DD9C1" strokeWidth="2" strokeLinecap="round" />
-      <path d="M12 26L20 30L28 26" stroke="#5DD9C1" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="20" cy="20" r="2" fill="#5DD9C1" />
-    </svg>
-  );
-}
-function LogoutIcon() { return <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></svg>; }
-function UserIcon() { return <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" fill="#5DD9C1" /><path d="M4 20a8 8 0 0 1 16 0" stroke="#5DD9C1" strokeWidth="2" strokeLinecap="round" /></svg>; }
-function SettingsUserOutlineIcon() { return <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0z" stroke="#5DD9C1" strokeWidth="2" /><path d="M12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke="#5DD9C1" strokeWidth="2" strokeLinecap="round" /></svg>; }
-function SettingsCalendarIcon() { return <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M8 7V3m8 4V3m-9 8h10" stroke="#5DD9C1" strokeWidth="2" strokeLinecap="round" /><path d="M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke="#5DD9C1" strokeWidth="2" /></svg>; }
-function SettingsBellIcon() { return <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5" stroke="#5DD9C1" strokeWidth="2" strokeLinecap="round" /><path d="M9 17v1a3 3 0 006 0v-1" stroke="#5DD9C1" strokeWidth="2" strokeLinecap="round" /></svg>; }
-function SettingsEyeIcon() { return <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12Z" stroke="#5DD9C1" strokeWidth="2" /><circle cx="12" cy="12" r="3" stroke="#5DD9C1" strokeWidth="2" /></svg>; }
-function SettingsLockIcon() { return <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M7 11V8a5 5 0 0110 0v3" stroke="#5DD9C1" strokeWidth="2" /><path d="M17 21H7a2 2 0 01-2-2v-6a2 2 0 012-2h10a2 2 0 012 2v6a2 2 0 01-2 2z" stroke="#5DD9C1" strokeWidth="2" /></svg>; }
-function SettingsWarningIcon() { return <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 9v2m0 4h.01M5.5 19h13a2.5 2.5 0 002.17-3.75L13.67 4.5a2 2 0 00-3.34 0L3.33 15.25A2.5 2.5 0 005.5 19z" stroke="#5DD9C1" strokeWidth="2" strokeLinecap="round" /></svg>; }
-function SocialIcon({ children }) { return <button type="button" className="grid h-10 w-10 place-items-center rounded-full bg-emerald-200 transition hover:-translate-y-0.5 hover:bg-teal-400">{children}</button>; }
-function FacebookIcon()  { return <svg className="h-5 w-5 fill-current text-slate-700" viewBox="0 0 24 24"><path d="M22 12.073C22 6.504 17.523 2 12 2S2 6.504 2 12.073c0 5.016 3.657 9.175 8.438 9.927v-7.025H7.898v-2.902h2.54V9.845c0-2.507 1.492-3.89 3.777-3.89 1.095 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.772-1.63 1.562v1.874h2.773l-.443 2.902h-2.33V22C18.343 21.248 22 17.089 22 12.073z"/></svg>; }
-function TwitterIcon()   { return <svg className="h-5 w-5 fill-current text-slate-700" viewBox="0 0 24 24"><path d="M23 3a10.9 10.9 0 01-3.14 1.53A4.48 4.48 0 0012 8.09V9a10.66 10.66 0 01-9-4.5s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/></svg>; }
-function LinkedInIcon()  { return <svg className="h-5 w-5 fill-current text-slate-700" viewBox="0 0 24 24"><path d="M20.447 20.452H17.21v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.984V9h3.108v1.561h.046c.433-.82 1.494-1.684 3.074-1.684 3.287 0 3.894 2.164 3.894 4.977v6.598zM5.337 7.433a1.96 1.96 0 110-3.92 1.96 1.96 0 010 3.92zM6.919 20.452H3.756V9h3.163v11.452z"/></svg>; }
-function InstagramIcon() { return <svg className="h-5 w-5 fill-current text-slate-700" viewBox="0 0 24 24"><path d="M7 2C4.8 2 3 3.8 3 6v12c0 2.2 1.8 4 4 4h10c2.2 0 4-1.8 4-4V6c0-2.2-1.8-4-4-4H7zm5 5a5 5 0 110 10 5 5 0 010-10zm6.5-.75a1.25 1.25 0 11-2.5 0 1.25 1.25 0 012.5 0zM12 9a3 3 0 100 6 3 3 0 000-6z"/></svg>; }

@@ -118,7 +118,7 @@ export default function MentorShareProfile() {
   }, []);
 
   // ====== ACTIONS (same features) ======
-  const goBack = () => navigate("/MentorProfile");
+  const goBack = () => navigate("/mentor/profile");
 
   const openProfile = () => {
     const url = new URL(window.location.href);
@@ -216,64 +216,7 @@ export default function MentorShareProfile() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-200 to-teal-300 p-5 text-slate-800">
-      {/* Header like other mentor pages (Resources removed) */}
-      <header className="mb-5 flex items-center justify-between rounded-2xl bg-white px-6 py-5 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
-        <div className="flex items-center gap-2 text-xl font-bold text-slate-800">
-          <EduPathLogo />
-          <span>EduPath</span>
-        </div>
-
-        <nav className="relative z-50 hidden flex-1 items-center justify-center gap-8 md:flex">
-          <Link
-            to="/MentorDashboard"
-            className="font-medium text-slate-800 transition-colors hover:text-teal-500"
-          >
-            Dashboard
-          </Link>
-          <Link
-            to="/MentorStudents"
-            className="font-medium text-slate-800 transition-colors hover:text-teal-500"
-          >
-            My Students
-          </Link>
-          <Link
-            to="/MentorSessions"
-            className="font-medium text-slate-800 transition-colors hover:text-teal-500"
-          >
-            Sessions
-          </Link>
-          <Link to="/MentorResources" className="font-medium text-slate-800 transition-colors hover:text-teal-500">
-          Resources
-          </Link>
-          <Link
-            to="/MentorMessages"
-            className="font-medium text-slate-800 transition-colors hover:text-teal-500"  
-          >
-            Messages
-          </Link>
-
-          <Link
-            to="/MentorProfile"
-            className="font-medium text-slate-800 transition-colors hover:text-teal-500"
-          >
-            Profile
-          </Link>
-          
-        </nav>
-
-        <div className="w-[150px] flex justify-end">
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="inline-flex items-center gap-2 rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-semibold text-teal-500 transition hover:bg-teal-400 hover:text-white"
-          >
-            <LogoutIcon />
-            Logout
-          </button>
-        </div>
-      </header>
-
+    <>
       {/* EXACT HTML CSS (scoped to this page content only) */}
       <style>{`
         .shareHtml * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -450,8 +393,6 @@ export default function MentorShareProfile() {
           justify-content: center;
           border: 2px solid #e0e0e0;
         }
-
-
 
         .shareHtml .toast {
           position: fixed;
@@ -647,122 +588,6 @@ export default function MentorShareProfile() {
           </div>
         </div>
       </div>
-
-      {/* Footer like other mentor pages */}
-      <footer className="mt-5 rounded-2xl bg-white px-7 py-8 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
-        <div className="mx-auto max-w-6xl">
-          <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
-            <div className="max-w-sm">
-              <div className="mb-4 flex items-center gap-2 text-xl font-bold text-slate-800">
-                <EduPathLogo />
-                <span>EduPath</span>
-              </div>
-
-              <p className="mb-4 text-sm leading-6 text-slate-700">
-                Empowering learners worldwide with quality education and personalized learning paths.
-              </p>
-
-              <div className="flex gap-3">
-                <SocialIcon>
-                  <span className="text-slate-700">f</span>
-                </SocialIcon>
-                <SocialIcon>
-                  <span className="text-slate-700">t</span>
-                </SocialIcon>
-                <SocialIcon>
-                  <span className="text-slate-700">in</span>
-                </SocialIcon>
-                <SocialIcon>
-                  <span className="text-slate-700">ig</span>
-                </SocialIcon>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-8 sm:grid-cols-3 md:gap-12">
-              <FooterCol
-                title="Quick Links"
-                links={[
-                  { label: "Mentor Guidelines", href: "#" },
-                  { label: "Best Practices", href: "#" },
-                  { label: "Resources", href: "#" }
-                ]}
-              />
-              <FooterCol
-                title="Support"
-                links={[
-                  { label: "Help Center", href: "#" },
-                  { label: "Contact Us", href: "#" },
-                  { label: "FAQs", href: "#" }
-                ]}
-              />
-              <FooterCol
-                title="Legal"
-                links={[
-                  { label: "Terms & Conditions", href: "#" },
-                  { label: "Privacy Policy", href: "#" },
-                  { label: "Cookie Policy", href: "#" }
-                ]}
-              />
-            </div>
-          </div>
-
-          <div className="mt-8 border-t-2 border-slate-200 pt-5 text-center">
-            <p className="text-sm text-slate-500">© 2026 EduPath. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
-}
-
-/* -------- Footer helpers -------- */
-function FooterCol({ title, links }) {
-  return (
-    <div>
-      <h4 className="mb-3 text-sm text-slate-800" style={{ fontWeight: 600 }}>
-        {title}
-      </h4>
-      <div className="flex flex-col gap-2">
-        {links.map((l) => (
-          <a key={l.label} href={l.href} className="text-sm text-slate-500 hover:text-teal-500">
-            {l.label}
-          </a>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function SocialIcon({ children }) {
-  return (
-    <button
-      type="button"
-      className="grid h-10 w-10 place-items-center rounded-full bg-emerald-200 transition hover:-translate-y-0.5 hover:bg-teal-400"
-    >
-      {children}
-    </button>
-  );
-}
-
-/* -------- Header icons -------- */
-function EduPathLogo() {
-  return (
-    <svg viewBox="0 0 40 40" className="h-8 w-8" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="20" cy="20" r="18" fill="#5DD9C1" opacity="0.2" />
-      <path d="M20 8L12 12L20 16L28 12L20 8Z" fill="#5DD9C1" />
-      <path d="M12 20L20 24L28 20" stroke="#5DD9C1" strokeWidth="2" strokeLinecap="round" />
-      <path d="M12 26L20 30L28 26" stroke="#5DD9C1" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="20" cy="20" r="2" fill="#5DD9C1" />
-    </svg>
-  );
-}
-
-function LogoutIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
-      <path d="M16 17l5-5-5-5" />
-      <path d="M21 12H9" />
-    </svg>
+    </>
   );
 }

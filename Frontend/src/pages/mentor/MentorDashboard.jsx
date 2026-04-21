@@ -151,31 +151,7 @@ export default function MentorDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-200 to-teal-300 p-5">
-      {/* Header */}
-      <header className="mb-5 flex items-center justify-between rounded-2xl bg-white px-6 py-5 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
-        <div className="flex items-center gap-2 text-xl font-bold text-slate-800">
-          <EduPathLogo />
-          <span>EduPath</span>
-        </div>
-
-        <nav className="relative z-50 hidden flex-1 items-center justify-center gap-8 md:flex">
-          <Link to="/MentorDashboard" className="font-medium text-teal-500">Dashboard</Link>
-          <Link to="/MentorStudents"  className="font-medium text-slate-800 transition-colors hover:text-teal-500">My Students</Link>
-          <Link to="/MentorSessions"  className="font-medium text-slate-800 transition-colors hover:text-teal-500">Sessions</Link>
-          <Link to="/MentorResources" className="font-medium text-slate-800 transition-colors hover:text-teal-500">Resources</Link>
-          <Link to="/MentorMessages"  className="font-medium text-slate-800 transition-colors hover:text-teal-500">Messages</Link>
-          <Link to="/MentorProfile"   className="font-medium text-slate-800 transition-colors hover:text-teal-500" style={{ textDecoration: "none" }}>Profile</Link>
-        </nav>
-
-        <div className="w-[150px] flex justify-end">
-          <button type="button" onClick={handleLogout}
-            className="inline-flex items-center gap-2 rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-semibold text-teal-500 transition hover:bg-teal-400 hover:text-white">
-            <LogoutIcon /> Logout
-          </button>
-        </div>
-      </header>
-
+    <>
       {/* Page Header */}
       <section className="mb-5 rounded-2xl bg-white p-7 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -190,11 +166,11 @@ export default function MentorDashboard() {
             </div>
           </div>
           <div className="flex gap-3">
-            <Link to="/MentorProfile"
+            <Link to="/mentor/profile"
               className="inline-block rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-semibold text-teal-500 transition hover:bg-teal-400 hover:text-white">
               View Profile
             </Link>
-            <Link to="/MentorSettings"
+            <Link to="/mentor/settings"
               className="inline-block rounded-xl bg-teal-400 px-6 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-teal-500">
               Settings
             </Link>
@@ -216,7 +192,7 @@ export default function MentorDashboard() {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* Left column */}
         <div className="lg:col-span-2">
-          <CardSection title="Session Requests" linkText="View All" linkTo="/MentorSessions?tab=requests">
+          <CardSection title="Session Requests" linkText="View All" linkTo="/mentor/sessions?tab=requests">
             {sessionRequests.map((r) => (
               <SessionCard key={r.title} title={r.title} meta={r.meta} desc={r.desc} timeLine={r.time}
                 badgeVariant="pending" badgeText={r.status}
@@ -229,7 +205,7 @@ export default function MentorDashboard() {
           </CardSection>
 
 
-          <CardSection title="Upcoming Sessions" linkText="View all" linkTo="/MentorSessions?tab=upcoming">
+          <CardSection title="Upcoming Sessions" linkText="View all" linkTo="/mentor/sessions?tab=upcoming">
             {upcomingSessions.map((s) => (
               <SessionCard key={s.title} title={s.title} meta={s.time} metaIcon="calendar" desc={s.desc}
                 badgeVariant="scheduled" badgeText={s.status}
@@ -247,10 +223,10 @@ export default function MentorDashboard() {
           <section className="mb-5 rounded-2xl bg-white p-7 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
             <h2 className="mb-5 text-xl font-semibold text-slate-800">Quick Actions</h2>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-              <QuickAction title="Review Sessions" desc="View session requests" onClick={() => navigate("/MentorSessions")} icon={<EyeIcon />} />
+              <QuickAction title="Review Sessions" desc="View session requests" onClick={() => navigate("/mentor/sessions")} icon={<EyeIcon />} />
               <QuickAction title="Share Resources" desc="Upload learning materials" onClick={() => setResourceOpen(true)} icon={<DocIcon />} />
-              <QuickAction title="Messages" desc="Chat with students" onClick={() => navigate("/MentorMessages")} icon={<ChatIcon />} />
-              <QuickAction title="View Analytics" desc="Track mentoring metrics" onClick={() => navigate("/MentorAnalytics")} icon={<ChartIcon />} />
+              <QuickAction title="Messages" desc="Chat with students" onClick={() => navigate("/mentor/messages")} icon={<ChatIcon />} />
+              <QuickAction title="View Analytics" desc="Track mentoring metrics" onClick={() => navigate("/mentor/analytics")} icon={<ChartIcon />} />
             </div>
           </section>
 
@@ -389,35 +365,7 @@ export default function MentorDashboard() {
           </div>
         </div>
       )}
-
-      {/* Footer */}
-      <footer className="mt-5 rounded-2xl bg-white px-7 py-8 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
-        <div className="mx-auto max-w-6xl">
-          <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
-            <div className="max-w-sm">
-              <div className="mb-4 flex items-center gap-2 text-xl font-bold text-slate-800">
-                <EduPathLogo /><span>EduPath</span>
-              </div>
-              <p className="mb-4 text-sm leading-6 text-slate-700">Empowering learners worldwide with quality education and personalized learning paths.</p>
-              <div className="flex gap-3">
-                <SocialIcon><FacebookIcon /></SocialIcon>
-                <SocialIcon><TwitterIcon /></SocialIcon>
-                <SocialIcon><LinkedInIcon /></SocialIcon>
-                <SocialIcon><InstagramIcon /></SocialIcon>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-8 sm:grid-cols-3 md:gap-12">
-              <FooterCol title="Quick Links" links={[{ label: "Mentor Guidelines", href: "#" }, { label: "Best Practices", href: "#" }, { label: "Resources", href: "#" }]} />
-              <FooterCol title="Support"     links={[{ label: "Help Center", href: "#" }, { label: "Contact Us", href: "#" }, { label: "FAQs", href: "#" }]} />
-              <FooterCol title="Legal"       links={[{ label: "Terms & Conditions", href: "#" }, { label: "Privacy Policy", href: "#" }, { label: "Cookie Policy", href: "#" }]} />
-            </div>
-          </div>
-          <div className="mt-8 border-t-2 border-slate-200 pt-5 text-center">
-            <p className="text-sm text-slate-500">© 2026 EduPath. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </>
   );
 }
 
@@ -477,41 +425,10 @@ function QuickAction({ title, desc, onClick, icon }) {
   );
 }
 
-function FooterCol({ title, links }) {
-  return (
-    <div>
-      <h4 className="mb-3 text-sm font-semibold text-slate-800">{title}</h4>
-      <div className="flex flex-col gap-2">
-        {links.map((l) => <a key={l.label} href={l.href} className="text-sm text-slate-500 hover:text-teal-500">{l.label}</a>)}
-      </div>
-    </div>
-  );
-}
-
-function SocialIcon({ children }) {
-  return <button type="button" className="grid h-10 w-10 place-items-center rounded-full bg-[#D9F3EC] text-[#5DD9C1] transition hover:bg-[#5DD9C1] hover:text-white">{children}</button>;
-}
-
 /* ── Icons ────────────────────────────────────────────────────── */
-function EduPathLogo() {
-  return (
-    <svg viewBox="0 0 40 40" className="h-8 w-8" fill="none">
-      <circle cx="20" cy="20" r="18" fill="#5DD9C1" opacity="0.2" />
-      <path d="M20 8L12 12L20 16L28 12L20 8Z" fill="#5DD9C1" />
-      <path d="M12 20L20 24L28 20" stroke="#5DD9C1" strokeWidth="2" strokeLinecap="round" />
-      <path d="M12 26L20 30L28 26" stroke="#5DD9C1" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="20" cy="20" r="2" fill="#5DD9C1" />
-    </svg>
-  );
-}
-function LogoutIcon()   { return <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></svg>; }
 function ClockIcon()    { return <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>; }
 function CalendarIcon() { return <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>; }
 function EyeIcon()      { return <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>; }
 function DocIcon()      { return <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>; }
 function ChatIcon()     { return <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>; }
 function ChartIcon()    { return <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>; }
-function FacebookIcon()  { return <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24"><path d="M22 12.073C22 6.504 17.523 2 12 2S2 6.504 2 12.073c0 5.016 3.657 9.175 8.438 9.927v-7.025H7.898v-2.902h2.54V9.845c0-2.507 1.492-3.89 3.777-3.89 1.095 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.772-1.63 1.562v1.874h2.773l-.443 2.902h-2.33V22C18.343 21.248 22 17.089 22 12.073z" /></svg>; }
-function TwitterIcon()   { return <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24"><path d="M23 3a10.9 10.9 0 01-3.14 1.53A4.48 4.48 0 0012 8.09V9a10.66 10.66 0 01-9-4.5s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z" /></svg>; }
-function LinkedInIcon()  { return <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24"><path d="M20.447 20.452H17.21v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.984V9h3.108v1.561h.046c.433-.82 1.494-1.684 3.074-1.684 3.287 0 3.894 2.164 3.894 4.977v6.598zM5.337 7.433a1.96 1.96 0 110-3.92 1.96 1.96 0 010 3.92zM6.919 20.452H3.756V9h3.163v11.452z" /></svg>; }
-function InstagramIcon() { return <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24"><path d="M7 2C4.8 2 3 3.8 3 6v12c0 2.2 1.8 4 4 4h10c2.2 0 4-1.8 4-4V6c0-2.2-1.8-4-4-4H7zm5 5a5 5 0 110 10 5 5 0 010-10zm6.5-.75a1.25 1.25 0 11-2.5 0 1.25 1.25 0 012.5 0zM12 9a3 3 0 100 6 3 3 0 000-6z" /></svg>; }

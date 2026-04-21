@@ -180,57 +180,13 @@ const initialTab = queryParams.get("tab");
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-200 to-teal-300 p-5 text-slate-800">
-      {/* Header - matching MentorStudents */}
-      <header className="mb-5 flex items-center justify-between rounded-2xl bg-white px-6 py-5 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
-        <div className="flex items-center gap-2 text-xl font-bold text-slate-800">
-          <EduPathLogo />
-          <span>EduPath</span>
-        </div>
-
-        <nav className="relative z-50 hidden flex-1 items-center justify-center gap-8 md:flex">
-          <Link to="/MentorDashboard" className="font-medium text-slate-800 transition-colors hover:text-teal-500">
-            Dashboard
-          </Link>
-          <Link to="/MentorStudents" className="font-medium text-slate-800 transition-colors hover:text-teal-500">
-            My Students
-          </Link>
-          <Link to="/MentorSessions" className="font-medium text-teal-500 transition-colors hover:text-teal-500">
-            Sessions
-          </Link>
-          <Link to="/MentorResources" className="font-medium text-slate-800 transition-colors hover:text-teal-500" style={{ textDecoration: "none" }}>
-            Resources
-          </Link>
-          <Link to="/MentorMessages" className="font-medium text-slate-800 transition-colors hover:text-teal-500" style={{ textDecoration: "none" }}>
-            Messages
-          </Link>
-          <Link to="/MentorProfile" className="font-medium text-slate-800 transition-colors hover:text-teal-500" style={{ textDecoration: "none" }}>
-            Profile
-          </Link>
-
-        </nav>
-
-        {/* Logout Button */}
-        <div className="w-[150px] flex justify-end">
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="inline-flex items-center gap-2 rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-semibold text-teal-500 transition hover:bg-teal-400 hover:text-white"
-          >
-            <LogoutIcon />
-            Logout
-          </button>
-        </div>
-      </header>
-
+    <>
       {/* Page Header */}
       <section className="mb-5 flex flex-col justify-between gap-4 rounded-2xl bg-white p-7 shadow-[0_4px_20px_rgba(0,0,0,0.08)] md:flex-row md:items-center">
         <div>
           <h1 className="text-3xl font-extrabold">My Sessions</h1>
           <p className="mt-1 text-sm text-slate-500">Manage session requests, view upcoming sessions, and track session history.</p>
         </div>
-
-       
       </section>
 
       {/* Main Grid */}
@@ -239,7 +195,6 @@ const initialTab = queryParams.get("tab");
         <section className="rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
           <div className="mb-5 flex items-center justify-between gap-3 flex-wrap">
             <h2 className="text-xl font-extrabold">Sessions</h2>
-           
           </div>
 
           {/* Tabs */}
@@ -385,71 +340,7 @@ const initialTab = queryParams.get("tab");
           </div>
         </div>
       )}
-
-      {/* Footer */}
-      <footer className="mt-5 rounded-2xl bg-white px-7 py-8 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
-        <div className="mx-auto max-w-6xl">
-          <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
-            <div className="max-w-sm">
-              <div className="mb-4 flex items-center gap-2 text-xl font-bold text-slate-800">
-                <EduPathLogo />
-                <span>EduPath</span>
-              </div>
-
-              <p className="mb-4 text-sm leading-6 text-slate-700">
-                Empowering learners worldwide with quality education and personalized learning paths.
-              </p>
-
-              <div className="flex gap-3">
-                <SocialIcon>
-                  <FacebookIcon />
-                </SocialIcon>
-                <SocialIcon>
-                  <TwitterIcon />
-                </SocialIcon>
-                <SocialIcon>
-                  <LinkedInIcon />
-                </SocialIcon>
-                <SocialIcon>
-                  <InstagramIcon />
-                </SocialIcon>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-8 sm:grid-cols-3 md:gap-12">
-              <FooterCol
-                title="Quick Links"
-                links={[
-                  { label: "Mentor Guidelines", href: "#" },
-                  { label: "Best Practices", href: "#" },
-                  { label: "Resources", href: "#" },
-                ]}
-              />
-              <FooterCol
-                title="Support"
-                links={[
-                  { label: "Help Center", href: "#" },
-                  { label: "Contact Us", href: "#" },
-                  { label: "FAQs", href: "#" },
-                ]}
-              />
-              <FooterCol
-                title="Legal"
-                links={[
-                  { label: "Terms & Conditions", href: "#" },
-                  { label: "Privacy Policy", href: "#" },
-                  { label: "Cookie Policy", href: "#" },
-                ]}
-              />
-            </div>
-          </div>
-
-          <div className="mt-8 border-t-2 border-slate-200 pt-5 text-center">
-            <p className="text-sm text-slate-500">© 2026 EduPath. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </>
   );
 }
 
