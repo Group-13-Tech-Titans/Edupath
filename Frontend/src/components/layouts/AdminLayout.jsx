@@ -23,7 +23,7 @@ const AdminLayout = () => {
   const navItems = [
     { to: "/admin", label: "Home", end: true },
     { to: "/admin/verify-educators", label: "Verify Educators" },
-    { to: "/admin/approvals", label: "Reviews Course" },
+    { to: "/admin/queue", label: "Reviews Course" },
     { to: "/admin/reviewers", label: "Create Reviewer" },
     
   ];
@@ -119,7 +119,7 @@ const AdminLayout = () => {
                   </NavLink>
                 ))}
 
-               
+                {/* Mobile email + logout */}
                 <div className="mt-2 flex items-center justify-between gap-3 rounded-xl bg-white/70 px-4 py-3">
                   <span className="text-xs text-muted truncate">
                     {currentUser?.email}

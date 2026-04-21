@@ -3,8 +3,7 @@ import { Link, NavLink, Outlet } from "react-router-dom";
 import { useApp } from "../../context/AppProvider.jsx";
 
 const EducatorLayout = () => {
-  const { currentUser, logout, users } = useApp();
-  const educator = users.find((u) => u.email === currentUser?.email);
+  const { currentUser, logout } = useApp();
 
   const navLinkClass = ({ isActive }) =>
     `px-3 py-1 rounded-full text-sm ${
@@ -41,12 +40,12 @@ const EducatorLayout = () => {
             </NavLink>
           </nav>
           <div className="flex items-center gap-3">
-            {educator?.status === "PENDING_VERIFICATION" && (
+            {currentUser?.status === "PENDING_VERIFICATION" && (
               <span className="rounded-full bg-yellow-50 px-3 py-1 text-xs text-yellow-700 border border-yellow-200">
                 Verification pending
               </span>
             )}
-            {educator?.status === "VERIFIED" && (
+            {currentUser?.status === "VERIFIED" && (
               <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs text-emerald-700 border border-emerald-200">
                 Verified Educator
               </span>

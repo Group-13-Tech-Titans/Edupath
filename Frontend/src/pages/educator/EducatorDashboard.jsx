@@ -3,8 +3,7 @@ import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 
 const EducatorDashboard = () => {
-  const { currentUser, users, courses } = useApp();
-  const educator = users.find((u) => u.email === currentUser?.email);
+  const { currentUser, courses } = useApp();
   const myCourses = courses.filter(
     (c) => c.createdByEducatorEmail === currentUser?.email
   );
@@ -23,12 +22,12 @@ const EducatorDashboard = () => {
             Educator overview
           </p>
           <h1 className="mt-1 text-2xl font-semibold text-text-dark">
-            {educator?.name || "Educator"}
+            {currentUser?.name || "Educator"}
           </h1>
           <p className="mt-2 text-xs text-muted">
             Publish high quality courses and track your performance.
           </p>
-          {educator?.status === "PENDING_VERIFICATION" && (
+          {currentUser?.status === "PENDING_VERIFICATION" && (
             <div className="mt-3 rounded-2xl border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-800">
               Your account is pending admin verification. Publishing is temporarily
               disabled.

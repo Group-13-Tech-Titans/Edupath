@@ -4,8 +4,7 @@ import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 
 const EducatorPublish = () => {
-  const { currentUser, users, createCourse } = useApp();
-  const educator = users.find((u) => u.email === currentUser?.email);
+  const { currentUser, createCourse } = useApp();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
@@ -14,7 +13,7 @@ const EducatorPublish = () => {
     category: "",
     level: "Beginner",
     price: "",
-    specializationTag: educator?.specializationTag || ""
+    specializationTag: currentUser?.specializationTag || ""
   });
 
   const [error, setError] = useState("");
@@ -25,14 +24,14 @@ const EducatorPublish = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (educator?.status !== "VERIFIED") {
+    if (currentUser?.status !== "VERIFIED") {
       setError("Your educator profile must be verified before publishing.");
       return;
     }
     const course = createCourse({
       ...form,
       rating: 0,
-      educatorName: educator?.name || "Educator",
+      educatorName: currentUser?.name || "Educator",
       createdByEducatorEmail: currentUser?.email,
       content: {
         modules: []

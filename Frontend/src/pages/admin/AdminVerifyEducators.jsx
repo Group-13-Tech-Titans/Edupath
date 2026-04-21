@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
-import AdminFooter from "./AdminFooter.jsx";
 
 const LS_USERS_KEY = "edupath_users_v1";
 
@@ -287,10 +286,6 @@ const AdminVerifyEducators = () => {
             )}
           </div>
         </div>
-        <div>
-        <br/>
-         <AdminFooter />
-      </div>
       </div>
     </PageShell>
   );
@@ -376,7 +371,6 @@ const EducatorCard = ({ educator, statusTab, onApprove, onReject }) => {
           )}
         </div>
       </div>
-
     </div>
   );
 };

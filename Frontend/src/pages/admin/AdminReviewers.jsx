@@ -1,10 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import PageShell from "../../components/PageShell.jsx";
-import { useApp } from "../../context/AppProvider.jsx";
-import AdminFooter from "./AdminFooter.jsx";
 
 const AdminReviewers = () => {
-  const { reviewerAccounts, createReviewer } = useApp();
+  // 1. New State to hold real database reviewers
+  const [reviewers, setReviewers] = useState([]); 
+  const [loadingList, setLoadingList] = useState(true);
+
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -13,31 +15,72 @@ const AdminReviewers = () => {
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 2. Fetch real reviewers from the database on load
+  useEffect(() => {
+    fetchReviewers();
+  }, []);
+
+  const fetchReviewers = async () => {
+    try {
+      const token = localStorage.getItem("edupath_token");
+      const { data } = await axios.get("http://localhost:5000/api/auth/admin/reviewers", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setReviewers(data.reviewers);
+      setLoadingList(false);
+    } catch (err) {
+      console.error("Failed to load reviewers", err);
+      setLoadingList(false);
+    }
+  };
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  // 3. REAL API CALL to save to database
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const res = createReviewer(form);
-    if (!res.success) {
-      setError(res.message || "Unable to create reviewer");
-      setSuccess("");
-    } else {
-      setError("");
-      setSuccess("Reviewer account created");
+    setError("");
+    setSuccess("");
+    setIsSubmitting(true);
+
+    try {
+      const token = localStorage.getItem("edupath_token");
+      
+      const { data } = await axios.post(
+        "http://localhost:5000/api/auth/admin/create-user",
+        { 
+          ...form, 
+          role: "reviewer" // Force the role so the backend knows what to do
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setSuccess("Reviewer account created and saved to database!");
       setForm({ name: "", email: "", password: "", specializationTag: "" });
+      
+      // Instantly add the newly created reviewer to the UI list on the right
+      setReviewers(prev => [...prev, data.user]);
+      
+    } catch (err) {
+      setError(err.response?.data?.message || "Unable to create reviewer");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <PageShell>
       <div className="grid gap-5 md:grid-cols-2">
+        
+        {/* CREATE REVIEWER FORM */}
         <div className="glass-card p-5 text-xs">
           <h1 className="text-xl font-semibold text-text-dark">Reviewer accounts</h1>
           <p className="mt-1 text-muted">
-            Create reviewer logins. They will use the same login page.
+            Create reviewer logins. They will be saved directly to the database.
           </p>
           <form onSubmit={handleSubmit} className="mt-4 space-y-3">
             <div>
@@ -78,11 +121,12 @@ const AdminReviewers = () => {
                 name="specializationTag"
                 value={form.specializationTag}
                 onChange={handleChange}
-                placeholder="Eg: web-dev, data-science"
+                placeholder="Eg: ReactJS, Data Science"
                 required
                 className="mt-1 w-full rounded-2xl border border-black/10 bg-white/70 px-3 py-2 outline-none ring-primary/40 focus:ring"
               />
             </div>
+            
             {error && (
               <p className="rounded-2xl bg-red-50 px-3 py-2 text-[11px] text-red-600">
                 {error}
@@ -93,41 +137,44 @@ const AdminReviewers = () => {
                 {success}
               </p>
             )}
-            <button type="submit" className="btn-primary w-full">
-              Create reviewer
+            
+            <button type="submit" disabled={isSubmitting} className="btn-primary w-full disabled:opacity-70">
+              {isSubmitting ? "Creating..." : "Create reviewer"}
             </button>
           </form>
         </div>
+
+        {/* LIST EXISTING REVIEWERS */}
         <div className="glass-card p-5 text-xs">
           <h2 className="text-sm font-semibold text-text-dark">Existing reviewers</h2>
           <ul className="mt-3 space-y-2">
-            {reviewerAccounts.map((r) => (
+            
+            {loadingList && <li className="text-muted">Loading from database...</li>}
+            
+            {!loadingList && reviewers.map((r) => (
               <li
-                key={r.id}
-                className="flex items-center justify-between rounded-2xl bg-white/80 px-3 py-2"
+                key={r._id || r.id} // Use MongoDB _id
+                className="flex items-center justify-between rounded-2xl bg-white/80 px-3 py-2 shadow-sm"
               >
                 <div>
                   <p className="font-medium text-text-dark">{r.name}</p>
                   <p className="text-[11px] text-muted">{r.email}</p>
                 </div>
-                <span className="rounded-full bg-primary/5 px-3 py-1 text-[11px] text-primary">
-                  {r.specializationTag}
+                <span className="rounded-full bg-primary/10 px-3 py-1 text-[11px] font-bold text-primary">
+                  {r.specializationTag || "No Specialization"}
                 </span>
               </li>
             ))}
-            {reviewerAccounts.length === 0 && (
-              <li className="text-muted">No reviewer accounts yet.</li>
+            
+            {!loadingList && reviewers.length === 0 && (
+              <li className="text-muted">No reviewer accounts in database yet.</li>
             )}
+            
           </ul>
         </div>
-      </div>
-      <div>
-        <br/>
-         <AdminFooter />
       </div>
     </PageShell>
   );
 };
 
 export default AdminReviewers;
-

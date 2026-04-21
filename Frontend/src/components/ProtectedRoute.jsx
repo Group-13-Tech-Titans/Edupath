@@ -10,8 +10,16 @@ const roleHomePath = {
 };
 
 const ProtectedRoute = ({ allowedRoles }) => {
-  const { currentUser } = useApp();
+  const { currentUser, authLoading } = useApp();
   const location = useLocation();
+
+  if (authLoading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <p className="text-sm text-muted">Loading…</p>
+      </div>
+    );
+  }
 
   if (!currentUser) {
     return <Navigate to="/login" state={{ from: location }} replace />;
