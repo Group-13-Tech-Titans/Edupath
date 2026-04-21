@@ -17,7 +17,6 @@ const resourceSchema = new mongoose.Schema(
     studentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
     },
 
     // Student name — saved for quick access

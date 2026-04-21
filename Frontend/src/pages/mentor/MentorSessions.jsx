@@ -285,9 +285,9 @@ const initialTab = queryParams.get("tab");
           <section className="rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
             <div className="mb-5 text-lg font-extrabold">Session Overview</div>
 
-            <MiniStat label="Pending Requests" value={counts.pending} emoji="🟡" accent="border-amber-400" />
-            <MiniStat label="Upcoming Sessions" value={counts.upcoming} emoji="📅" accent="border-sky-400" />
-            <MiniStat label="Completed Sessions" value={counts.completed} emoji="✅" accent="border-green-500" />
+            <MiniStat label="Pending Requests" value={counts.pending} accent="border-amber-400" />
+            <MiniStat label="Upcoming Sessions" value={counts.upcoming} accent="border-sky-400" />
+            <MiniStat label="Completed Sessions" value={counts.completed} accent="border-green-500" />
 
             <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-slate-700">
               <strong>Tip:</strong> Accept or decline session requests promptly. You can mark sessions as completed after they're done.
@@ -481,8 +481,7 @@ function SessionCard({ session, bucket, onAccept, onDecline, onJoin, onMarkCompl
       ? "bg-green-100 text-green-800"
       : "bg-red-100 text-red-800";
 
-  const badgeEmoji =
-    session.status === "pending" ? "🟡" : session.status === "scheduled" ? "📅" : session.status === "completed" ? "✅" : "⛔";
+  const badgeEmoji = "";
 
   return (
     <div className="rounded-xl border border-black/5 bg-slate-50 p-4 transition hover:translate-x-1 hover:bg-emerald-50 border-l-4 border-l-teal-400">
@@ -497,7 +496,7 @@ function SessionCard({ session, bucket, onAccept, onDecline, onJoin, onMarkCompl
         </div>
 
         <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-extrabold inline-flex items-center gap-1.5 ${badgeClass}`}>
-          {badgeEmoji} {capitalize(session.status)}
+          {capitalize(session.status)}
         </span>
       </div>
 
@@ -570,14 +569,13 @@ function SessionCard({ session, bucket, onAccept, onDecline, onJoin, onMarkCompl
   );
 }
 
-function MiniStat({ label, value, emoji, accent }) {
+function MiniStat({ label, value, accent }) {
   return (
     <div className={`mb-3 flex items-center justify-between rounded-xl border-l-4 ${accent} bg-slate-50 p-4`}>
       <div>
         <div className="text-sm text-slate-500">{label}</div>
         <div className="text-lg font-extrabold">{value}</div>
       </div>
-      <div className="text-2xl">{emoji}</div>
     </div>
   );
 }

@@ -84,19 +84,19 @@ export default function MentorProfile() {
   const reviews = [
     {
       name: "Priya Sharma",
-      rating: "★★★★★ 5.0",
+      rating: "5.0 Rating",
       text: `"Dr. Sarah is an exceptional mentor! She helped me transition from a non-tech background to landing my first developer job. Her teaching style is clear, patient, and she provides excellent real-world examples."`,
       date: "2 weeks ago",
     },
     {
       name: "Rahul Mehta",
-      rating: "★★★★★ 5.0",
+      rating: "5.0 Rating",
       text: `"The best mentor I've worked with on EduPath. Sarah's deep knowledge of full-stack development and her ability to explain complex concepts simply is remarkable. Highly recommended!"`,
       date: "1 month ago",
     },
     {
       name: "Anjali Kumar",
-      rating: "★★★★★ 5.0",
+      rating: "5.0 Rating",
       text: `"Sarah's guidance was instrumental in helping me build my portfolio and prepare for interviews. She's not just teaching code, she's teaching how to think like a developer."`,
       date: "2 months ago",
     },
@@ -172,13 +172,13 @@ export default function MentorProfile() {
 
             <div className="mb-5 flex flex-wrap gap-[10px]">
               <span className="rounded-[20px] bg-[#5DD9C1] px-4 py-2 text-[13px] font-semibold text-white">
-                ✓ Verified Mentor
+                Verified Mentor
               </span>
               <span className="rounded-[20px] bg-[#7DD3C0] px-4 py-2 text-[13px] font-semibold text-white">
                 Expert Level
               </span>
               <span className="rounded-[20px] bg-[#A8E6CF] px-4 py-2 text-[13px] font-semibold text-[#2c3e50]">
-                ★ 4.9 Rating
+                4.9 Rating
               </span>
             </div>
 
@@ -336,7 +336,7 @@ export default function MentorProfile() {
           <p className="mt-1 text-[14px] text-[#52606d]">{review.role}</p>
           <p className="mt-1 text-[14px] font-medium text-[#5DD9C1]">{review.topic}</p>
         </div>
-        <span className="whitespace-nowrap text-[15px] font-medium text-[#f4c542]">{review.rating}</span>
+        <span className="whitespace-nowrap text-[15px] font-medium text-[#f4c542]">5.0 Rating</span>
       </div>
 
       <p className="mb-3 text-[15px] leading-[1.8] text-[#243b53]">{review.text}</p>

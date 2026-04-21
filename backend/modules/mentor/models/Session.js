@@ -57,6 +57,10 @@ const sessionSchema = new mongoose.Schema(
 
     // Optional: a meeting link (Zoom, Google Meet, etc.)
     meetingLink: { type: String },
+
+    // Results of the session (filled by mentor when completed)
+    discussedTopics: [{ type: String }],
+    mentorNotes: { type: String },
   },
   {
     timestamps: true, // adds createdAt and updatedAt automatically

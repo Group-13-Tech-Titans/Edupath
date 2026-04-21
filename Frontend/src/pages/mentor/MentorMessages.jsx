@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 
 // ── Mock Data ────────────────────────────────────────────────────
 const MOCK_CONVERSATIONS = [
@@ -99,7 +99,33 @@ export default function MentorMessages() {
   const [activeId, setActiveId]           = useState("C001");
   const [search, setSearch]               = useState("");
   const [newMsg, setNewMsg]               = useState("");
-  const bottomRef = useRef(null);
+  const location = useLocation();
+  const messagesEndRef = useRef(null);
+
+  // Ensure window starts at top
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  // Set active conversation if studentId passed in state
+  useEffect(() => {
+    if (location.state?.studentId) {
+      const conv = conversations.find((c) => c.studentId === location.state.studentId);
+      if (conv) {
+        setActiveId(conv.id);
+      }
+    }
+  }, [location.state, conversations]);
+
+  // Scroll to bottom within container only
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      const container = messagesEndRef.current.parentElement;
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
+  }, [activeId, conversations]);
 
   const activeConv = conversations.find((c) => c.id === activeId);
 
@@ -109,11 +135,6 @@ export default function MentorMessages() {
       !q || c.name.toLowerCase().includes(q) || c.track.toLowerCase().includes(q)
     );
   }, [conversations, search]);
-
-  // Scroll to bottom when active conversation changes or new message sent
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [activeId, conversations]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -270,7 +291,7 @@ export default function MentorMessages() {
                   <div className="text-xs text-slate-500">{activeConv.track}</div>
                 </div>
                 <div className="ml-auto flex gap-2">
-                  <Link to="/MentorStudents"
+                  <Link to={`/MentorStudentDetails/${activeConv.studentId}`}
                     className="rounded-xl border-2 border-teal-400 bg-white px-4 py-2 text-xs font-bold text-teal-500 transition hover:bg-teal-400 hover:text-white">
                     View Profile
                   </Link>
@@ -307,7 +328,7 @@ export default function MentorMessages() {
                     )}
                   </div>
                 ))}
-                <div ref={bottomRef} />
+                <div ref={messagesEndRef} />
               </div>
 
               {/* Message Input */}

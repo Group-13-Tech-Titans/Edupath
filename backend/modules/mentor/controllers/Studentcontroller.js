@@ -7,10 +7,31 @@ const MentorStudent = require("../models/MentorStudent");
 // ─────────────────────────────────────────────────────────────
 const getStudents = async (req, res) => {
   try {
-    const students = await MentorStudent.find({
-      mentorId: req.user._id,
-    }).sort({ enrolledAt: -1 }); // most recently enrolled first
+    const { status, search, sort } = req.query;
+    const query = { mentorId: req.user._id };
 
+    // 1. Filtering by Status
+    if (status && status !== "all") {
+      query.status = status;
+    }
+
+    // 2. Searching by Name or Track
+    if (search) {
+      query.$or = [
+        { studentName: { $regex: search, $options: "i" } },
+        { track: { $regex: search, $options: "i" } }
+      ];
+    }
+
+    let studentsQuery = MentorStudent.find(query);
+
+    // 3. Sorting
+    if (sort === "name_asc") studentsQuery = studentsQuery.sort({ studentName: 1 });
+    else if (sort === "name_desc") studentsQuery = studentsQuery.sort({ studentName: -1 });
+    else if (sort === "enrolled_asc") studentsQuery = studentsQuery.sort({ enrolledAt: 1 });
+    else studentsQuery = studentsQuery.sort({ enrolledAt: -1 }); // Default: newest first
+
+    const students = await studentsQuery;
     res.json(students);
   } catch (error) {
     console.error("getStudents error:", error.message);
@@ -41,20 +62,40 @@ const getStudentStats = async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────
 // GET /api/mentor/students/:studentId
-// Returns ONE student's details — when mentor clicks "View Details"
+// Returns a COMPREHENSIVE view of a student:
+// - Basic Info
+// - Session History
+// - Shared Resources
 // ─────────────────────────────────────────────────────────────
 const getStudentById = async (req, res) => {
   try {
-    const student = await MentorStudent.findOne({
-      mentorId: req.user._id,       // make sure this student belongs to THIS mentor
-      studentId: req.params.studentId,
-    });
+    const mentorId = req.user._id;
+    const { studentId } = req.params;
+
+    // 1. Get Basic Info
+    const student = await MentorStudent.findOne({ mentorId, studentId });
 
     if (!student) {
       return res.status(404).json({ message: "Student not found" });
     }
 
-    res.json(student);
+    // 2. Get Session History (Completed and Scheduled)
+    const [sessions, resources] = await Promise.all([
+      require("../models/Session").find({ mentorId, studentId }).sort({ createdAt: -1 }),
+      require("../models/Resource").find({ mentorId, studentId }).sort({ createdAt: -1 })
+    ]);
+
+    // 3. Aggregate "Previously Discussed" topics from completed sessions
+    const discussedTopics = sessions
+      .filter(s => s.status === "completed" && s.note)
+      .map(s => s.note);
+
+    res.json({
+      profile: student,
+      sessions,
+      resources,
+      discussedTopics
+    });
   } catch (error) {
     console.error("getStudentById error:", error.message);
     res.status(500).json({ message: "Server error", detail: error.message });
@@ -154,6 +195,32 @@ const removeStudent = async (req, res) => {
   }
 };
 
+// ─────────────────────────────────────────────────────────────
+// PATCH /api/mentor/students/:studentId/notes
+// Mentor updates their private notes about a student.
+// ─────────────────────────────────────────────────────────────
+const updateMentorNotes = async (req, res) => {
+  try {
+    const { mentorNotes } = req.body;
+    const { studentId } = req.params;
+
+    const student = await MentorStudent.findOneAndUpdate(
+      { mentorId: req.user._id, studentId },
+      { $set: { mentorNotes } },
+      { new: true }
+    );
+
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    res.json({ message: "Notes updated!", mentorNotes: student.mentorNotes });
+  } catch (error) {
+    console.error("updateMentorNotes error:", error.message);
+    res.status(500).json({ message: "Server error", detail: error.message });
+  }
+};
+
 module.exports = {
   getStudents,
   getStudentStats,
@@ -161,4 +228,5 @@ module.exports = {
   addStudent,
   updateStudent,
   removeStudent,
+  updateMentorNotes,
 };

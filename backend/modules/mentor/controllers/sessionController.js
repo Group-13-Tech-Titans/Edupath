@@ -1,40 +1,41 @@
 const Session = require("../models/Session");
 
-const getRequests = async (req, res) => {
+/**
+ * GET /api/mentor/sessions
+ * Returns sessions for the logged-in mentor.
+ * Supports ?status=... (pending, scheduled, completed, declined)
+ */
+const getSessions = async (req, res) => {
   try {
-    const sessions = await Session.find({
-      mentorId: req.user._id,
-      status: "pending",
-    }).sort({ createdAt: -1 });
-    res.json(sessions);
-  } catch (error) {
-    console.error("getRequests error:", error.message);
-    res.status(500).json({ message: "Server error", detail: error.message });
-  }
-};
+    const { status, studentId, search, sort } = req.query;
+    const query = { mentorId: req.user._id };
 
-const getUpcoming = async (req, res) => {
-  try {
-    const sessions = await Session.find({
-      mentorId: req.user._id,
-      status: "scheduled",
-    }).sort({ createdAt: -1 });
-    res.json(sessions);
-  } catch (error) {
-    console.error("getUpcoming error:", error.message);
-    res.status(500).json({ message: "Server error", detail: error.message });
-  }
-};
+    if (status && status !== "all") {
+      query.status = status;
+    }
 
-const getPast = async (req, res) => {
-  try {
-    const sessions = await Session.find({
-      mentorId: req.user._id,
-      status: "completed",
-    }).sort({ createdAt: -1 });
+    if (studentId) {
+      query.studentId = studentId;
+    }
+
+    if (search) {
+      query.$or = [
+        { topic: { $regex: search, $options: "i" } },
+        { studentName: { $regex: search, $options: "i" } }
+      ];
+    }
+
+    let sessionsQuery = Session.find(query);
+
+    // Sorting logic
+    if (sort === "time_asc") sessionsQuery = sessionsQuery.sort({ proposedTime: 1 });
+    else if (sort === "time_desc") sessionsQuery = sessionsQuery.sort({ proposedTime: -1 });
+    else sessionsQuery = sessionsQuery.sort({ createdAt: -1 }); // Default: newest created first
+
+    const sessions = await sessionsQuery;
     res.json(sessions);
   } catch (error) {
-    console.error("getPast error:", error.message);
+    console.error("getSessions error:", error.message);
     res.status(500).json({ message: "Server error", detail: error.message });
   }
 };
@@ -128,14 +129,15 @@ const declineSession = async (req, res) => {
 
 const completeSession = async (req, res) => {
   try {
-    const session = await Session.findById(req.params.id);
+    const { discussedTopics, mentorNotes } = req.body;
+    
+    const session = await Session.findOne({ 
+      _id: req.params.id, 
+      mentorId: req.user._id 
+    });
 
     if (!session) {
       return res.status(404).json({ message: "Session not found" });
-    }
-
-    if (session.mentorId.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "You are not the mentor for this session" });
     }
 
     if (session.status !== "scheduled") {
@@ -143,6 +145,9 @@ const completeSession = async (req, res) => {
     }
 
     session.status = "completed";
+    if (discussedTopics) session.discussedTopics = discussedTopics;
+    if (mentorNotes) session.mentorNotes = mentorNotes;
+    
     await session.save();
 
     res.json({ message: "Session marked as completed!", session });
@@ -154,12 +159,14 @@ const completeSession = async (req, res) => {
 
 const getStats = async (req, res) => {
   try {
-    const [pending, upcoming, completed] = await Promise.all([
+    const [pending, upcoming, completed, declined] = await Promise.all([
       Session.countDocuments({ mentorId: req.user._id, status: "pending" }),
       Session.countDocuments({ mentorId: req.user._id, status: "scheduled" }),
       Session.countDocuments({ mentorId: req.user._id, status: "completed" }),
+      Session.countDocuments({ mentorId: req.user._id, status: "declined" }),
     ]);
-    res.json({ pending, upcoming, completed });
+    res.json({ pending, upcoming, completed, declined, total: pending + upcoming + completed });
+
   } catch (error) {
     console.error("getStats error:", error.message);
     res.status(500).json({ message: "Server error", detail: error.message });
@@ -167,9 +174,7 @@ const getStats = async (req, res) => {
 };
 
 module.exports = {
-  getRequests,
-  getUpcoming,
-  getPast,
+  getSessions,
   requestSession,
   acceptSession,
   declineSession,

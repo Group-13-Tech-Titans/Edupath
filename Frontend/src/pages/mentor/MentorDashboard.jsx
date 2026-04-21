@@ -14,7 +14,7 @@ const MOCK_STUDENTS = [
 const TRACKS = [...new Set(MOCK_STUDENTS.map((s) => s.track))];
 
 const emptyForm = {
-  shareWith: "all", studentId: "", courseGroup: "",
+  shareWith: "all", studentId: "",
   type: "video", title: "", description: "", url: "", notes: "",
 };
 
@@ -62,16 +62,12 @@ export default function MentorDashboard() {
       alert("Please select a Student to share with.");
       return;
     }
-    if (form.shareWith === "group" && !form.courseGroup) {
-      alert("Please select a Course Group to share with.");
-      return;
-    }
     if ((form.type === "video" || form.type === "pdfppt" || form.type === "quiz") && !form.url.trim()) {
       alert("Please enter a URL for this " + (form.type === "video" ? "Video" : form.type === "pdfppt" ? "PDF/PPT" : "Quiz") + " resource.");
       return;
     }
 
-    alert(`✅ Resource "${form.title}" shared successfully!`);
+    alert(`Resource "${form.title}" shared successfully!`);
     setForm(emptyForm);
     setResourceOpen(false);
   };
@@ -140,7 +136,6 @@ export default function MentorDashboard() {
       { title: "Session Completed", desc: "Career guidance with Priya S. • 2 hours ago", accent: "border-emerald-400" },
       { title: "New Feedback Received", desc: "5-star rating from Anjali K. • 5 hours ago", accent: "border-orange-400" },
       { title: "Resource Shared", desc: "React best practices guide • Yesterday", accent: "border-sky-400" },
-      { title: "Student Progress Milestone", desc: "Rahul M. completed Module 5 • Yesterday", accent: "border-green-500" },
     ],
     []
   );
@@ -233,26 +228,6 @@ export default function MentorDashboard() {
             ))}
           </CardSection>
 
-          <CardSection title="My Students" linkText="View All (24)" linkTo="/MentorStudents">
-            {students.map((st) => (
-              <div key={st.name} className="mb-4 flex flex-col justify-between gap-4 rounded-xl bg-slate-50 p-5 transition hover:translate-x-1 hover:bg-emerald-50 md:flex-row md:items-center">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-teal-400 to-emerald-300 text-lg font-bold text-white">{st.initials}</div>
-                  <div>
-                    <h3 className="text-base font-semibold text-slate-800">{st.name}</h3>
-                    <p className="text-[13px] text-slate-500">{st.subtitle}</p>
-                    <div className="mt-2 h-2 w-[200px] overflow-hidden rounded-full bg-slate-200">
-                      <div className="h-full rounded-full bg-gradient-to-r from-teal-400 to-emerald-300" style={{ width: `${st.progress}%` }} />
-                    </div>
-                    <p className="mt-1 text-xs text-slate-500">{st.progress}% Course Progress</p>
-                  </div>
-                </div>
-                <Link to="/MentorStudents" className="inline-block rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-semibold text-teal-500 transition hover:bg-teal-400 hover:text-white text-center">
-                  View Progress
-                </Link>
-              </div>
-            ))}
-          </CardSection>
 
           <CardSection title="Upcoming Sessions" linkText="View all" linkTo="/MentorSessions?tab=upcoming">
             {upcomingSessions.map((s) => (
@@ -275,7 +250,7 @@ export default function MentorDashboard() {
               <QuickAction title="Review Sessions" desc="View session requests" onClick={() => navigate("/MentorSessions")} icon={<EyeIcon />} />
               <QuickAction title="Share Resources" desc="Upload learning materials" onClick={() => setResourceOpen(true)} icon={<DocIcon />} />
               <QuickAction title="Messages" desc="Chat with students" onClick={() => navigate("/MentorMessages")} icon={<ChatIcon />} />
-              <QuickAction title="View Analytics" desc="Track mentoring metrics" onClick={() => {}} icon={<ChartIcon />} />
+              <QuickAction title="View Analytics" desc="Track mentoring metrics" onClick={() => navigate("/MentorAnalytics")} icon={<ChartIcon />} />
             </div>
           </section>
 
@@ -319,14 +294,12 @@ export default function MentorDashboard() {
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 
-              {/* Share With */}
               <div>
                 <label className="mb-1 block text-sm font-bold text-slate-700">Share With</label>
                 <select name="shareWith" value={form.shareWith} onChange={handleChange}
                   className="w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-teal-400">
                   <option value="all">All Students</option>
                   <option value="specific">Specific Student</option>
-                  <option value="group">Specific Course Group</option>
                 </select>
               </div>
 
@@ -344,17 +317,6 @@ export default function MentorDashboard() {
                 </div>
               )}
 
-              {/* Group picker */}
-              {form.shareWith === "group" && (
-                <div>
-                  <label className="mb-1 block text-sm font-bold text-slate-700">Select Course Group</label>
-                  <select name="courseGroup" value={form.courseGroup} onChange={handleChange} required
-                    className="w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-teal-400">
-                    <option value="">Choose a group...</option>
-                    {TRACKS.map((t) => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-              )}
 
               {/* Resource Type */}
               <div>

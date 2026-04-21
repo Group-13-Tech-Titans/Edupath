@@ -121,11 +121,11 @@ export default function MentorStudents() {
 
   const StatusChip = ({ status }) => {
     if (status === "active")
-      return <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-extrabold text-green-800">● Active</span>;
+      return <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-extrabold text-green-800">Active</span>;
     if (status === "paused")
-      return <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-extrabold text-amber-800">⏸ Paused</span>;
+      return <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-extrabold text-amber-800">Paused</span>;
     if (status === "new")
-      return <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-extrabold text-sky-800">🆕 New</span>;
+      return <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-extrabold text-sky-800">New</span>;
     return <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-extrabold text-slate-700">-</span>;
   };
 
@@ -182,7 +182,7 @@ export default function MentorStudents() {
       </section>
 
       {/* Content grid */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[2.2fr_1fr]">
+      <div className="grid grid-cols-1 gap-5">
         {/* Main list */}
         <section className="rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
           {/* Toolbar */}
@@ -199,19 +199,6 @@ export default function MentorStudents() {
                 />
               </div>
 
-              {/* status pills */}
-              <Pill active={statusFilter === "all"} onClick={() => setStatusFilter("all")}>
-                All
-              </Pill>
-              <Pill active={statusFilter === "active"} onClick={() => setStatusFilter("active")}>
-                Active
-              </Pill>
-              <Pill active={statusFilter === "new"} onClick={() => setStatusFilter("new")}>
-                New
-              </Pill>
-              <Pill active={statusFilter === "paused"} onClick={() => setStatusFilter("paused")}>
-                Paused
-              </Pill>
             </div>
 
             <div className="flex w-full flex-wrap items-center gap-3 lg:w-auto">
@@ -267,23 +254,20 @@ export default function MentorStudents() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <StatusChip status={s.status} />
-                    </div>
                   </div>
                 </div>
 
                 <div className="flex gap-2 md:flex-col">
                   <button
                     type="button"
-                    onClick={() => setSelectedStudent(s)}
+                    onClick={() => navigate(`/MentorStudentDetails/${s.id}`)}
                     className="rounded-xl bg-teal-400 px-4 py-2 text-sm font-bold text-white transition hover:bg-teal-500"
                   >
                     View Details
                   </button>
                   <button
                     type="button"
-                    onClick={() => alert(`Open chat with ${s.name} (connect to your chat module)`)}
+                    onClick={() => navigate("/MentorMessages", { state: { studentId: s.id } })}
                     className="rounded-xl border-2 border-teal-400 bg-white px-4 py-2 text-sm font-bold text-teal-600 transition hover:bg-teal-400 hover:text-white"
                   >
                     Message
@@ -298,72 +282,8 @@ export default function MentorStudents() {
           </div>
         </section>
 
-        {/* Sidebar */}
-        <aside className="flex flex-col gap-5">
-          <section className="rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
-            <div className="mb-4 text-lg font-extrabold">Overview</div>
-
-            <MiniStat label="Total Students" value={counts.total} emoji="👥" accent="border-teal-400" />
-            <MiniStat label="Active" value={counts.active} emoji="✅" accent="border-sky-400" />
-            <MiniStat label="Paused" value={counts.paused} emoji="⏸" accent="border-amber-400" />
-
-            <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-slate-700">
-              Tip: Use <b>Message</b> to contact a student. Use <b>View Details</b> to see basic information.
-            </div>
-          </section>
-        </aside>
       </div>
 
-      {/* Modal */}
-      {selectedStudent ? (
-        <div
-          className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50 p-4"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setSelectedStudent(null);
-          }}
-        >
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">
-            <div className="mb-4 flex items-center justify-between border-b-2 border-slate-200 pb-3">
-              <h2 className="text-xl font-extrabold">{selectedStudent.name} • Details</h2>
-              <button
-                type="button"
-                onClick={() => setSelectedStudent(null)}
-                className="grid h-9 w-9 place-items-center rounded-full bg-slate-100 transition hover:bg-slate-200"
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="rounded-xl border border-black/5 bg-slate-50 p-4">
-              <h3 className="mb-3 text-sm font-extrabold">Basic Information</h3>
-
-              <KV k="Student Name" v={selectedStudent.name} />
-              <KV k="Track" v={selectedStudent.track} />
-              <KV k="Status" v={capitalize(selectedStudent.status)} />
-              <KV k="Enrolled" v={selectedStudent.enrolled} />
-              <KV k="Last Activity" v={selectedStudent.lastActivity} />
-
-              <div className="mt-4 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => alert("Open chat (connect to your chat module)")}
-                  className="rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-bold text-teal-600 transition hover:bg-teal-400 hover:text-white"
-                >
-                  Message
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedStudent(null)}
-                  className="rounded-xl bg-teal-400 px-6 py-3 text-sm font-bold text-white transition hover:bg-teal-500"
-                >
-                  Done
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       {/* Footer */}
       <footer className="mt-5 rounded-2xl bg-white px-7 py-8 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
@@ -442,14 +362,13 @@ function Pill({ active, children, onClick }) {
   );
 }
 
-function MiniStat({ label, value, emoji, accent }) {
+function MiniStat({ label, value, accent }) {
   return (
     <div className={`mb-3 flex items-center justify-between rounded-xl border-l-4 ${accent} bg-slate-50 p-4`}>
       <div>
         <div className="text-sm text-slate-500">{label}</div>
         <div className="text-lg font-extrabold">{value}</div>
       </div>
-      <div className="text-2xl">{emoji}</div>
     </div>
   );
 }

@@ -51,6 +51,8 @@ import MentorSettings from "./pages/mentor/MentorSettings.jsx";
 import MentorShareProfile from "./pages/mentor/MentorShareProfile.jsx";
 import MentorResources from "./pages/mentor/MentorResources";
 import MentorMessages from "./pages/mentor/MentorMessages.jsx";
+import MentorStudentDetails from "./pages/mentor/MentorStudentDetails.jsx";
+import MentorAnalytics from "./pages/mentor/MentorAnalytics.jsx";
 
 import ComingSoon from "./pages/ComingSoon.jsx";
 import NotFound from "./pages/NotFound.jsx";
@@ -109,6 +111,8 @@ const App = () => {
         <Route path="/MentorShareProfile" element={<MentorShareProfile />} />
         <Route path="/MentorResources" element={<MentorResources />} />
         <Route path="/MentorMessages" element={<MentorMessages />} />
+        <Route path="/MentorStudentDetails/:id" element={<MentorStudentDetails />} />
+        <Route path="/MentorAnalytics" element={<MentorAnalytics />} />
         
 
 

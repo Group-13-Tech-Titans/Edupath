@@ -181,9 +181,9 @@ export default function MentorSettingsInlineLikeDashboard() {
       </button>
     </div>
   );
-  const DangerBox = ({ emoji, children }) => (
+  const DangerBox = ({ children }) => (
     <div className="my-4 flex gap-3 rounded-2xl border border-teal-200 bg-teal-50 p-4 text-[13px] leading-6 text-teal-700">
-      <div className="text-lg leading-none">{emoji}</div><div>{children}</div>
+      <div>{children}</div>
     </div>
   );
   const ModalShell = ({ open, title, children, onClose }) => (
@@ -200,7 +200,7 @@ export default function MentorSettingsInlineLikeDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-200 to-teal-300 p-5">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-200 to-teal-300 p-5 text-slate-800">
 
       {/* Header */}
       <header className="mb-5 flex items-center justify-between rounded-2xl bg-white px-6 py-5 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
@@ -222,7 +222,7 @@ export default function MentorSettingsInlineLikeDashboard() {
       </header>
 
       {/* Page header */}
-      <div className="mb-5 flex flex-col gap-4 rounded-2xl bg-white px-7 py-7 shadow-[0_4px_20px_rgba(0,0,0,0.08)] md:flex-row md:items-center md:justify-between">
+      <div className="mb-5 flex flex-col gap-4 rounded-2xl bg-white p-7 shadow-[0_4px_20px_rgba(0,0,0,0.08)] md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-extrabold text-slate-800">Settings</h1>
           <p className="mt-1 text-sm text-slate-500">Manage your account, preferences, notifications, and security.</p>
@@ -423,6 +423,12 @@ export default function MentorSettingsInlineLikeDashboard() {
                     </Field>
                   </div>
                 </div>
+                <div className="mt-6 flex justify-end border-t border-slate-100 pt-5">
+                  <button type="button" onClick={() => { saveChanges(); showToast("Profile Updated", "Account information has been saved."); }}
+                    className="rounded-xl bg-teal-400 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-500">
+                    Save Account Info
+                  </button>
+                </div>
               </Card>
 
               {/* Work Experience */}
@@ -455,6 +461,12 @@ export default function MentorSettingsInlineLikeDashboard() {
                     + Add Experience
                   </button>
                 </div>
+                <div className="mt-6 flex justify-end border-t border-slate-100 pt-5">
+                  <button type="button" onClick={() => { markDirty(); showToast("Experience Saved", "Work experience has been updated."); }}
+                    className="rounded-xl bg-teal-400 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-500">
+                    Save Work Experience
+                  </button>
+                </div>
               </Card>
 
               {/* Education */}
@@ -483,6 +495,12 @@ export default function MentorSettingsInlineLikeDashboard() {
                     + Add Education
                   </button>
                 </div>
+                <div className="mt-6 flex justify-end border-t border-slate-100 pt-5">
+                  <button type="button" onClick={() => { markDirty(); showToast("Education Saved", "Education details have been updated."); }}
+                    className="rounded-xl bg-teal-400 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-500">
+                    Save Education
+                  </button>
+                </div>
               </Card>
               {/* Social Links */}
               <Card>
@@ -505,6 +523,12 @@ export default function MentorSettingsInlineLikeDashboard() {
                     <input defaultValue={socialLinks.website} onBlur={(e) => { setSocialLinks((p) => ({ ...p, website: e.target.value })); markDirty(); }}
                       placeholder="https://yourwebsite.com" className={inputCls} />
                   </Field>
+                </div>
+                <div className="mt-6 flex justify-end border-t border-slate-100 pt-5">
+                  <button type="button" onClick={() => { markDirty(); showToast("Links Saved", "Social links have been updated."); }}
+                    className="rounded-xl bg-teal-400 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-500">
+                    Save Social Links
+                  </button>
                 </div>
               </Card>
 
@@ -536,6 +560,12 @@ export default function MentorSettingsInlineLikeDashboard() {
                   <button type="button" onClick={() => { setCertifications((p) => [...p, { name: "", issuer: "", year: "" }]); markDirty(); }}
                     className="w-full rounded-xl border-2 border-dashed border-teal-300 py-3 text-sm font-semibold text-teal-500 transition hover:bg-teal-50">
                     + Add Certification
+                  </button>
+                </div>
+                <div className="mt-6 flex justify-end border-t border-slate-100 pt-5">
+                  <button type="button" onClick={() => { markDirty(); showToast("Certifications Saved", "Certifications have been updated."); }}
+                    className="rounded-xl bg-teal-400 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-500">
+                    Save Certifications
                   </button>
                 </div>
               </Card>
@@ -570,6 +600,12 @@ export default function MentorSettingsInlineLikeDashboard() {
                     className="rounded-xl bg-teal-400 px-5 py-2 text-sm font-semibold text-white transition hover:bg-teal-500">Add</button>
                 </div>
                 <p className="mt-2 text-xs text-slate-400">Examples: Career Guidance, Interview Prep, Portfolio Review, Code Review</p>
+                <div className="mt-6 flex justify-end border-t border-slate-100 pt-5">
+                  <button type="button" onClick={() => { markDirty(); showToast("Focus Saved", "Mentoring focus areas have been updated."); }}
+                    className="rounded-xl bg-teal-400 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-500">
+                    Save Mentoring Focus
+                  </button>
+                </div>
               </Card>
             </>
           )}
@@ -601,7 +637,7 @@ export default function MentorSettingsInlineLikeDashboard() {
                   </Field>
                 </div>
               </div>
-              <DangerBox emoji="🕒">Availability is used to show students your likely response and active hours.</DangerBox>
+              <DangerBox>Availability is used to show students your likely response and active hours.</DangerBox>
             </Card>
           )}
 
@@ -631,7 +667,7 @@ export default function MentorSettingsInlineLikeDashboard() {
                 <Field label="Show Email"><Select defaultValue="Yes"><option>Yes</option><option>No</option></Select></Field>
                 <Field label="Show Phone"><Select defaultValue="No"><option>No</option><option>Yes</option></Select></Field>
               </div>
-              <DangerBox emoji="🔒">Keep personal contact details limited. Use in-app messaging when possible.</DangerBox>
+              <DangerBox>Keep personal contact details limited. Use in-app messaging when possible.</DangerBox>
             </Card>
           )}
 
@@ -741,7 +777,7 @@ export default function MentorSettingsInlineLikeDashboard() {
 
       <ModalShell open={modal === "devices"} title="Signed-in Devices" onClose={() => setModal(null)}>
         <div className="space-y-3">
-          <DangerBox emoji="📱">This list is a demo. In your real system, show device name, location, and last active time.</DangerBox>
+          <DangerBox>This list is a demo. In your real system, show device name, location, and last active time.</DangerBox>
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-4 rounded-2xl border-2 border-slate-100 bg-white px-4 py-4">
               <div><div className="text-sm font-extrabold text-slate-800">Windows PC • Chrome</div><div className="text-xs text-slate-500">Last active: Today</div></div>
@@ -759,7 +795,7 @@ export default function MentorSettingsInlineLikeDashboard() {
       </ModalShell>
 
       <ModalShell open={modal === "deactivate"} title="Deactivate Account" onClose={() => setModal(null)}>
-        <DangerBox emoji="⏸️">Deactivating hides your mentor profile and pauses notifications.</DangerBox>
+        <DangerBox>Deactivating hides your mentor profile and pauses notifications.</DangerBox>
         <div className="flex justify-end gap-3 pt-2">
           <button type="button" onClick={() => setModal(null)} className="rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-semibold text-teal-500 transition hover:bg-teal-400 hover:text-white">Cancel</button>
           <button type="button" onClick={() => { setModal(null); showToast("Deactivated", "Account deactivated (demo)."); }} className="rounded-xl bg-teal-400 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-500">Deactivate</button>
@@ -767,7 +803,7 @@ export default function MentorSettingsInlineLikeDashboard() {
       </ModalShell>
 
       <ModalShell open={modal === "delete"} title="Delete Account" onClose={() => setModal(null)}>
-        <DangerBox emoji="⚠️">This action is permanent. Your mentor profile, sessions history, and resources will be removed.</DangerBox>
+        <DangerBox>This action is permanent. Your mentor profile, sessions history, and resources will be removed.</DangerBox>
         <Field label={<span>Type <b>DELETE</b> to confirm</span>}>
           <input value={deleteConfirm} onChange={(e) => setDeleteConfirm(e.target.value)} placeholder="DELETE" className={inputCls} />
         </Field>

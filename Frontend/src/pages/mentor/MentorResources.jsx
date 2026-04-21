@@ -28,7 +28,7 @@ const MOCK_RESOURCES = [
   },
   {
     id: "R003", title: "CSS Flexbox & Grid Quiz", type: "quiz",
-    shareWith: "group", studentName: null, courseGroup: "Web Development",
+    shareWith: "all", studentName: "All Students", courseGroup: null,
     description: "Test your CSS layout knowledge.",
     url: null, notes: "Complete by next Monday.",
     createdAt: "2026-04-15T09:00:00Z",
@@ -53,7 +53,6 @@ const TYPE_META = {
 const SHARE_META = {
   all:      { label: "All Students",      badge: "bg-emerald-100 text-emerald-800" },
   specific: { label: "Specific Student",  badge: "bg-blue-100 text-blue-800" },
-  group:    { label: "Course Group",      badge: "bg-orange-100 text-orange-800" },
 };
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -77,7 +76,7 @@ export default function MentorResources() {
 
   // Form state
   const emptyForm = {
-    shareWith: "all", studentId: "", courseGroup: "",
+    shareWith: "all", studentId: "",
     type: "video", title: "", description: "", url: "", notes: "",
   };
   const [form, setForm] = useState(emptyForm);
@@ -102,10 +101,6 @@ export default function MentorResources() {
       alert("Please select a Student to share with.");
       return;
     }
-    if (form.shareWith === "group" && !form.courseGroup) {
-      alert("Please select a Course Group to share with.");
-      return;
-    }
     if ((form.type === "video" || form.type === "pdfppt" || form.type === "quiz") && !form.url.trim()) {
       alert("Please enter a URL for this " + (form.type === "video" ? "Video" : form.type === "pdfppt" ? "PDF/PPT" : "Quiz") + " resource.");
       return;
@@ -119,7 +114,7 @@ export default function MentorResources() {
       type: form.type,
       shareWith: form.shareWith,
       studentName: form.shareWith === "specific" ? student?.name : null,
-      courseGroup: form.shareWith === "group" ? form.courseGroup : null,
+      courseGroup: null,
       description: form.description,
       url: form.url,
       notes: form.notes,
@@ -145,8 +140,7 @@ export default function MentorResources() {
       const typeOk  = filterType  === "all" || r.type      === filterType;
       const shareOk = filterShare === "all" || r.shareWith === filterShare;
       const searchOk = !q || r.title.toLowerCase().includes(q) ||
-        (r.studentName || "").toLowerCase().includes(q) ||
-        (r.courseGroup  || "").toLowerCase().includes(q);
+        (r.studentName || "").toLowerCase().includes(q);
       return typeOk && shareOk && searchOk;
     });
   }, [resources, filterType, filterShare, search]);
@@ -248,10 +242,8 @@ export default function MentorResources() {
             {/* Share filter */}
             <select value={filterShare} onChange={(e) => setFilterShare(e.target.value)}
               className="rounded-xl border-2 border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-teal-400">
-              <option value="all">All Recipients</option>
               <option value="all">All Students</option>
               <option value="specific">Specific Student</option>
-              <option value="group">Course Group</option>
             </select>
 
             {/* Reset */}
@@ -287,8 +279,7 @@ export default function MentorResources() {
                         <span className="text-base font-extrabold">{r.title}</span>
                         <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${tm.badge}`}>{tm.label}</span>
                         <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${sm.badge}`}>
-                          {r.shareWith === "specific" ? r.studentName :
-                           r.shareWith === "group"    ? r.courseGroup  : "All Students"}
+                          {r.shareWith === "specific" ? r.studentName : "All Students"}
                         </span>
                       </div>
                       {r.description && (
@@ -348,7 +339,6 @@ export default function MentorResources() {
             <div className="mb-2 text-sm font-extrabold">Tips</div>
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-slate-700">
               <strong>Share with All</strong> to send the same material to every student at once.
-              Use <strong>Course Group</strong> to target students on the same track.
               Use <strong>Specific Student</strong> for personalised resources.
             </div>
           </section>
@@ -375,14 +365,12 @@ export default function MentorResources() {
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 
-              {/* Share With */}
               <div>
                 <label className="mb-1 block text-sm font-bold text-slate-700">Share With</label>
                 <select name="shareWith" value={form.shareWith} onChange={handleChange}
                   className="w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-teal-400">
                   <option value="all">All Students</option>
                   <option value="specific">Specific Student</option>
-                  <option value="group">Specific Course Group</option>
                 </select>
               </div>
 
@@ -400,17 +388,6 @@ export default function MentorResources() {
                 </div>
               )}
 
-              {/* Group picker */}
-              {form.shareWith === "group" && (
-                <div>
-                  <label className="mb-1 block text-sm font-bold text-slate-700">Select Course Group</label>
-                  <select name="courseGroup" value={form.courseGroup} onChange={handleChange} required
-                    className="w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-teal-400">
-                    <option value="">Choose a group...</option>
-                    {TRACKS.map((t) => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-              )}
 
               {/* Resource Type */}
               <div>

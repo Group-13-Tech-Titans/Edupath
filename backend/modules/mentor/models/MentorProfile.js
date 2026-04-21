@@ -48,6 +48,20 @@ const mentorProfileSchema = new mongoose.Schema(
     // Education history
     education: [educationSchema],
 
+    // Social Links (LinkedIn, Github, Website, etc.)
+    socialLinks: {
+      linkedin: { type: String },
+      github: { type: String },
+      website: { type: String },
+      twitter: { type: String },
+    },
+
+    // Certifications (e.g. "AWS Certified Solutions Architect")
+    certifications: [{ type: String }],
+
+    // Mentoring Focus (e.g. "Career Transition", "Technical Deep Dive")
+    mentoringFocus: [{ type: String }],
+
     // Stats (these update automatically as sessions happen)
     rating: { type: Number, default: 0 },
     totalReviews: { type: Number, default: 0 },

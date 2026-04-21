@@ -49,6 +49,9 @@ const createProfile = async (req, res) => {
       availability,
       experience,
       education,
+      socialLinks,
+      certifications,
+      mentoringFocus
     } = req.body;
 
     // Create and save the new profile
@@ -65,6 +68,9 @@ const createProfile = async (req, res) => {
       availability,
       experience,
       education,
+      socialLinks,
+      certifications,
+      mentoringFocus
     });
 
     res.status(201).json({ message: "Profile created!", profile });
@@ -82,6 +88,7 @@ const updateProfile = async (req, res) => {
   try {
     const {
       name,
+      email,
       title,
       subjectField,
       bio,
@@ -92,27 +99,41 @@ const updateProfile = async (req, res) => {
       availability,
       experience,
       education,
+      socialLinks,
+      certifications,
+      mentoringFocus
     } = req.body;
 
-    // findOneAndUpdate:
-    //   1st argument — find profile by userId
-    //   2nd argument — the fields to update ($set means "set these fields")
-    //   3rd argument — { new: true } means return the UPDATED version (not old)
+    // 1. Update the User model if name or email changed
+    if (name || email) {
+      const User = require("../../auth/models/User");
+      const userUpdates = {};
+      if (name) userUpdates.name = name;
+      if (email) userUpdates.email = email;
+
+      await User.findByIdAndUpdate(req.user._id, { $set: userUpdates });
+    }
+
+    // 2. Update the MentorProfile model
+    // findOneAndUpdate with $set handles partial updates perfectly
     const profile = await MentorProfile.findOneAndUpdate(
       { userId: req.user._id },
       {
         $set: {
-          name,
-          title,
-          subjectField,
-          bio,
-          avatar,
-          location,
-          phone,
-          expertise,
-          availability,
-          experience,
-          education,
+          ...(name && { name }),
+          ...(title && { title }),
+          ...(subjectField && { subjectField }),
+          ...(bio && { bio }),
+          ...(avatar && { avatar }),
+          ...(location && { location }),
+          ...(phone && { phone }),
+          ...(expertise && { expertise }),
+          ...(availability && { availability }),
+          ...(experience && { experience }),
+          ...(education && { education }),
+          ...(socialLinks && { socialLinks }),
+          ...(certifications && { certifications }),
+          ...(mentoringFocus && { mentoringFocus }),
         },
       },
       { new: true }
@@ -122,10 +143,10 @@ const updateProfile = async (req, res) => {
       return res.status(404).json({ message: "Profile not found" });
     }
 
-    res.json({ message: "Profile updated!", profile });
+    res.json({ message: "Settings updated!", profile });
   } catch (error) {
     console.error("updateProfile error:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", detail: error.message });
   }
 };
 
@@ -136,19 +157,43 @@ const updateProfile = async (req, res) => {
 // ─────────────────────────────────────────────────────────────
 const getPublicProfile = async (req, res) => {
   try {
-    // req.params.mentorId comes from the URL: /profile/:mentorId
-    const profile = await MentorProfile.findOne({ userId: req.params.mentorId });
+    const { mentorId } = req.params;
+
+    // 1. Get Profile (excluding sensitive phone number)
+    const profile = await MentorProfile.findOne({ userId: mentorId }).select("-phone");
 
     if (!profile) {
       return res.status(404).json({ message: "Mentor not found" });
     }
 
-    res.json(profile);
+    // 2. Get Reviews for this mentor
+    const reviews = await require("../models/Review").find({ mentorId })
+      .sort({ createdAt: -1 })
+      .limit(10); // only show last 10 reviews publicly
+
+    res.json({
+      profile,
+      reviews
+    });
   } catch (error) {
     console.error("getPublicProfile error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// Export all functions so routes can use them
-module.exports = { getProfile, createProfile, updateProfile, getPublicProfile };
+// ─────────────────────────────────────────────────────────────
+// GET /api/mentor/profile/reviews
+// Gets the reviews for the logged-in mentor.
+// ─────────────────────────────────────────────────────────────
+const getReviews = async (req, res) => {
+  try {
+    const reviews = await require("../models/Review").find({ mentorId: req.user._id })
+      .sort({ createdAt: -1 });
+    res.json(reviews);
+  } catch (error) {
+    console.error("getReviews error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+module.exports = { getProfile, createProfile, updateProfile, getPublicProfile, getReviews };

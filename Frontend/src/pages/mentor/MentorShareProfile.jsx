@@ -110,25 +110,9 @@ export default function MentorShareProfile() {
     const nameEl = document.getElementById("mentorName");
     const titleEl = document.getElementById("mentorTitle");
     const shareLinkInput = document.getElementById("shareLink");
-    const embedEl = document.getElementById("embedCode");
-
     if (nameEl) nameEl.textContent = mentorName;
     if (titleEl) titleEl.textContent = mentorTitle;
     if (shareLinkInput) shareLinkInput.value = profileUrl;
-
-    const embed = `<a href="${profileUrl}" target="_blank" rel="noopener" style="text-decoration:none;">
-  <div style="max-width:420px;border:2px solid #e0e0e0;border-radius:14px;padding:14px;font-family:Arial,sans-serif;">
-    <div style="font-weight:800;color:#2c3e50;font-size:16px;">${escapeHtml(
-      mentorName
-    )}</div>
-    <div style="color:#7f8c8d;font-size:13px;margin-top:4px;">${escapeHtml(
-      mentorTitle
-    )}</div>
-    <div style="margin-top:10px;color:#5DD9C1;font-weight:800;font-size:13px;">View my EduPath Mentor Profile →</div>
-  </div>
-</a>`;
-
-    if (embedEl) embedEl.value = embed;
 
     drawFakeQR(profileUrl);
   }, []);
@@ -153,12 +137,7 @@ export default function MentorShareProfile() {
     showToast("Profile link copied!");
   };
 
-  const copyEmbed = async () => {
-    const embedEl = document.getElementById("embedCode");
-    if (!embedEl) return;
-    await copyText(embedEl.value);
-    showToast("Embed code copied!");
-  };
+
 
   const shareWeb = async () => {
     const url = new URL(window.location.href);
@@ -306,7 +285,7 @@ export default function MentorShareProfile() {
         .shareHtml .page-header {
           background: white;
           border-radius: 16px;
-          padding: 30px;
+          padding: 28px;
           margin-bottom: 20px;
           box-shadow: 0 4px 20px rgba(0,0,0,0.08);
           display: flex;
@@ -472,26 +451,7 @@ export default function MentorShareProfile() {
           border: 2px solid #e0e0e0;
         }
 
-        .shareHtml .embed-box {
-          margin-top: 20px;
-          padding: 16px;
-          background: #f8f9fa;
-          border-radius: 12px;
-          border-left: 4px solid #5DD9C1;
-        }
 
-        .shareHtml .embed-box textarea {
-          width: 100%;
-          padding: 12px;
-          border: 2px solid #e0e0e0;
-          border-radius: 10px;
-          resize: vertical;
-          min-height: 90px;
-          font-size: 13px;
-          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-          outline: none;
-        }
-        .shareHtml .embed-box textarea:focus { border-color: #5DD9C1; }
 
         .shareHtml .toast {
           position: fixed;
@@ -568,7 +528,7 @@ export default function MentorShareProfile() {
 
                 <div className="badge-row">
                   <span className="badge badge-verified">✓ Verified</span>
-                  <span className="badge badge-rating">★ 4.9</span>
+                  <span className="badge badge-rating">4.9 Rating</span>
                 </div>
               </div>
             </div>
@@ -628,23 +588,7 @@ export default function MentorShareProfile() {
               </div>
             </div>
 
-            <div className="embed-box">
-              <div className="field-label" style={{ marginBottom: "10px", fontWeight: 600 }}>
-                Embed Code (Optional)
-              </div>
-              <textarea id="embedCode" readOnly></textarea>
-              <div className="hint" style={{ marginTop: "8px" }}>
-                You can paste this into a website/portfolio to show your EduPath mentor profile.
-              </div>
-              <div style={{ display: "flex", gap: "10px", marginTop: "12px", flexWrap: "wrap" }}>
-                <button className="btn-secondary" onClick={copyEmbed}>
-                  Copy Embed
-                </button>
-                <button className="btn-secondary" onClick={openProfile}>
-                  Open Profile
-                </button>
-              </div>
-            </div>
+
           </div>
 
           {/* RIGHT */}
