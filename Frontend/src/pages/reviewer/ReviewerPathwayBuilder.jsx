@@ -1,37 +1,55 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import PageShell from "../../components/PageShell.jsx"; // Adjust path as needed
+import PageShell from "../../components/PageShell.jsx";
 
-// Helper to generate a unique ID for React keys
 const generateId = () =>
   Date.now().toString(36) + Math.random().toString(36).substring(2);
 
-const AdminPathwayBuilder = () => {
+const ReviewerPathwayBuilder = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Pathway Template State
   const [pathway, setPathway] = useState({
-    pathName: "",
+    pathName: "Loading specialization...", // Default text while fetching
     level: "Beginner",
   });
 
-  // Steps State - added a unique 'id' for React keys
   const [steps, setSteps] = useState([
     {
       id: generateId(),
       title: "",
       description: "",
       type: "course",
-      resources: [],
+      resources: [], // 🟢 Changed from resource: "" to resources: []
     },
   ]);
 
-  const handlePathwayChange = (e) => {
+  // 🔥 FETCH REVIEWER'S SPECIALIZATION ON LOAD
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem("edupath_token");
+        const { data } = await axios.get("http://localhost:5000/api/auth/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setPathway((prev) => ({
+          ...prev,
+          pathName:
+            data.user?.specializationTag ||
+            data?.specializationTag ||
+            "Specialization Not Found",
+        }));
+      } catch (err) {
+        setError("Failed to load reviewer profile.");
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const handlePathwayChange = (e) =>
     setPathway({ ...pathway, [e.target.name]: e.target.value });
-  };
 
   const handleStepChange = (index, field, value) => {
     const newSteps = [...steps];
@@ -39,7 +57,7 @@ const AdminPathwayBuilder = () => {
     setSteps(newSteps);
   };
 
-  const addStep = () => {
+  const addStep = () =>
     setSteps([
       ...steps,
       {
@@ -51,12 +69,8 @@ const AdminPathwayBuilder = () => {
         quiz: [],
       },
     ]);
-  };
 
-  const removeStep = (index) => {
-    const newSteps = steps.filter((_, i) => i !== index);
-    setSteps(newSteps);
-  };
+  const removeStep = (index) => setSteps(steps.filter((_, i) => i !== index));
 
   // 🟢 NEW HELPER FUNCTIONS FOR MULTIPLE RESOURCES
   const addResourceToStep = (stepIndex) => {
@@ -105,53 +119,34 @@ const AdminPathwayBuilder = () => {
   };
 
   const handleSavePathway = async () => {
-    // 1. FRONTEND VALIDATION
-    setError(""); // Clear any previous errors
+    setError("");
+    if (!pathway.pathName || pathway.pathName === "Loading specialization...")
+      return setError("Valid Specialization required.");
+    if (steps.length === 0) return setError("Add at least one step.");
 
-    if (!pathway.pathName.trim()) {
-      setError("Please enter a Pathway Name.");
-      return;
-    }
-
-    if (steps.length === 0) {
-      setError("You must add at least one step to the curriculum.");
-      return;
-    }
-
-    // Check each step for missing required fields
     for (let i = 0; i < steps.length; i++) {
-      const step = steps[i];
-      if (!step.title.trim() || !step.description.trim()) {
-        setError(
-          `Please fill out both the Title and Description for Step ${i + 1}.`,
-        );
-        window.scrollTo({ top: 0, behavior: "smooth" }); // Scroll up so they see the error
+      if (!steps[i].title.trim() || !steps[i].description.trim()) {
+        setError(`Please fill out Title and Description for Step ${i + 1}.`);
+        window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
     }
 
-    // 2. BACKEND SUBMISSION
     try {
       setLoading(true);
-
       const token = localStorage.getItem("edupath_token");
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      // Create the Template Pathway
       const { data: pathwayData } = await axios.post(
         "http://localhost:5000/api/pathway/template",
         pathway,
         config,
       );
-
       const templateId = pathwayData.template._id;
 
-      // Add all steps sequentially
       let orderCounter = 1;
       for (const step of steps) {
-        // Strip out the frontend-only 'id' before sending to the backend
         const { id, ...stepData } = step;
-
         await axios.post(
           `http://localhost:5000/api/pathway/template/${templateId}/steps`,
           { ...stepData, order: orderCounter },
@@ -162,10 +157,9 @@ const AdminPathwayBuilder = () => {
 
       setLoading(false);
       alert("Pathway Template saved successfully!");
-      navigate("/admin/pathways");
+      navigate("/reviewer/pathways"); // 🔗 Redirect to reviewer list
     } catch (err) {
       setLoading(false);
-      console.error(err);
       setError(err?.response?.data?.message || "Failed to save pathway");
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -174,13 +168,12 @@ const AdminPathwayBuilder = () => {
   return (
     <PageShell>
       <div className="mx-auto max-w-4xl space-y-6 pb-12">
-        {/* Header */}
-        <div className="rounded-[28px] border border-black/5 bg-white/70 p-6 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
+        <div className="rounded-[28px] border border-black/5 bg-white/70 p-6 shadow-sm backdrop-blur">
           <h1 className="text-2xl font-semibold text-text-dark">
-            Pathway Builder
+            Create Curriculum
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Create a new Master Course template and define its learning steps.
+            Build a master course for your assigned specialization.
           </p>
         </div>
 
@@ -190,32 +183,28 @@ const AdminPathwayBuilder = () => {
           </div>
         )}
 
-        {/* Pathway Details Section */}
         <div className="rounded-[28px] border border-black/5 bg-white/70 p-6 shadow-sm backdrop-blur">
           <h2 className="text-lg font-semibold text-text-dark mb-4">
             1. Pathway Details
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              {/* Fix: Added htmlFor and id */}
               <label
                 htmlFor="pathName"
                 className="mb-1 block text-sm font-medium text-text-dark"
               >
-                Pathway Name
+                Assigned Specialization
               </label>
               <input
                 id="pathName"
                 type="text"
                 name="pathName"
                 value={pathway.pathName}
-                onChange={handlePathwayChange}
-                placeholder="e.g., Fullstack Web Development"
-                className="w-full rounded-xl border border-black/10 bg-white/50 px-4 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                disabled // 🔥 LOCKED INPUT
+                className="w-full rounded-xl border border-black/10 bg-gray-100 text-gray-500 cursor-not-allowed px-4 py-2 text-sm outline-none"
               />
             </div>
             <div>
-              {/* Fix: Added htmlFor and id */}
               <label
                 htmlFor="level"
                 className="mb-1 block text-sm font-medium text-text-dark"
@@ -227,7 +216,7 @@ const AdminPathwayBuilder = () => {
                 name="level"
                 value={pathway.level}
                 onChange={handlePathwayChange}
-                className="w-full rounded-xl border border-black/10 bg-white/50 px-4 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="w-full rounded-xl border border-black/10 bg-white/50 px-4 py-2 text-sm outline-none focus:border-primary"
               >
                 <option value="Beginner">Beginner</option>
                 <option value="Intermediate">Intermediate</option>
@@ -237,15 +226,13 @@ const AdminPathwayBuilder = () => {
           </div>
         </div>
 
-        {/* Steps Section */}
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-text-dark pl-2">
             2. Curriculum Steps
           </h2>
-
           {steps.map((step, index) => (
             <div
-              key={step.id} // Fix: Using unique step.id instead of array index
+              key={step.id}
               className="relative rounded-[22px] border border-black/5 bg-white/80 p-5 shadow-sm"
             >
               <div className="mb-4 flex items-center justify-between border-b border-black/5 pb-3">
@@ -261,10 +248,8 @@ const AdminPathwayBuilder = () => {
                   </button>
                 )}
               </div>
-
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                  {/* Fix: Dynamic htmlFor and id based on step.id */}
                   <label
                     htmlFor={`step-title-${step.id}`}
                     className="mb-1 block text-xs font-medium text-text-dark"
@@ -278,13 +263,10 @@ const AdminPathwayBuilder = () => {
                     onChange={(e) =>
                       handleStepChange(index, "title", e.target.value)
                     }
-                    placeholder="e.g., Introduction to React"
-                    className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-primary"
                   />
                 </div>
-
                 <div className="sm:col-span-2">
-                  {/* Fix: Dynamic htmlFor and id */}
                   <label
                     htmlFor={`step-desc-${step.id}`}
                     className="mb-1 block text-xs font-medium text-text-dark"
@@ -298,7 +280,7 @@ const AdminPathwayBuilder = () => {
                     onChange={(e) =>
                       handleStepChange(index, "description", e.target.value)
                     }
-                    className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-primary"
                   />
                 </div>
 
@@ -393,8 +375,8 @@ const AdminPathwayBuilder = () => {
                   <div className="sm:col-span-2 pt-4 border-t border-black/10 mt-4">
                     <div className="flex items-center justify-between mb-3">
                       <label className="block text-xs font-bold text-text-dark uppercase tracking-wider">Step Assessment (Quiz)</label>
-                      <button
-                        type="button"
+                      <button 
+                        type="button" 
                         onClick={() => addQuizQuestion(index)}
                         className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full hover:bg-emerald-200 transition-colors"
                       >
@@ -427,10 +409,11 @@ const AdminPathwayBuilder = () => {
                               <div key={optIndex} className="flex items-center gap-2">
                                 <input
                                   type="radio"
-                                  name={`correct-ans-${stepIdentifier}-${qIndex}`}
+                                  // 🔥 FIXED LINE BELOW: Using step.id
+                                  name={`correct-ans-${step.id}-${qIndex}`}
                                   checked={q.correctAnswerIndex === optIndex}
                                   onChange={() => handleQuizChange(index, qIndex, "correctAnswerIndex", optIndex)}
-                                  className="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
+                                  className="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                                   title="Mark as correct answer"
                                 />
                                 <input
@@ -453,16 +436,14 @@ const AdminPathwayBuilder = () => {
               </div>
             </div>
           ))}
-
           <button
             onClick={addStep}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-[22px] border-2 border-dashed border-primary/40 bg-primary/5 py-4 text-sm font-semibold text-primary hover:bg-primary/10 hover:border-primary/60 transition-colors"
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-[22px] border-2 border-dashed border-primary/40 bg-primary/5 py-4 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
           >
             <span>+</span> Add Another Step
           </button>
         </div>
 
-        {/* Save Actions */}
         <div className="flex justify-end pt-4">
           <button
             onClick={handleSavePathway}
@@ -477,4 +458,4 @@ const AdminPathwayBuilder = () => {
   );
 };
 
-export default AdminPathwayBuilder;
+export default ReviewerPathwayBuilder;

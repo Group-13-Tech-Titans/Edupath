@@ -21,7 +21,9 @@ import StudentCourses from "./pages/student/StudentCourses.jsx";
 import StudentCourseDetail from "./pages/student/StudentCourseDetail.jsx";
 import StudentMentor from "./pages/student/StudentMentor.jsx";
 import StudentProfile from "./pages/student/StudentProfile.jsx";
-import PathIntro from "./pages/student/PathIntro.jsx";
+import StudentPathway from "./pages/student/StudentPathway.jsx";
+import StudentStepDetail from "./pages/student/StudentStepDetail";
+import StudentDashboard from "./pages/student/StudentDashboard.jsx"
 import PathFinder from "./pages/student/PathFinder.jsx";
 
 import EducatorDashboard from "./pages/educator/EducatorDashboard.jsx";
@@ -38,7 +40,6 @@ import AdminReviewers from "./pages/admin/AdminReviewers.jsx";
 import AdminVerifyEducators from "./pages/admin/AdminVerifyEducators.jsx";
 import AdminReviewDashboard from "./pages/admin/AdminReviewDashboard.jsx";
 import AdminProfile from "./pages/admin/AdminProfile.jsx";
-import ManageQuestions from "./pages/admin/ManageQuestions";
 import AdminPathwayBuilder from "./pages/admin/AdminPathwayBuilder.jsx";
 import AdminPathwayList from "./pages/admin/AdminPathwayList.jsx";
 import AdminPathwayEdit from "./pages/admin/AdminPathwayEdit.jsx";
@@ -47,6 +48,9 @@ import ReviewerDashboard from "./pages/reviewer/ReviewerDashboard.jsx";
 import ReviewerQueue from "./pages/reviewer/ReviewerQueue.jsx";
 import ReviewerCourseReview from "./pages/reviewer/ReviewerCourseReview.jsx";
 import ReviewerHistory from "./pages/reviewer/ReviewerHistory.jsx";
+import ReviewerPathwayList from "./pages/reviewer/ReviewerPathwayList.jsx";
+import ReviewerPathwayBuilder from "./pages/reviewer/ReviewerPathwayBuilder.jsx";
+import ReviewerPathwayEdit from "./pages/reviewer/ReviewerPathwayEdit.jsx";
 
 
 import NotFound from "./pages/NotFound.jsx";
@@ -64,19 +68,18 @@ const App = () => {
           <Route path="signup/role" element={<SignupRole />} />
           <Route path="signup/student" element={<SignupStudent />} />
           <Route path="signup/educator" element={<SignupEducator />} />
-          {/* <Route path="courses" element={<PublicCourses />} /> */}
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
           <Route path="/student" element={<StudentLayout />}>
-            <Route index element={<PathIntro />} />
-            {/* <Route index element={<StudentDashboard />} /> */}
+            <Route index element={<StudentDashboard />} />
             <Route path="courses" element={<StudentCourses />} />
             <Route path="courses/:id" element={<StudentCourseDetail />} />
             <Route path="mentor" element={<StudentMentor />} />
             <Route path="profile" element={<StudentProfile />} />
-            {/* <Route path="/student/path" element={<PathIntro />} /> */}
             <Route path="/student/path-finder" element={<PathFinder />} />
+            <Route path="/student/journey" element={<StudentPathway />} />
+            <Route path="/student/journey/step/:stepOrder" element={<StudentStepDetail />} />
           </Route>
         </Route>
 
@@ -90,7 +93,6 @@ const App = () => {
             <Route path="add-content/:id" element={<EducatorAddContent />} />
             <Route path="payouts" element={<EducatorPayouts />} />
             <Route path="profile" element={<EducatorProfile />} />
-            {/* <Route path="verification-pending" element={<EducatorVerificationPendingPage />} /> */}
           </Route>
         </Route>
 
@@ -103,7 +105,6 @@ const App = () => {
             <Route path="queue" element={<ReviewerQueue />} />
             <Route path="queue/:id" element={<ReviewerCourseReview />} />
             <Route path="profile" element={<AdminProfile />} />
-            <Route path="/admin/questions" element={<ManageQuestions />} />
             <Route path="/admin/pathway-builder" element={<AdminPathwayBuilder />} />
             <Route path="/admin/pathways" element={<AdminPathwayList />} />
             <Route path="/admin/pathway-edit/:id" element={<AdminPathwayEdit />} />
@@ -116,6 +117,9 @@ const App = () => {
             <Route path="queue" element={<ReviewerQueue />} />
             <Route path="queue/:id" element={<ReviewerCourseReview />} />
             <Route path="history" element={<ReviewerHistory />} />
+            <Route path="/reviewer/pathways" element={<ReviewerPathwayList />} />
+            <Route path="/reviewer/pathway-builder" element={<ReviewerPathwayBuilder />} />
+            <Route path="/reviewer/pathway-edit/:id" element={<ReviewerPathwayEdit />} />
           </Route>
         </Route>
 

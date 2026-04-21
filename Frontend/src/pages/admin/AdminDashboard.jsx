@@ -77,12 +77,6 @@ const AdminDashboard = () => {
               <button className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow hover:brightness-95">
                 Export Reports
               </button>
-              <Link
-                to="/admin/questions"
-                className="bg-emerald-600 text-white px-4 py-2 rounded"
-              >
-                Manage Questions
-              </Link>
             </div>
           </div>
         </div>

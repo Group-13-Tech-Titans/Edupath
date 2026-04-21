@@ -3,12 +3,11 @@ import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 
-// Helper to generate a unique ID for new steps added during editing
 const generateId = () =>
   Date.now().toString(36) + Math.random().toString(36).substring(2);
 
-const AdminPathwayEdit = () => {
-  const { id } = useParams(); // Get the ID from the URL
+const ReviewerPathwayEdit = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
@@ -18,7 +17,6 @@ const AdminPathwayEdit = () => {
   const [pathway, setPathway] = useState({ pathName: "", level: "Beginner" });
   const [steps, setSteps] = useState([]);
 
-  // Fetch data on load
   useEffect(() => {
     const fetchTemplate = async () => {
       try {
@@ -37,7 +35,6 @@ const AdminPathwayEdit = () => {
         setSteps(data.template.steps || []);
         setLoading(false);
       } catch (err) {
-        console.error("Error fetching template:", err);
         setError("Failed to load pathway details.");
         setLoading(false);
       }
@@ -45,9 +42,8 @@ const AdminPathwayEdit = () => {
     fetchTemplate();
   }, [id]);
 
-  const handlePathwayChange = (e) => {
+  const handlePathwayChange = (e) =>
     setPathway({ ...pathway, [e.target.name]: e.target.value });
-  };
 
   const handleStepChange = (index, field, value) => {
     const newSteps = [...steps];
@@ -55,8 +51,7 @@ const AdminPathwayEdit = () => {
     setSteps(newSteps);
   };
 
-  const addStep = () => {
-    // 🟢 Changed resource: "" to resources: []
+  const addStep = () =>
     setSteps([
       ...steps,
       {
@@ -68,11 +63,8 @@ const AdminPathwayEdit = () => {
         quiz: [],
       },
     ]);
-  };
 
-  const removeStep = (index) => {
-    setSteps(steps.filter((_, i) => i !== index));
-  };
+  const removeStep = (index) => setSteps(steps.filter((_, i) => i !== index));
 
   // 🟢 NEW HELPER FUNCTIONS FOR MULTIPLE RESOURCES
   const addResourceToStep = (stepIndex) => {
@@ -122,12 +114,8 @@ const AdminPathwayEdit = () => {
 
   const handleUpdatePathway = async () => {
     setError("");
-
-    if (!pathway.pathName.trim())
-      return setError("Please enter a Pathway Name.");
     if (steps.length === 0) return setError("Add at least one step.");
 
-    // Fix the order numbers before sending
     const formattedSteps = steps.map((step, index) => {
       if (!step.title.trim() || !step.description.trim()) {
         setError(
@@ -135,17 +123,13 @@ const AdminPathwayEdit = () => {
         );
         throw new Error("Validation Failed");
       }
-
-      // Strip out the frontend-only 'id' for new steps (keep _id if it exists)
       const { id, ...stepData } = step;
-
-      return { ...stepData, order: index + 1 }; // Ensure order is exactly right
+      return { ...stepData, order: index + 1 };
     });
 
     try {
       setSaving(true);
       const token = localStorage.getItem("edupath_token");
-
       await axios.put(
         `http://localhost:5000/api/pathway/template/${id}`,
         {
@@ -158,7 +142,7 @@ const AdminPathwayEdit = () => {
 
       setSaving(false);
       alert("Pathway updated successfully!");
-      navigate("/admin/pathways");
+      navigate("/reviewer/pathways"); // 🔗 Redirect to reviewer list
     } catch (err) {
       if (err.message !== "Validation Failed") {
         setError(err?.response?.data?.message || "Failed to update pathway");
@@ -178,13 +162,12 @@ const AdminPathwayEdit = () => {
   return (
     <PageShell>
       <div className="mx-auto max-w-4xl space-y-6 pb-12">
-        {/* Header */}
         <div className="rounded-[28px] border border-black/5 bg-white/70 p-6 shadow-sm backdrop-blur">
           <h1 className="text-2xl font-semibold text-text-dark">
             Edit Pathway
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Modify this master course and its steps.
+            Modify this master curriculum.
           </p>
         </div>
 
@@ -194,7 +177,6 @@ const AdminPathwayEdit = () => {
           </div>
         )}
 
-        {/* Pathway Details */}
         <div className="rounded-[28px] border border-black/5 bg-white/70 p-6 shadow-sm backdrop-blur">
           <h2 className="text-lg font-semibold text-text-dark mb-4">
             1. Pathway Details
@@ -205,15 +187,15 @@ const AdminPathwayEdit = () => {
                 htmlFor="pathName"
                 className="mb-1 block text-sm font-medium text-text-dark"
               >
-                Pathway Name
+                Assigned Specialization
               </label>
               <input
                 id="pathName"
                 type="text"
                 name="pathName"
                 value={pathway.pathName}
-                onChange={handlePathwayChange}
-                className="w-full rounded-xl border border-black/10 px-4 py-2 text-sm outline-none focus:border-primary"
+                disabled // 🔥 LOCKED INPUT
+                className="w-full rounded-xl border border-black/10 bg-gray-100 text-gray-500 cursor-not-allowed px-4 py-2 text-sm outline-none"
               />
             </div>
             <div>
@@ -228,7 +210,7 @@ const AdminPathwayEdit = () => {
                 name="level"
                 value={pathway.level}
                 onChange={handlePathwayChange}
-                className="w-full rounded-xl border border-black/10 px-4 py-2 text-sm outline-none focus:border-primary"
+                className="w-full rounded-xl border border-black/10 bg-white/50 px-4 py-2 text-sm outline-none focus:border-primary"
               >
                 <option value="Beginner">Beginner</option>
                 <option value="Intermediate">Intermediate</option>
@@ -238,16 +220,12 @@ const AdminPathwayEdit = () => {
           </div>
         </div>
 
-        {/* Steps Section */}
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-text-dark pl-2">
             2. Curriculum Steps
           </h2>
-
           {steps.map((step, index) => {
-            // Determine a unique identifier for this step to use in keys and input IDs
             const stepIdentifier = step._id || step.id;
-
             return (
               <div
                 key={stepIdentifier}
@@ -264,7 +242,6 @@ const AdminPathwayEdit = () => {
                     Remove Step
                   </button>
                 </div>
-
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="sm:col-span-2">
                     <label
@@ -301,7 +278,7 @@ const AdminPathwayEdit = () => {
                     />
                   </div>
 
-                  {/* 🟢 NEW: Multiple Resources UI (Replaced the old single input) */}
+                  {/* 🟢 NEW: Multiple Resources UI */}
                   <div className="sm:col-span-2 pt-2 border-t border-black/5 mt-2">
                     <div className="flex items-center justify-between mb-2">
                       <label className="block text-xs font-bold text-text-dark uppercase tracking-wider">
@@ -453,7 +430,6 @@ const AdminPathwayEdit = () => {
               </div>
             );
           })}
-
           <button
             onClick={addStep}
             className="mt-2 flex w-full items-center justify-center gap-2 rounded-[22px] border-2 border-dashed border-primary/40 bg-primary/5 py-4 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
@@ -476,4 +452,4 @@ const AdminPathwayEdit = () => {
   );
 };
 
-export default AdminPathwayEdit;
+export default ReviewerPathwayEdit;
