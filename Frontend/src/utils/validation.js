@@ -7,3 +7,6 @@ export const passwordRegex =
 
 // Contact number validation
 export const contactRegex = /^0\d{9}$/;
+
+// URL/Link validation
+export const urlRegex = /^(https?:\/\/)?([\w.-]+)\.([a-z]{2,})(\/[^\s]*)?$/i;

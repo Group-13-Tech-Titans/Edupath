@@ -1,51 +1,36 @@
+/**
+ * GOOGLE AUTH BUTTON (Presentational Component)
+ * Wraps the official @react-oauth/google provider.
+ * Design Pattern: Presentational (Dumb) Component / Inversion of Control
+ */
 import { GoogleLogin } from "@react-oauth/google";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
-import { setToken } from "../api/client"; // ✅ use correct token key
-import * as authApi from "../api/authApi"; // ✅ to refresh /me
+import PropTypes from "prop-types";
 
-export default function GoogleAuthButton() {
-  const navigate = useNavigate();
-  const API = import.meta.env.VITE_API_URL;
-
-  const onSuccess = async (credentialResponse) => {
-    try {
-      const res = await axios.post(`${API}/api/auth/google`, {
-        credential: credentialResponse.credential,
-      });
-
-      // ✅ store token in edupath_token (NOT "token")
-      setToken(res.data.token);
-
-      // ✅ immediately refresh current user from backend (so ProtectedRoute won’t bounce)
-      const me = await authApi.getMe();
-    //   localStorage.setItem("edupath_user", JSON.stringify(me));
-      localStorage.setItem("edupath_user", JSON.stringify(res.data.user));
-
-
-      const role = me.role;
-
-      if (role === "pending")
-        return navigate("/signup/role", { replace: true });
-      if (role === "student") return navigate("/student", { replace: true });
-      if (role === "educator") return navigate("/educator", { replace: true });
-      if (role === "admin") return navigate("/admin", { replace: true });
-      if (role === "reviewer") return navigate("/reviewer", { replace: true });
-
-      navigate("/", { replace: true });
-    } catch (err) {
-      alert(
-        err?.response?.data?.message || err.message || "Google sign-in failed",
-      );
-    }
-  };
-
+// 🟢 FIXED: Accept onSuccess and onError as props from the parent (e.g., Login.jsx)
+export default function GoogleAuthButton({ onSuccess, onError, text = "signin_with"}) {
   return (
-    <div className="w-full">
+    <div className="w-full flex justify-center">
       <GoogleLogin
-        onSuccess={onSuccess}
-        onError={() => alert("Google failed")}
+        onSuccess={(credentialResponse) => {
+          // Pass the Google token UP to the parent component
+          if (onSuccess) onSuccess(credentialResponse);
+        }}
+        onError={() => {
+          // Pass the error UP to the parent component to handle UX (e.g., setting error state)
+          if (onError) onError();
+        }}
+        text={text}
+        useOneTap={false} // Optional: Set to true if you want the Google popup to appear automatically
+        theme="outline"
+        size="large"
+        width="100%"
       />
     </div>
   );
 }
+
+GoogleAuthButton.propTypes = {
+  onSuccess: PropTypes.func,
+  onError: PropTypes.func,
+  text: PropTypes.string,
+};

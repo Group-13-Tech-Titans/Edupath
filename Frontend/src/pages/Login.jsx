@@ -1,11 +1,18 @@
+/**
+ * LOGIN COMPONENT
+ * Handles user authentication via Email/Password and Google OAuth.
+ * Design Patterns: Controlled Components, Context API Integration, Declarative Routing.
+ */
+
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useApp } from "../context/AppProvider.jsx";
 import GoogleAuthButton from "../components/GoogleAuthButton.jsx";
-import { emailRegex, passwordRegex } from "../utils/validation";
+import { emailRegex } from "../utils/validation"; // Removed passwordRegex from login!
 
+// Dictionary mapping for role-based redirects
 const roleHomePath = {
   student: "/student",
   educator: "/educator",
@@ -13,72 +20,88 @@ const roleHomePath = {
   reviewer: "/reviewer",
 };
 
-const handleGoogleSuccess = async (credentialResponse) => {
-  try {
-    // Google returns an ID token in credentialResponse.credential
-    const res = await axios.post("http://localhost:5000/api/auth/google", {
-      credential: credentialResponse.credential,
-    });
-
-    // backend returns your JWT + user
-    localStorage.setItem("edupath_token", res.data.token);
-    localStorage.setItem("edupath_user", JSON.stringify(res.data.user));
-
-    // redirect based on role
-    const role = res.data.user.role;
-    if (role === "admin") globalThis.location.href = "/admin";
-    else if (role === "educator") globalThis.location.href = "/educator";
-    else globalThis.location.href = "/student";
-  } catch (err) {
-    console.log(err);
-    alert(err?.response?.data?.message || "Google sign-in failed");
-  }
-};
-
-const handleGoogleError = () => {
-  alert("Google sign-in failed");
-};
-
 const Login = () => {
-  const { login } = useApp();
+  const { login, setSession } = useApp(); // Accessing global auth state
+  const navigate = useNavigate();
+
+  // Component State (Controlled Inputs)
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [errors, setErrors] = useState({});
-  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false); // Added loading state for better UX
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      setIsLoading(true);
+      const res = await axios.post("http://localhost:5000/api/auth/google", {
+        credential: credentialResponse.credential,
+      });
+
+      // Use setSession! This saves the token to local storage
+      // AND instantly updates the global React state so the ProtectedRoute won't bounce!
+      setSession(res.data.token, res.data.user);
+
+      const user = res.data.user;
+      let target;
+
+      if (user.role === "pending") {
+        target = "/signup/role";
+      } else if (user.status === "onboarding") {
+        target = `/signup/${user.role}`; // Forces user to the form!
+      } else {
+        target = roleHomePath[user.role] || "/";
+      }
+      
+      navigate(target, { replace: true });
+    } catch (err) {
+      console.log(err);
+      setError("Google sign-in failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     let newErrors = {};
 
+    // Input Validation
     if (!email) {
       newErrors.email = "Please enter email";
     } else if (!emailRegex.test(email)) {
       newErrors.email = "Invalid email format";
     }
 
+    // Only check if password is provided. Never check complexity regex on Login.
     if (!password) {
       newErrors.authInput = "Please enter password";
-    } else if (!passwordRegex.test(password)) {
-      newErrors.authInput =
-        "Password must be 8+ characters with uppercase, lowercase, number and special character";
     }
 
     setErrors(newErrors);
-
     if (Object.keys(newErrors).length > 0) return;
 
+    // Execute Login via Context
+    setIsLoading(true);
     const res = await login(email.trim(), password);
+    setIsLoading(false);
 
+    // Handle Error or Success Redirect
     if (!res.success) {
       setError(res.message || "Unable to login");
       return;
     }
 
     const user = res.user;
+    let target;
 
-    let target = roleHomePath[user.role] || "/signup/role";
+    if (user.role === "pending") {
+      target = "/signup/role";
+    } else if (user.status === "onboarding") {
+      target = `/signup/${user.role}`; // Forces user to the form!
+    } else {
+      target = roleHomePath[user.role] || "/";
+    }
 
     navigate(target, { replace: true });
   };
@@ -109,10 +132,12 @@ const Login = () => {
           </div>
         </div>
 
-        <div className="flex justify-center">
-          <div className="mt-6">
-            <GoogleAuthButton />
-          </div>
+        <div className="flex justify-center mt-6">
+          {/* Ensure your GoogleAuthButton accepts onSuccess/onError props! */}
+          <GoogleAuthButton
+            onSuccess={handleGoogleSuccess}
+            onError={() => setError("Google sign-in failed")}
+          />
         </div>
 
         <div className="mt-5 flex items-center gap-3 text-[11px] text-muted">
@@ -123,32 +148,40 @@ const Login = () => {
 
         <form onSubmit={handleSubmit} className="mt-5 space-y-4">
           <div>
-            <label htmlFor="email" className="text-xs font-medium text-text-dark">
+            <label
+              htmlFor="email"
+              className="text-xs font-medium text-text-dark"
+            >
               Email Address
             </label>
             <input
               id="email"
               type="email"
               className="mt-1 w-full rounded-full border border-emerald-100 bg-white/80 px-4 py-2.5 text-sm outline-none ring-primary/40 placeholder:text-gray-400 focus:border-emerald-300 focus:ring"
-              placeholder="you@example.com"
+              placeholder="youremail@gmail.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              disabled={isLoading}
             />
             {errors.email && (
               <p className="text-red-500 text-xs mt-1">{errors.email}</p>
             )}
           </div>
+
           <div>
             <div className="mb-1 flex items-center justify-between">
-              <label htmlFor="password" className="text-xs font-medium text-text-dark">
+              <label
+                htmlFor="password"
+                className="text-xs font-medium text-text-dark"
+              >
                 Password
               </label>
-              <button
-                type="button"
+              <Link
+                to="/forgot-password"
                 className="text-[11px] font-medium text-primary hover:underline"
               >
-                <Link to="/forgot-password">Forgot Password ?</Link>
-              </button>
+                Forgot Password ?
+              </Link>
             </div>
             <input
               id="password"
@@ -156,35 +189,30 @@ const Login = () => {
               className="w-full rounded-full border border-emerald-100 bg-white/80 px-4 py-2.5 text-sm outline-none ring-primary/40 focus:border-emerald-300 focus:ring"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              disabled={isLoading}
             />
             {errors.authInput && (
               <p className="text-red-500 text-xs mt-1">{errors.authInput}</p>
             )}
           </div>
-          <div className="flex items-center justify-between text-[11px] text-muted">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                className="h-3.5 w-3.5 rounded border-emerald-300 text-emerald-500 focus:ring-emerald-400"
-              />
-              <span>Remember me for 30 days</span>
-            </label>
-          </div>
+
           {error && (
-            <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs text-red-600">
+            <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs text-red-600 text-center">
               {error}
             </p>
           )}
+
           <button
             type="submit"
-            className="btn-primary mt-1 w-full rounded-full py-2.5 text-sm"
+            disabled={isLoading}
+            className="btn-primary mt-1 w-full rounded-full py-2.5 text-sm disabled:opacity-50"
           >
-            Sign in
+            {isLoading ? "Signing in..." : "Sign in"}
           </button>
         </form>
 
         <p className="mt-4 text-center text-xs text-muted">
-          Don&apos;t have an account?{" "}
+          Don't have an account?{" "}
           <Link
             to="/signup"
             className="text-primary underline-offset-2 hover:underline"

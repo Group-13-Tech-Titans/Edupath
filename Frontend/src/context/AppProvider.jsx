@@ -4,10 +4,13 @@ import React, {
   useEffect,
   useState,
   useCallback,
+  useMemo,
 } from "react";
+import PropTypes from "prop-types";
 import { mockCourses } from "../data/mockCourses.js";
 import * as authApi from "../api/authApi.js";
 import { getToken, setToken } from "../api/client.js";
+import { googleLogout } from "@react-oauth/google";
 
 const STORAGE_KEY = "edupath_app_state_v1";
 
@@ -34,7 +37,7 @@ const defaultState = {
 
 function loadState() {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = globalThis.localStorage.getItem(STORAGE_KEY);
     if (!raw) {
       return { ...defaultState };
     }
@@ -55,7 +58,7 @@ function loadState() {
 
 function persistState(state) {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {
     console.error("Failed to persist state", e);
   }
@@ -124,6 +127,7 @@ export const AppProvider = ({ children }) => {
   );
 
   const logout = useCallback(() => {
+    googleLogout();
     setToken(null); // removes edupath_token
     localStorage.removeItem("edupath_user");
     localStorage.removeItem("user"); // optional if you used it before
@@ -159,11 +163,15 @@ export const AppProvider = ({ children }) => {
 
   const signupStudent = useCallback(async (formData) => {
     try {
+      // Extract password & confirm. Keep everything else in 'safeProfileData'
+      const { password, confirm, ...safeProfileData } = formData;
+
       const result = await authApi.updateProfile({
         name: `${formData.firstName} ${formData.lastName}`,
         role: "student",
-        password: formData.password,
-        profile: formData,
+        password: password,
+        profile: safeProfileData,
+        status: "active",
       });
       setState((prev) => ({
         ...prev,
@@ -180,13 +188,16 @@ export const AppProvider = ({ children }) => {
 
   const signupEducator = useCallback(async (formData) => {
     try {
+      // Extract password & confirm. Keep everything else in 'safeProfileData'
+      const { password, confirm, ...safeProfileData } = formData;
+
       const result = await authApi.updateProfile({
         name: formData.fullName,
         role: "educator",
-        password: formData.password,
+        password: password,
         status: "PENDING_VERIFICATION",
         specializationTag: formData.specializationTag,
-        profile: formData,
+        profile: safeProfileData,
       });
       setState((prev) => ({
         ...prev,
@@ -327,33 +338,59 @@ export const AppProvider = ({ children }) => {
     });
   }, []);
 
-  const value = {
-    state,
-    authLoading: state.authLoading,
-    currentUser: state.currentUser,
-    users: state.users,
-    courses: state.courses,
-    mentorRequests: state.mentorRequests,
-    lessonProgress: state.lessonProgress,
-    payouts: state.payouts,
-    reviewHistory: state.reviewHistory,
-    reviewerAccounts: state.reviewerAccounts,
-    login,
-    logout,
-    signupAccount,
-    signupStudent,
-    signupEducator,
-    createReviewer,
-    verifyEducator,
-    createCourse,
-    updateCourse,
-    approveCourse,
-    rejectCourse,
-    saveMentorRequest,
-    markLessonCompleted,
-  };
+  // Wrapped the value object in useMemo to prevent massive re-renders
+  const value = useMemo(
+    () => ({
+      state,
+      authLoading: state.authLoading,
+      currentUser: state.currentUser,
+      users: state.users,
+      courses: state.courses,
+      mentorRequests: state.mentorRequests,
+      lessonProgress: state.lessonProgress,
+      payouts: state.payouts,
+      reviewHistory: state.reviewHistory,
+      reviewerAccounts: state.reviewerAccounts,
+      login,
+      logout,
+      setSession,
+      signupAccount,
+      signupStudent,
+      signupEducator,
+      createReviewer,
+      verifyEducator,
+      createCourse,
+      updateCourse,
+      approveCourse,
+      rejectCourse,
+      saveMentorRequest,
+      markLessonCompleted,
+    }),
+    [
+      // This dependency array tells React: "Only recreate this object if one of these specific things changes"
+      state,
+      login,
+      logout,
+      setSession,
+      signupAccount,
+      signupStudent,
+      signupEducator,
+      createReviewer,
+      verifyEducator,
+      createCourse,
+      updateCourse,
+      approveCourse,
+      rejectCourse,
+      saveMentorRequest,
+      markLessonCompleted,
+    ],
+  );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+};
+// Added Prop Validation for 'children'
+AppProvider.propTypes = {
+  children: PropTypes.node.isRequired,
 };
 
 export const useApp = () => useContext(AppContext);
