@@ -19,7 +19,7 @@ export default function AdminReviewers() {
     name: "",
     email: "",
     password: "",
-    specializationTag: "", // 🟢 FIXED: Match your DB schema
+    specializationTag: "", // Matches DB schema
   });
   const [search, setSearch] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -38,10 +38,7 @@ export default function AdminReviewers() {
   const fetchReviewers = useCallback(async () => {
     try {
       setError("");
-      // 🟢 FIXED: Added Auth Headers
       const res = await axios.get(API_BASE, getAuthHeader());
-      
-      // Your backend returns { reviewers: [...] }. Ensure we handle that correctly.
       setReviewers(res.data.reviewers || res.data || []);
     } catch (err) {
       console.error(err);
@@ -53,20 +50,27 @@ export default function AdminReviewers() {
     fetchReviewers();
   }, [fetchReviewers]);
 
+  // Form handler for CREATE
   const handleChange = (e) => {
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
   };
 
+  // 🟢 ADDED: Form handler for EDIT modal
+  const handleEditChange = (e) => {
+    setEditingReviewer((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  };
+
+  // Submit handler for CREATE
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
     try {
-      // 🟢 FIXED: Sending specializationTag and Auth Headers
-      const res = await axios.post(API_BASE, form, getAuthHeader());
-      
-      // After success, just refresh the list
+      await axios.post(API_BASE, form, getAuthHeader());
       fetchReviewers();
       setSuccess("Reviewer account created ✅");
       setForm({ name: "", email: "", password: "", specializationTag: "" });
@@ -75,10 +79,10 @@ export default function AdminReviewers() {
     }
   };
 
+  // Submit handler for DELETE
   const confirmDelete = async () => {
     try {
       const id = deleteConfirmId;
-      // 🟢 FIXED: Added Auth Headers
       await axios.delete(`${API_BASE}/${id}`, getAuthHeader());
       setReviewers((prev) => prev.filter((r) => (r._id || r.id) !== id));
       setDeleteConfirmId(null);
@@ -87,11 +91,11 @@ export default function AdminReviewers() {
     }
   };
 
+  // Submit handler for EDIT
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
       const id = editingReviewer._id || editingReviewer.id;
-      // 🟢 FIXED: Added Auth Headers
       const res = await axios.put(`${API_BASE}/${id}`, editingReviewer, getAuthHeader());
       
       setReviewers((prev) =>
@@ -104,8 +108,9 @@ export default function AdminReviewers() {
     }
   };
 
+  // Search filter
   const filteredReviewers = reviewers.filter((r) =>
-    `${r.name} ${r.email} ${r.expertise}`
+    `${r.name} ${r.email} ${r.specializationTag}`
       .toLowerCase()
       .includes(search.toLowerCase())
   );
@@ -169,7 +174,7 @@ export default function AdminReviewers() {
 
             <div>
               <label className="text-sm font-semibold text-slate-700">
-                Expertise
+                Specialization Tag
               </label>
               <input
                 name="specializationTag"
@@ -224,8 +229,9 @@ export default function AdminReviewers() {
                 </div>
 
                 <div className="flex items-center gap-3 shrink-0">
+                  {/* 🟢 FIXED: Display specializationTag instead of expertise */}
                   <span className="hidden sm:inline-block rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                    {r.expertise}
+                    {r.specializationTag || "No Specialization"}
                   </span>
                   
                   {/* Action Buttons */}
@@ -268,8 +274,8 @@ export default function AdminReviewers() {
                 <label className="text-sm font-semibold text-slate-700">Name</label>
                 <input
                   name="name"
-                  value={editingReviewer.name}
-                  onChange={handleEditChange}
+                  value={editingReviewer.name || ""}
+                  onChange={handleEditChange} // 🟢 FIXED: Function now exists
                   className="mt-1 w-full rounded-xl border px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-400"
                   required
                 />
@@ -279,17 +285,17 @@ export default function AdminReviewers() {
                 <input
                   name="email"
                   type="email"
-                  value={editingReviewer.email}
+                  value={editingReviewer.email || ""}
                   onChange={handleEditChange}
                   className="mt-1 w-full rounded-xl border px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-400"
                   required
                 />
               </div>
               <div>
-                <label className="text-sm font-semibold text-slate-700">Expertise</label>
+                <label className="text-sm font-semibold text-slate-700">Specialization Tag</label>
                 <input
-                  name="expertise"
-                  value={editingReviewer.expertise}
+                  name="specializationTag" // 🟢 FIXED: Switched from expertise to specializationTag
+                  value={editingReviewer.specializationTag || ""} 
                   onChange={handleEditChange}
                   className="mt-1 w-full rounded-xl border px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-400"
                   required
