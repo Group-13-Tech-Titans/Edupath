@@ -26,6 +26,23 @@ router.get("/educator", authMiddleware, roleMiddleware(["educator"]), authContro
 
 router.get("/admin", authMiddleware, roleMiddleware(["admin"]), authController.adminWelcome);
 router.post("/admin/create-user", authMiddleware, roleMiddleware(["admin"]), authController.createAdminUser);
+
+// ==========================================
+//   ADMIN: REVIEWER MANAGEMENT (MERGED)
+// ==========================================
+
+// Get all reviewers
 router.get("/admin/reviewers", authMiddleware, roleMiddleware(["admin"]), authController.getAllReviewers);
+
+// Create a new reviewer
+router.post("/admin/reviewers", authMiddleware, roleMiddleware(["admin"]), authController.createReviewer);
+
+// Update a reviewer
+router.put("/admin/reviewers/:id", authMiddleware, roleMiddleware(["admin"]), authController.updateReviewer);
+
+// Delete a reviewer
+router.delete("/admin/reviewers/:id", authMiddleware, roleMiddleware(["admin"]), authController.deleteReviewer);
+
+module.exports = router;
 
 module.exports = router;

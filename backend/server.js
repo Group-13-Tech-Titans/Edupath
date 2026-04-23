@@ -20,6 +20,10 @@ app.use("/api/pathway", require("./modules/pathway/routes/pathwayRoutes"));
 // Quiz for each step
 app.use("/api/step-quiz", require("./modules/quiz/routes/stepQuizRoutes"));
 
+app.use("/api/courses", require("./modules/courses/routes/courseRoutes"));
+
+app.use("/api/upload", require("./modules/upload/routes/uploadRoutes"));
+
 app.get("/test", (req, res) => {
   res.send("Working");
 });

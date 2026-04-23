@@ -23,7 +23,7 @@ const AdminLayout = () => {
   const navItems = [
     { to: "/admin", label: "Home", end: true },
     { to: "/admin/verify-educators", label: "Verify Educators" },
-    { to: "/admin/queue", label: "Reviews Course" },
+    { to: "/admin/approvals", label: "Reviews Course" },
     { to: "/admin/reviewers", label: "Create Reviewer" },
     
   ];
@@ -33,7 +33,6 @@ const AdminLayout = () => {
       <header className="sticky top-0 z-30 border-b border-black/5 bg-white/60 backdrop-blur">
         <div className="mx-auto max-w-6xl px-4 py-3">
           <div className="flex items-center justify-between gap-3">
-            {/* Brand */}
             <Link to="/admin" className="flex items-center gap-2 shrink-0">
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/15 text-primary shadow-sm">
                 🎓
@@ -78,7 +77,7 @@ const AdminLayout = () => {
                 Log out
               </button>
 
-              {/* Mobile hamburger */}
+              {/* Mobile view */}
               <button
                 onClick={() => setOpen((v) => !v)}
                 className="lg:hidden inline-flex h-10 w-10 items-center justify-center rounded-xl bg-black/5 hover:bg-black/10"
@@ -119,15 +118,15 @@ const AdminLayout = () => {
                   </NavLink>
                 ))}
 
-                {/* Mobile email + logout */}
+               
                 <div className="mt-2 flex items-center justify-between gap-3 rounded-xl bg-white/70 px-4 py-3">
                   <span className="text-xs text-muted truncate">
                     {currentUser?.email}
                   </span>
                   <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-semibold">
-                      {currentUser?.email?.charAt(0).toUpperCase()}
-                    </div>
+              <button onClick={() => window.location.href = "/admin/profile"} className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-semibold">
+                {currentUser?.email?.charAt(0).toUpperCase()}
+              </button>
                     <button
                       onClick={logout}
                       className="rounded-full border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"

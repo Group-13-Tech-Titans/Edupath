@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
+import AdminFooter from "./AdminFooter.jsx";
 
 const LS_KEY = "edupath_admin_profile_v1";
 
@@ -14,7 +15,7 @@ const AdminProfile = () => {
       fullName: currentUser?.fullName || "EduPath Admin",
       phone: "",
       bio: "Manage platform users, approvals, payments, and system settings.",
-      avatar: "", // dataURL or image URL
+      avatar: "", 
       role: "admin",
       createdAt: new Date().toISOString(),
     }),
@@ -100,7 +101,6 @@ const AdminProfile = () => {
 
     saveProfile(next);
     setEditing(false);
-    showToast("success", "Profile updated.");
   };
 
   const deleteProfile = () => {
@@ -317,9 +317,7 @@ const AdminProfile = () => {
             <div className="rounded-[28px] border border-black/5 bg-white/70 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-semibold text-text-dark">Change Password</h2>
-                <span className="text-xs text-muted">
-                  Demo default: <span className="font-semibold">admin123</span>
-                </span>
+                
               </div>
 
               {pwdMsg && (
@@ -376,18 +374,19 @@ const AdminProfile = () => {
               </form>
             </div>
 
-            {/* Small security note */}
-            <div className="rounded-[28px] border border-black/5 bg-white/60 p-5 text-xs text-muted">
-              Note: This is a frontend-only demo. In real apps, passwords must be handled by a backend with hashing.
-            </div>
           </div>
         </div>
       </div>
+      <div>
+        <br/>
+         <AdminFooter />
+      </div>
+      
+
     </PageShell>
   );
 };
 
-/* ------------------- UI Helpers ------------------- */
 
 const Field = ({ label, children }) => (
   <label className="block">

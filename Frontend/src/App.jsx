@@ -1,11 +1,12 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import PlainLayout from "./components/layouts/PlainLayout.jsx";
 import StudentLayout from "./components/layouts/StudentLayout.jsx";
 import EducatorLayout from "./components/layouts/EducatorLayout.jsx";
 import AdminLayout from "./components/layouts/AdminLayout.jsx";
 import ReviewerLayout from "./components/layouts/ReviewerLayout.jsx";
+import MentorLayout from "./components/layouts/MentorLayout.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 import Home from "./pages/Home.jsx";
@@ -37,6 +38,7 @@ import EducatorVerificationPendingPage from "./pages/educator/EducatorVerificati
 
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import AdminReviewers from "./pages/admin/AdminReviewers.jsx";
+import AdminViewCourses from "./pages/admin/AdminViewCourses.jsx";
 import AdminVerifyEducators from "./pages/admin/AdminVerifyEducators.jsx";
 import AdminReviewDashboard from "./pages/admin/AdminReviewDashboard.jsx";
 import AdminProfile from "./pages/admin/AdminProfile.jsx";
@@ -52,6 +54,19 @@ import ReviewerPathwayList from "./pages/reviewer/ReviewerPathwayList.jsx";
 import ReviewerPathwayBuilder from "./pages/reviewer/ReviewerPathwayBuilder.jsx";
 import ReviewerPathwayEdit from "./pages/reviewer/ReviewerPathwayEdit.jsx";
 
+// Mentor Pages
+import MentorDashboard from "./pages/mentor/MentorDashboard.jsx";
+import MentorProfile from "./pages/mentor/MentorProfile.jsx";
+import MentorSessions from "./pages/mentor/MentorSessions.jsx";
+import MentorStudents from "./pages/mentor/MentorStudents.jsx";
+import MentorSettings from "./pages/mentor/MentorSettings.jsx";
+import MentorShareProfile from "./pages/mentor/MentorShareProfile.jsx";
+import MentorResources from "./pages/mentor/MentorResources.jsx";
+import MentorMessages from "./pages/mentor/MentorMessages.jsx";
+import MentorStudentDetails from "./pages/mentor/MentorStudentDetails.jsx";
+import MentorAnalytics from "./pages/mentor/MentorAnalytics.jsx";
+
+import ComingSoon from './pages/ComingSoon.jsx';
 
 import NotFound from "./pages/NotFound.jsx";
 
@@ -100,14 +115,15 @@ const App = () => {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="reviewers" element={<AdminReviewers />} />
+            <Route path="approvals" element={<AdminViewCourses />} />
             <Route path="verify-educators" element={<AdminVerifyEducators />} />
             <Route path="review-dashboard" element={<AdminReviewDashboard />} />
             <Route path="queue" element={<ReviewerQueue />} />
             <Route path="queue/:id" element={<ReviewerCourseReview />} />
             <Route path="profile" element={<AdminProfile />} />
-            <Route path="/admin/pathway-builder" element={<AdminPathwayBuilder />} />
-            <Route path="/admin/pathways" element={<AdminPathwayList />} />
-            <Route path="/admin/pathway-edit/:id" element={<AdminPathwayEdit />} />
+            <Route path="pathway-builder" element={<AdminPathwayBuilder />} />
+            <Route path="pathways" element={<AdminPathwayList />} />
+            <Route path="pathway-edit/:id" element={<AdminPathwayEdit />} />
           </Route>
         </Route>
 
@@ -123,6 +139,26 @@ const App = () => {
           </Route>
         </Route>
 
+        {/* Mentor Protected Routes */}
+        <Route element={<ProtectedRoute allowedRoles={["mentor"]} />}>
+          <Route path="/mentor" element={<MentorLayout />}>
+            <Route index element={<MentorDashboard />} />
+            <Route path="sessions" element={<MentorSessions />} />
+            <Route path="students" element={<MentorStudents />} />
+            <Route path="profile" element={<MentorProfile />} />
+            <Route path="settings" element={<MentorSettings />} />
+            <Route path="share-profile" element={<MentorShareProfile />} />
+            <Route path="resources" element={<MentorResources />} />
+            <Route path="messages" element={<MentorMessages />} />
+            <Route path="student-details/:id" element={<MentorStudentDetails />} />
+            <Route path="analytics" element={<MentorAnalytics />} />
+          </Route>
+        </Route>
+
+        <Route path="/MentorDashboard" element={<Navigate to="/mentor" replace />} />
+
+        {/* Misc Routes */}
+        <Route path="/coming-soon" element={<ComingSoon />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AnimatePresence>
