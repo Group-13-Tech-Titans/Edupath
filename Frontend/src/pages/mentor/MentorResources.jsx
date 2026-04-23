@@ -3,12 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 
 // ── Mock data (replace with real API calls later) ──────────────
 const MOCK_STUDENTS = [
-  { id: "S001", name: "Priya Sharma",      track: "Web Development" },
-  { id: "S002", name: "Rahul Mehta",       track: "Data Science & ML" },
-  { id: "S003", name: "Anjali Kumar",      track: "React & TypeScript" },
-  { id: "S004", name: "Nimal Perera",      track: "Networking" },
+  { id: "S001", name: "Priya Sharma", track: "Web Development" },
+  { id: "S002", name: "Rahul Mehta", track: "Data Science & ML" },
+  { id: "S003", name: "Anjali Kumar", track: "React & TypeScript" },
+  { id: "S004", name: "Nimal Perera", track: "Networking" },
   { id: "S005", name: "Sahana Jayasinghe", track: "Web Development" },
-  { id: "S006", name: "Kavindu Fernando",  track: "Web Development" },
+  { id: "S006", name: "Kavindu Fernando", track: "Web Development" },
 ];
 
 const MOCK_RESOURCES = [
@@ -45,34 +45,34 @@ const MOCK_RESOURCES = [
 const TRACKS = [...new Set(MOCK_STUDENTS.map((s) => s.track))];
 
 const TYPE_META = {
-  video:  { label: "Video",        icon: <VideoIcon />,    badge: "bg-sky-100 text-sky-800" },
-  pdfppt: { label: "PDF / PPT",    icon: <DocIcon />,      badge: "bg-amber-100 text-amber-800" },
-  quiz:   { label: "Quiz",         icon: <QuizIcon />,     badge: "bg-purple-100 text-purple-800" },
+  video: { label: "Video", icon: <VideoIcon />, badge: "bg-sky-100 text-sky-800" },
+  pdfppt: { label: "PDF / PPT", icon: <DocIcon />, badge: "bg-amber-100 text-amber-800" },
+  quiz: { label: "Quiz", icon: <QuizIcon />, badge: "bg-purple-100 text-purple-800" },
 };
 
 const SHARE_META = {
-  all:      { label: "All Students",      badge: "bg-emerald-100 text-emerald-800" },
-  specific: { label: "Specific Student",  badge: "bg-blue-100 text-blue-800" },
+  all: { label: "All Students", badge: "bg-emerald-100 text-emerald-800" },
+  specific: { label: "Specific Student", badge: "bg-blue-100 text-blue-800" },
 };
 
 // ── Helpers ─────────────────────────────────────────────────────
 function timeAgo(iso) {
   const diff = (Date.now() - new Date(iso)) / 1000;
-  if (diff < 60)   return "just now";
+  if (diff < 60) return "just now";
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400)return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
 // ── Main Page ────────────────────────────────────────────────────
 export default function MentorResources() {
   const navigate = useNavigate();
-  const [resources, setResources]   = useState(MOCK_RESOURCES);
-  const [modalOpen, setModalOpen]   = useState(false);
+  const [resources, setResources] = useState(MOCK_RESOURCES);
+  const [modalOpen, setModalOpen] = useState(false);
   const [filterType, setFilterType] = useState("all");
   const [filterShare, setFilterShare] = useState("all");
-  const [search, setSearch]         = useState("");
-  const [detailRes, setDetailRes]   = useState(null);
+  const [search, setSearch] = useState("");
+  const [detailRes, setDetailRes] = useState(null);
 
   // Form state
   const emptyForm = {
@@ -137,7 +137,7 @@ export default function MentorResources() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return resources.filter((r) => {
-      const typeOk  = filterType  === "all" || r.type      === filterType;
+      const typeOk = filterType === "all" || r.type === filterType;
       const shareOk = filterShare === "all" || r.shareWith === filterShare;
       const searchOk = !q || r.title.toLowerCase().includes(q) ||
         (r.studentName || "").toLowerCase().includes(q);
@@ -147,9 +147,9 @@ export default function MentorResources() {
 
   // Stats
   const stats = useMemo(() => ({
-    total:   resources.length,
-    videos:  resources.filter((r) => r.type === "video").length,
-    docs:    resources.filter((r) => r.type === "pdfppt").length,
+    total: resources.length,
+    videos: resources.filter((r) => r.type === "video").length,
+    docs: resources.filter((r) => r.type === "pdfppt").length,
     quizzes: resources.filter((r) => r.type === "quiz").length,
   }), [resources]);
 
@@ -172,10 +172,10 @@ export default function MentorResources() {
       {/* ── Stats Row ───────────────────────────────────────────── */}
       <div className="mb-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
-          { label: "Total Shared",  value: stats.total,   accent: "border-teal-400" },
-          { label: "Videos",        value: stats.videos,  accent: "border-sky-400" },
-          { label: "PDFs / PPTs",   value: stats.docs,    accent: "border-amber-400" },
-          { label: "Quizzes",       value: stats.quizzes, accent: "border-purple-400" },
+          { label: "Total Shared", value: stats.total, accent: "border-teal-400" },
+          { label: "Videos", value: stats.videos, accent: "border-sky-400" },
+          { label: "PDFs / PPTs", value: stats.docs, accent: "border-amber-400" },
+          { label: "Quizzes", value: stats.quizzes, accent: "border-purple-400" },
         ].map((s) => (
           <div key={s.label} className={`rounded-2xl bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.08)] border-l-4 ${s.accent}`}>
             <div className="text-sm text-slate-500">{s.label}</div>
@@ -234,7 +234,7 @@ export default function MentorResources() {
               </div>
             ) : (
               filtered.map((r) => {
-                const tm = TYPE_META[r.type]  || TYPE_META.video;
+                const tm = TYPE_META[r.type] || TYPE_META.video;
                 const sm = SHARE_META[r.shareWith] || SHARE_META.specific;
                 return (
                   <div key={r.id}
@@ -294,10 +294,10 @@ export default function MentorResources() {
           <section className="rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
             <div className="mb-4 text-lg font-extrabold">Overview</div>
             {[
-              { label: "Total Shared",  value: stats.total,   accent: "border-teal-400" },
-              { label: "Videos",        value: stats.videos,  accent: "border-sky-400" },
-              { label: "PDFs / PPTs",   value: stats.docs,    accent: "border-amber-400" },
-              { label: "Quizzes",       value: stats.quizzes, accent: "border-purple-400" },
+              { label: "Total Shared", value: stats.total, accent: "border-teal-400" },
+              { label: "Videos", value: stats.videos, accent: "border-sky-400" },
+              { label: "PDFs / PPTs", value: stats.docs, accent: "border-amber-400" },
+              { label: "Quizzes", value: stats.quizzes, accent: "border-purple-400" },
             ].map((s) => (
               <div key={s.label} className={`mb-3 flex items-center justify-between rounded-xl border-l-4 ${s.accent} bg-slate-50 p-4`}>
                 <div className="text-sm text-slate-500">{s.label}</div>
@@ -366,17 +366,16 @@ export default function MentorResources() {
                 <label className="mb-1 block text-sm font-bold text-slate-700">Resource Type</label>
                 <div className="flex gap-2">
                   {[
-                    { value: "video",  label: "Video" },
+                    { value: "video", label: "Video" },
                     { value: "pdfppt", label: "PDF / PPT" },
-                    { value: "quiz",   label: "Quiz" },
+                    { value: "quiz", label: "Quiz" },
                   ].map((t) => (
                     <button key={t.value} type="button"
                       onClick={() => setForm((f) => ({ ...f, type: t.value }))}
-                      className={`flex-1 rounded-xl border-2 py-2 text-sm font-bold transition ${
-                        form.type === t.value
+                      className={`flex-1 rounded-xl border-2 py-2 text-sm font-bold transition ${form.type === t.value
                           ? "border-teal-400 bg-teal-400 text-white"
                           : "border-slate-200 bg-white text-slate-600 hover:border-teal-300"
-                      }`}>
+                        }`}>
                       {t.label}
                     </button>
                   ))}
@@ -445,13 +444,15 @@ export default function MentorResources() {
             </div>
             <div className="rounded-xl border border-black/5 bg-slate-50 p-4">
               {[
-                { k: "Title",       v: detailRes.title },
-                { k: "Type",        v: TYPE_META[detailRes.type]?.label },
-                { k: "Shared With", v: detailRes.shareWith === "specific" ? detailRes.studentName :
-                                       detailRes.shareWith === "group" ? detailRes.courseGroup : "All Students" },
+                { k: "Title", v: detailRes.title },
+                { k: "Type", v: TYPE_META[detailRes.type]?.label },
+                {
+                  k: "Shared With", v: detailRes.shareWith === "specific" ? detailRes.studentName :
+                    detailRes.shareWith === "group" ? detailRes.courseGroup : "All Students"
+                },
                 { k: "Description", v: detailRes.description || "—" },
-                { k: "Notes",       v: detailRes.notes || "—" },
-                { k: "Shared",      v: timeAgo(detailRes.createdAt) },
+                { k: "Notes", v: detailRes.notes || "—" },
+                { k: "Shared", v: timeAgo(detailRes.createdAt) },
               ].map(({ k, v }) => (
                 <div key={k} className="flex justify-between gap-3 border-b border-slate-200 py-2 last:border-b-0">
                   <span className="text-sm text-slate-500">{k}</span>

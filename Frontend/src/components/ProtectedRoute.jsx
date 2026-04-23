@@ -6,7 +6,8 @@ const roleHomePath = {
   student: "/student",
   educator: "/educator",
   admin: "/admin",
-  reviewer: "/reviewer"
+  reviewer: "/reviewer",
+  mentor: "/mentor"
 };
 
 const ProtectedRoute = ({ allowedRoles }) => {

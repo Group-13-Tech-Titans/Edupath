@@ -57,8 +57,8 @@ export default function MentorAnalytics() {
             <h1 className="text-2xl font-bold text-slate-800 mb-1">Mentoring Analytics</h1>
             <p className="text-sm text-slate-500 font-medium">Tracking your impact and growth as a mentor</p>
           </div>
-          <button 
-            onClick={() => navigate("/mentor")} 
+          <button
+            onClick={() => navigate("/mentor")}
             className="inline-flex w-fit items-center gap-2 rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-bold text-teal-600 transition hover:bg-teal-400 hover:text-white shadow-sm"
           >
             <BackIcon /> Back to Dashboard
@@ -69,7 +69,7 @@ export default function MentorAnalytics() {
       {/* Stats - Dynamic */}
       <section className="mb-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {data.stats.map((s, idx) => (
-          <motion.div 
+          <motion.div
             key={s.label}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -100,7 +100,7 @@ export default function MentorAnalytics() {
 
             {data.monthlyVolume.map((m, idx) => (
               <div key={m.month} className="relative flex-1 flex flex-col items-center group h-full justify-end">
-                <motion.div 
+                <motion.div
                   initial={{ height: 0 }}
                   animate={{ height: `${(m.count / maxSessions) * 100}%` }}
                   transition={{ duration: 0.8, delay: idx * 0.05 }}
@@ -127,7 +127,7 @@ export default function MentorAnalytics() {
                   <span className="text-xs font-bold text-slate-400">{t.percent}%</span>
                 </div>
                 <div className="h-3 w-full rounded-full bg-slate-50 overflow-hidden border border-slate-100">
-                  <motion.div 
+                  <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${t.percent}%` }}
                     transition={{ duration: 1, delay: 0.3 + idx * 0.1 }}
@@ -147,7 +147,7 @@ export default function MentorAnalytics() {
             <h2 className="text-xl font-semibold text-slate-800">Weekly Activity Heatmap</h2>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Activity Patterns</p>
           </div>
-          
+
           <div className="flex flex-col gap-2">
             <div className="flex gap-2">
               <div className="w-16"></div>
@@ -163,7 +163,7 @@ export default function MentorAnalytics() {
                   const intensity = Math.random();
                   const color = intensity > 0.8 ? 'bg-teal-500' : intensity > 0.5 ? 'bg-teal-300' : intensity > 0.2 ? 'bg-teal-100' : 'bg-slate-50';
                   return (
-                    <motion.div 
+                    <motion.div
                       key={day} whileHover={{ scale: 1.05 }}
                       className={`flex-1 h-8 rounded-md ${color} transition cursor-help relative group`}
                     >
@@ -180,4 +180,4 @@ export default function MentorAnalytics() {
 }
 
 /* ── UI Components ────────────────────────────────────────────── */
-function BackIcon()     { return <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>; }
+function BackIcon() { return <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>; }

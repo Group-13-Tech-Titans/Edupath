@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 
 // Layouts
@@ -31,7 +31,7 @@ import StudentCourseDetail from "./pages/student/StudentCourseDetail.jsx";
 import StudentMentor from "./pages/student/StudentMentor.jsx";
 import StudentProfile from "./pages/student/StudentProfile.jsx";
 import StudentPathway from "./pages/student/StudentPathway.jsx";
-import StudentStepDetail from "./pages/student/StudentStepDetail";
+import StudentStepDetail from "./pages/student/StudentStepDetail.jsx";
 import PathFinder from "./pages/student/PathFinder.jsx";
 
 // Educator Pages
@@ -71,7 +71,7 @@ import MentorSessions from "./pages/mentor/MentorSessions.jsx";
 import MentorStudents from "./pages/mentor/MentorStudents.jsx";
 import MentorSettings from "./pages/mentor/MentorSettings.jsx";
 import MentorShareProfile from "./pages/mentor/MentorShareProfile.jsx";
-import MentorResources from "./pages/mentor/MentorResources";
+import MentorResources from "./pages/mentor/MentorResources.jsx";
 import MentorMessages from "./pages/mentor/MentorMessages.jsx";
 import MentorStudentDetails from "./pages/mentor/MentorStudentDetails.jsx";
 import MentorAnalytics from "./pages/mentor/MentorAnalytics.jsx";
@@ -153,20 +153,24 @@ const App = () => {
           </Route>
         </Route>
 
-        {/* Mentor Routes (Keep these for now, maybe add Protection later) */}
-         <Route path="/mentor" element={<MentorLayout />}>
-          <Route index element={<MentorDashboard />} />
-          <Route path="sessions" element={<MentorSessions />} />
-          <Route path="students" element={<MentorStudents />} />
-          <Route path="profile" element={<MentorProfile />} />
-          <Route path="settings" element={<MentorSettings />} />
-          <Route path="share-profile" element={<MentorShareProfile />} />
-          <Route path="resources" element={<MentorResources />} />
-          <Route path="messages" element={<MentorMessages />} />
-          <Route path="student-details/:id" element={<MentorStudentDetails />} />
-          <Route path="analytics" element={<MentorAnalytics />} />
-        </Route> 
+        {/* Mentor Protected Routes */}
+        {/* <Route element={<ProtectedRoute allowedRoles={["mentor"]} />}> */}
+          <Route path="/mentor" element={<MentorLayout />}>
+            <Route index element={<MentorDashboard />} />
+            <Route path="sessions" element={<MentorSessions />} />
+            <Route path="students" element={<MentorStudents />} />
+            <Route path="profile" element={<MentorProfile />} />
+            <Route path="settings" element={<MentorSettings />} />
+            <Route path="share-profile" element={<MentorShareProfile />} />
+            <Route path="resources" element={<MentorResources />} />
+            <Route path="messages" element={<MentorMessages />} />
+            <Route path="student-details/:id" element={<MentorStudentDetails />} />
+            <Route path="analytics" element={<MentorAnalytics />} />
+          </Route>
+        {/* </Route> */}
 
+
+        <Route path="/MentorDashboard" element={<Navigate to="/mentor" replace />} />
 
         {/* Misc Routes */}
         <Route path="/coming-soon" element={<ComingSoon />} />

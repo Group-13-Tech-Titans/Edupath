@@ -4,12 +4,12 @@ import { useApp } from "../../context/AppProvider.jsx";
 
 // Mock students for the resource form
 const MOCK_STUDENTS = [
-  { id: "S001", name: "Priya Sharma",      track: "Web Development" },
-  { id: "S002", name: "Rahul Mehta",       track: "Data Science & ML" },
-  { id: "S003", name: "Anjali Kumar",      track: "React & TypeScript" },
-  { id: "S004", name: "Nimal Perera",      track: "Networking" },
+  { id: "S001", name: "Priya Sharma", track: "Web Development" },
+  { id: "S002", name: "Rahul Mehta", track: "Data Science & ML" },
+  { id: "S003", name: "Anjali Kumar", track: "React & TypeScript" },
+  { id: "S004", name: "Nimal Perera", track: "Networking" },
   { id: "S005", name: "Sahana Jayasinghe", track: "Web Development" },
-  { id: "S006", name: "Kavindu Fernando",  track: "Web Development" },
+  { id: "S006", name: "Kavindu Fernando", track: "Web Development" },
 ];
 const TRACKS = [...new Set(MOCK_STUDENTS.map((s) => s.track))];
 
@@ -197,8 +197,8 @@ export default function MentorDashboard() {
               <SessionCard key={r.title} title={r.title} meta={r.meta} desc={r.desc} timeLine={r.time}
                 badgeVariant="pending" badgeText={r.status}
                 actions={[
-                  { label: "Accept", variant: "primary", onClick: () => {} },
-                  { label: "Decline", variant: "outline", onClick: () => {} },
+                  { label: "Accept", variant: "primary", onClick: () => { } },
+                  { label: "Decline", variant: "outline", onClick: () => { } },
                 ]}
               />
             ))}
@@ -210,8 +210,8 @@ export default function MentorDashboard() {
               <SessionCard key={s.title} title={s.title} meta={s.time} metaIcon="calendar" desc={s.desc}
                 badgeVariant="scheduled" badgeText={s.status}
                 actions={[
-                  { label: s.actions[0], variant: "primary", onClick: () => {} },
-                  { label: s.actions[1], variant: "outline", onClick: () => {} },
+                  { label: s.actions[0], variant: "primary", onClick: () => { } },
+                  { label: s.actions[1], variant: "outline", onClick: () => { } },
                 ]}
               />
             ))}
@@ -299,17 +299,16 @@ export default function MentorDashboard() {
                 <label className="mb-1 block text-sm font-bold text-slate-700">Resource Type</label>
                 <div className="flex gap-2">
                   {[
-                    { value: "video",  label: "Video" },
+                    { value: "video", label: "Video" },
                     { value: "pdfppt", label: "PDF / PPT" },
-                    { value: "quiz",   label: "Quiz" },
+                    { value: "quiz", label: "Quiz" },
                   ].map((t) => (
                     <button key={t.value} type="button"
                       onClick={() => setForm((f) => ({ ...f, type: t.value }))}
-                      className={`flex-1 rounded-xl border-2 py-2 text-sm font-bold transition ${
-                        form.type === t.value
+                      className={`flex-1 rounded-xl border-2 py-2 text-sm font-bold transition ${form.type === t.value
                           ? "border-teal-400 bg-teal-400 text-white"
                           : "border-slate-200 bg-white text-slate-600 hover:border-teal-300"
-                      }`}>
+                        }`}>
                       {t.label}
                     </button>
                   ))}
@@ -426,9 +425,9 @@ function QuickAction({ title, desc, onClick, icon }) {
 }
 
 /* ── Icons ────────────────────────────────────────────────────── */
-function ClockIcon()    { return <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>; }
+function ClockIcon() { return <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>; }
 function CalendarIcon() { return <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>; }
-function EyeIcon()      { return <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>; }
-function DocIcon()      { return <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>; }
-function ChatIcon()     { return <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>; }
-function ChartIcon()    { return <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>; }
+function EyeIcon() { return <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>; }
+function DocIcon() { return <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>; }
+function ChatIcon() { return <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>; }
+function ChartIcon() { return <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>; }
