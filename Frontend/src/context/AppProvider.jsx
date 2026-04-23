@@ -11,6 +11,9 @@ import { mockCourses } from "../data/mockCourses.js";
 import * as authApi from "../api/authApi.js";
 import { getToken, setToken } from "../api/client.js";
 import { googleLogout } from "@react-oauth/google";
+import * as courseApi from '../api/courseApi';
+
+
 
 const STORAGE_KEY = "edupath_app_state_v1";
 
@@ -247,23 +250,164 @@ export const AppProvider = ({ children }) => {
     });
   }, []);
 
-  const createCourse = useCallback((courseData) => {
-    const newCourse = {
-      ...courseData,
-      id: `c-${Date.now()}`,
-      status: "pending",
-    };
-    setState((prev) => ({ ...prev, courses: [newCourse, ...prev.courses] }));
-    return newCourse;
+  const createCourse = useCallback(async (courseData) => {
+    try {
+      const result = await courseApi.createCourse(courseData);
+      const newCourse = { ...result.course, id: result.course._id };
+      setState((prev) => ({ ...prev, courses: [newCourse, ...prev.courses] }));
+      return { success: true, course: newCourse };
+    } catch (err) {
+      return {
+        success: false,
+        message: err.message || "Failed to create course",
+      };
+    }
   }, []);
 
+  const fetchMyCourses = useCallback(async () => {
+    try {
+      const courses = await courseApi.getMyCourses();
+      const normalized = courses.map((c) => ({ ...c, id: c._id }));
+      setState((prev) => ({ ...prev, courses: normalized }));
+    } catch (err) {
+      console.error("Failed to fetch courses", err);
+    }
+  }, []);
+
+  const fetchReviewerQueue = useCallback(async () => {
+    try {
+      const courses = await courseApi.getReviewerQueue();
+      const normalized = courses.map((c) => ({ ...c, id: c._id }));
+      setState((prev) => ({ ...prev, courses: normalized }));
+      return { success: true, courses: normalized };
+    } catch (err) {
+      console.error("Failed to fetch reviewer queue", err);
+      return {
+        success: false,
+        message: err.message || "Failed to fetch reviewer queue",
+      };
+    }
+  }, []);
+
+  const submitReviewDecision = useCallback(
+    async ({ itemId, decision, rating, notes }) => {
+      const status = decision === "approved" ? "approved" : "rejected";
+      try {
+        const result = await courseApi.updateCourseStatus(itemId, {
+          status,
+          decision,
+          rating,
+          notes,
+        });
+        const updatedCourse = { ...result.course, id: result.course._id };
+        setState((prev) => ({
+          ...prev,
+          courses: prev.courses.map((c) =>
+            c.id === itemId || c._id === itemId
+              ? { ...c, ...updatedCourse }
+              : c,
+          ),
+        }));
+        return { success: true };
+      } catch (err) {
+        return {
+          success: false,
+          message: err.message || "Failed to submit review",
+        };
+      }
+    },
+    [],
+  );
+
   const updateCourse = useCallback((courseId, updatedData) => {
-    setState((prev) => {
-      const courses = prev.courses.map((c) =>
+    setState((prev) => ({
+      ...prev,
+      courses: prev.courses.map((c) =>
         c.id === courseId ? { ...c, ...updatedData } : c,
-      );
-      return { ...prev, courses };
-    });
+      ),
+    }));
+  }, []);
+
+  const moveCourseToTrash = useCallback(async (courseId) => {
+    try {
+      const result = await courseApi.moveCourseToTrash(courseId);
+      const trashedCourse = { ...result.course, id: result.course._id };
+      setState((prev) => ({
+        ...prev,
+        courses: prev.courses.map((c) =>
+          c.id === courseId || c._id === courseId
+            ? { ...c, ...trashedCourse }
+            : c,
+        ),
+      }));
+      return { success: true, course: trashedCourse };
+    } catch (err) {
+      return {
+        success: false,
+        message: err.message || "Failed to move course to trash",
+      };
+    }
+  }, []);
+
+  const restoreCourseFromTrash = useCallback(async (courseId) => {
+    try {
+      const result = await courseApi.restoreCourseFromTrash(courseId);
+      const restoredCourse = { ...result.course, id: result.course._id };
+      setState((prev) => ({
+        ...prev,
+        courses: prev.courses.map((c) =>
+          c.id === courseId || c._id === courseId
+            ? { ...c, ...restoredCourse }
+            : c,
+        ),
+      }));
+      return { success: true, course: restoredCourse };
+    } catch (err) {
+      return {
+        success: false,
+        message: err.message || "Failed to restore course",
+      };
+    }
+  }, []);
+
+  const permanentlyDeleteCourse = useCallback(async (courseId) => {
+    try {
+      await courseApi.permanentlyDeleteCourse(courseId);
+      setState((prev) => ({
+        ...prev,
+        courses: prev.courses.filter(
+          (c) => c.id !== courseId && c._id !== courseId,
+        ),
+      }));
+      return { success: true };
+    } catch (err) {
+      return {
+        success: false,
+        message: err.message || "Failed to permanently delete course",
+      };
+    }
+  }, []);
+
+  const emptyCourseTrash = useCallback(async () => {
+    try {
+      const result = await courseApi.emptyCourseTrash();
+      setState((prev) => ({
+        ...prev,
+        courses: prev.courses.filter(
+          (c) =>
+            !(
+              c.trashedAt &&
+              c.createdByEducatorEmail === prev.currentUser?.email
+            ),
+        ),
+      }));
+      return { success: true, deletedCount: result.deletedCount || 0 };
+    } catch (err) {
+      return {
+        success: false,
+        message: err.message || "Failed to empty trash",
+      };
+    }
   }, []);
 
   const approveCourse = useCallback((courseId, reviewer) => {
@@ -338,6 +482,19 @@ export const AppProvider = ({ children }) => {
     });
   }, []);
 
+  const updateUserProfile = useCallback(async (body) => {
+    try {
+      const result = await authApi.updateProfile(body);
+      setState((prev) => ({
+        ...prev,
+        currentUser: normalizeUser(result.user),
+      }));
+      return { success: true, user: result.user };
+    } catch (err) {
+      return { success: false, message: err.message || "Update failed" };
+    }
+  }, []);
+
   // Wrapped the value object in useMemo to prevent massive re-renders
   const value = useMemo(
     () => ({
@@ -360,11 +517,19 @@ export const AppProvider = ({ children }) => {
       createReviewer,
       verifyEducator,
       createCourse,
+      fetchMyCourses,
+      fetchReviewerQueue,
+      submitReviewDecision,
       updateCourse,
+      moveCourseToTrash,
+      restoreCourseFromTrash,
+      permanentlyDeleteCourse,
+      emptyCourseTrash,
       approveCourse,
       rejectCourse,
       saveMentorRequest,
       markLessonCompleted,
+      updateUserProfile
     }),
     [
       // This dependency array tells React: "Only recreate this object if one of these specific things changes"
@@ -378,11 +543,19 @@ export const AppProvider = ({ children }) => {
       createReviewer,
       verifyEducator,
       createCourse,
+      fetchMyCourses,
+      fetchReviewerQueue,
+      submitReviewDecision,
       updateCourse,
+      moveCourseToTrash,
+      restoreCourseFromTrash,
+      permanentlyDeleteCourse,
+      emptyCourseTrash,
       approveCourse,
       rejectCourse,
       saveMentorRequest,
       markLessonCompleted,
+      updateUserProfile
     ],
   );
 

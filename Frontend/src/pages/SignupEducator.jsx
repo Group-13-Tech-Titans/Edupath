@@ -8,11 +8,14 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useApp } from "../context/AppProvider.jsx";
 import { emailRegex, passwordRegex, contactRegex, urlRegex } from "../utils/validation";
+import { getSpecializations } from "../api/specializationApi.js";
 
 const SignupEducator = () => {
   // Grabbed currentUser from context to auto-fill the form
   const { signupEducator, currentUser } = useApp();
   const navigate = useNavigate();
+
+  const [specializationList, setSpecializationList] = useState([]);
   
   const [form, setForm] = useState({
     fullName: "",
@@ -34,6 +37,19 @@ const SignupEducator = () => {
       setForm((prev) => ({ ...prev, email: currentUser.email }));
     }
   }, [currentUser]);
+
+  // useEffect to fetch the Specialization List
+  useEffect(() => {
+    const fetchSpecs = async () => {
+      try {
+        const specs = await getSpecializations();
+        setSpecializationList(specs || []);
+      } catch (err) {
+        console.error("Failed to load specializations", err);
+      }
+    };
+    fetchSpecs();
+  }, []);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -177,15 +193,21 @@ const SignupEducator = () => {
             <label htmlFor="specializationTag" className="text-xs font-medium text-gray-700">
               Expertise / specialization tag
             </label>
-            <input
+            <select
               id="specializationTag"
               name="specializationTag"
               value={form.specializationTag}
               onChange={handleChange}
               disabled={isLoading}
-              placeholder="e.g. Fullstack, Data-science"
               className="mt-1 w-full rounded-full border border-emerald-100 bg-slate-50 px-4 py-2.5 text-sm outline-none ring-primary/40 focus:ring-2 focus:ring-emerald-300 disabled:opacity-60"
-            />
+            >
+              <option value="">Select a specialization...</option>
+              {specializationList.map((spec) => (
+                <option key={spec._id} value={spec.slug}>
+                  {spec.name}
+                </option>
+              ))}
+            </select>
             {errors.specializationTag && <p className="text-red-500 text-xs mt-1">{errors.specializationTag}</p>}
           </div>
 

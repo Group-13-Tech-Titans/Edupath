@@ -1,10 +1,13 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import axios from "axios";
 import AdminFooter from "./AdminFooter.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 
-// 🟢 FIXED: Point to the correct authenticated admin endpoint
+// Point to the correct authenticated admin endpoint
 const API_BASE = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/admin/reviewers`;
+
+// ADD THE SPECIALIZATION API URL
+const SPECS_API_BASE = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/specializations`;
 
 const getInitials = (name = "") => {
   const parts = name.trim().split(" ").filter(Boolean);
@@ -19,7 +22,7 @@ export default function AdminReviewers() {
     name: "",
     email: "",
     password: "",
-    specializationTag: "", // 🟢 FIXED: Match your DB schema
+    specializationTag: "",
   });
   const [search, setSearch] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -29,29 +32,45 @@ export default function AdminReviewers() {
   const [editingReviewer, setEditingReviewer] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
+  const [specializationList, setSpecializationList] = useState([]);
+
+  const [isLoading, setIsLoading] = useState(false);
+
+  const submitLock = useRef(false);
+
+  // 🟢 2. ADD THIS HELPER FUNCTION (To fix the empty green pills)
+  const getSpecName = (slug) => {
+    if (!slug) return "No Specialization";
+    const spec = specializationList.find((s) => s.slug === slug);
+    return spec ? spec.name : slug;
+  };
+
   // Helper to get Auth Headers
   const getAuthHeader = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem("edupath_token")}` }
   });
 
-  // Fetch reviewers from database
-  const fetchReviewers = useCallback(async () => {
+// 🟢 3. UPDATE USEEFFECT TO FETCH BOTH REVIEWERS AND SPECIALIZATIONS
+  const fetchData = useCallback(async () => {
     try {
       setError("");
-      // 🟢 FIXED: Added Auth Headers
-      const res = await axios.get(API_BASE, getAuthHeader());
+      // Fetch Reviewers
+      const resReviewers = await axios.get(API_BASE, getAuthHeader());
+      setReviewers(resReviewers.data.reviewers || resReviewers.data || []);
+
+      // Fetch Specializations (Public route, no auth header needed usually)
+      const resSpecs = await axios.get(SPECS_API_BASE);
+      setSpecializationList(resSpecs.data.specializations || []);
       
-      // Your backend returns { reviewers: [...] }. Ensure we handle that correctly.
-      setReviewers(res.data.reviewers || res.data || []);
     } catch (err) {
       console.error(err);
-      setError("Failed to fetch reviewers. Please ensure you are logged in as Admin.");
+      setError("Failed to fetch data. Please ensure you are logged in as Admin.");
     }
   }, []);
 
   useEffect(() => {
-    fetchReviewers();
-  }, [fetchReviewers]);
+    fetchData(); // Call the combined fetcher
+  }, [fetchData]);
 
   const handleChange = (e) => {
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
@@ -59,19 +78,38 @@ export default function AdminReviewers() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // If the lock is already on, block the click!
+    if (submitLock.current) return;
+
     setError("");
     setSuccess("");
+
+    // Basic frontend validation
+    if (!form.name || !form.email || !form.password || !form.specializationTag) {
+      setError("All fields are required!");
+      return;
+    }
+
+    // 🟢 FIXED: You must actually turn the lock ON!
+    submitLock.current = true; 
+    setIsLoading(true);
 
     try {
       // 🟢 FIXED: Sending specializationTag and Auth Headers
       const res = await axios.post(API_BASE, form, getAuthHeader());
+
+      // 🟢 FIXED: Added 'await' here so React waits for the database to send the new list before showing success
+      await fetchData();
       
-      // After success, just refresh the list
-      fetchReviewers();
       setSuccess("Reviewer account created ✅");
       setForm({ name: "", email: "", password: "", specializationTag: "" });
     } catch (err) {
       setError(err.response?.data?.message || "Failed to create reviewer");
+    } finally {
+      // 🟢 Turn the lock OFF when everything is finished
+      submitLock.current = false; 
+      setIsLoading(false);
     }
   };
 
@@ -105,7 +143,7 @@ export default function AdminReviewers() {
   };
 
   const filteredReviewers = reviewers.filter((r) =>
-    `${r.name} ${r.email} ${r.expertise}`
+    `${r.name} ${r.email} ${r.specializationTag}` 
       .toLowerCase()
       .includes(search.toLowerCase())
   );
@@ -167,21 +205,29 @@ export default function AdminReviewers() {
               </div>
             </div>
 
+            {/* 🟢 4. REPLACE CREATE FORM INPUT WITH SELECT */}
             <div>
               <label className="text-sm font-semibold text-slate-700">
                 Expertise
               </label>
-              <input
+              <select
                 name="specializationTag"
                 value={form.specializationTag}
                 onChange={handleChange}
-                placeholder="Eg: web-dev, ui-ux, data-science"
-                className="mt-2 w-full rounded-full border px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-emerald-100"
-              />
+                className="mt-2 w-full rounded-full border px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-emerald-100 bg-white"
+              >
+                <option value="">Select expertise...</option>
+                {specializationList.map((spec) => (
+                  <option key={spec._id} value={spec.slug}>
+                    {spec.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <button
               type="submit"
+              disabled={isLoading}
               className="w-full rounded-full bg-emerald-500 py-3 font-bold text-white shadow-md hover:bg-emerald-600 transition"
             >
               Create reviewer
@@ -225,7 +271,8 @@ export default function AdminReviewers() {
 
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="hidden sm:inline-block rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                    {r.expertise}
+                    {/* 🟢 5. FIXED: Translates the slug back to the beautiful Name */}
+                    {getSpecName(r.specializationTag)}
                   </span>
                   
                   {/* Action Buttons */}
@@ -285,15 +332,23 @@ export default function AdminReviewers() {
                   required
                 />
               </div>
+              {/* 🟢 5. REPLACE EDIT MODAL INPUT WITH SELECT */}
               <div>
                 <label className="text-sm font-semibold text-slate-700">Expertise</label>
-                <input
-                  name="expertise"
-                  value={editingReviewer.expertise}
+                <select
+                  name="specializationTag"
+                  value={editingReviewer.specializationTag || ""}
                   onChange={handleEditChange}
-                  className="mt-1 w-full rounded-xl border px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-400"
+                  className="mt-1 w-full rounded-xl border px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-400 bg-white"
                   required
-                />
+                >
+                  <option value="">Select expertise...</option>
+                  {specializationList.map((spec) => (
+                    <option key={spec._id} value={spec.slug}>
+                      {spec.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               
               <div className="flex gap-3 pt-4">

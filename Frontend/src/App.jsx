@@ -32,6 +32,7 @@ import EducatorCourses from "./pages/educator/EducatorCourses.jsx";
 import EducatorPublish from "./pages/educator/EducatorPublish.jsx";
 import EducatorEditCourse from "./pages/educator/EducatorEditCourse.jsx";
 import EducatorAddContent from "./pages/educator/EducatorAddContent.jsx";
+import EducatorCourseDetail from "./pages/educator/EducatorCourseDetail.jsx";
 import EducatorPayouts from "./pages/educator/EducatorPayouts.jsx";
 import EducatorProfile from "./pages/educator/EducatorProfile.jsx";
 import EducatorVerificationPendingPage from "./pages/educator/EducatorVerificationPendingPage.jsx";
@@ -103,6 +104,7 @@ const App = () => {
           <Route path="/educator" element={<EducatorLayout />}>
             <Route index element={<EducatorDashboard />} />
             <Route path="courses" element={<EducatorCourses />} />
+            <Route path="courses/:id" element={<EducatorCourseDetail />} />
             <Route path="publish" element={<EducatorPublish />} />
             <Route path="edit/:id" element={<EducatorEditCourse />} />
             <Route path="add-content/:id" element={<EducatorAddContent />} />

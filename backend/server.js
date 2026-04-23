@@ -11,6 +11,7 @@ connectDB();
 app.use(cors());
 app.use(express.json());
 
+
 // Routes
 app.use("/api/auth", require("./modules/auth/routes/authRoutes"));
 
@@ -23,6 +24,8 @@ app.use("/api/step-quiz", require("./modules/quiz/routes/stepQuizRoutes"));
 app.use("/api/courses", require("./modules/courses/routes/courseRoutes"));
 
 app.use("/api/upload", require("./modules/upload/routes/uploadRoutes"));
+
+app.use("/api/specializations", require("./modules/specializations/routes/specializationRoutes"));
 
 app.get("/test", (req, res) => {
   res.send("Working");
