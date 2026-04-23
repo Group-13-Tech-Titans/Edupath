@@ -34,15 +34,7 @@ const AdminFooter = () => {
           ]}
         />
 
-        <FooterCol
-          title="Operations"
-          items={[ 
-            { label: "User Reports", to: "/admin/users" },
-            { label: "System Activity", to: "/admin/review-dashboard" },
-            { label: "Exports", to: "/admin" },
-          ]}
-        />
-
+        
         <FooterCol
           title="Help & Policy"
           items={[

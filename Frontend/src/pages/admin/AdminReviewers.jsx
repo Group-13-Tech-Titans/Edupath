@@ -1,7 +1,8 @@
-// src/pages/admin/AdminReviewers.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import AdminFooter from "./AdminFooter.jsx";
 
-const LS_KEY = "edupath_reviewers_v1";
+const API_BASE = "http://localhost:5000/api/reviewers";
 
 const getInitials = (name = "") => {
   const parts = name.trim().split(" ").filter(Boolean);
@@ -12,52 +13,48 @@ const getInitials = (name = "") => {
 
 export default function AdminReviewers() {
   const [reviewers, setReviewers] = useState([]);
-
   const [form, setForm] = useState({
     name: "",
     email: "",
     password: "",
-    specializationTag: "",
+    expertise: "",
   });
-
   const [search, setSearch] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
 
-  // Load reviewers
-  useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem(LS_KEY)) || [];
-    setReviewers(stored);
-  }, []);
+  // New States for Edit & Delete Modals
+  const [editingReviewer, setEditingReviewer] = useState(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
-  // Save reviewers
-  useEffect(() => {
-    localStorage.setItem(LS_KEY, JSON.stringify(reviewers));
-  }, [reviewers]);
-
-  // Search filter
-  const filteredReviewers = useMemo(() => {
-    return reviewers.filter((r) =>
-      `${r.name} ${r.email} ${r.specializationTag}`
-        .toLowerCase()
-        .includes(search.toLowerCase())
-    );
-  }, [reviewers, search]);
-
-  // Form handler
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  // Fetch reviewers from database
+  const fetchReviewers = async () => {
+    try {
+      const res = await axios.get(API_BASE);
+      setReviewers(res.data);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to fetch reviewers");
+    }
   };
 
-  // Submit handler
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    fetchReviewers();
+  }, []);
+
+  // Create Form handler
+  const handleChange = (e) => {
+    setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
+  };
+
+  // Create Submit handler
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
-    if (!form.name || !form.email || !form.password) {
+    if (!form.name || !form.email || !form.password || !form.expertise) {
       setError("All fields are required!");
       return;
     }
@@ -67,47 +64,80 @@ export default function AdminReviewers() {
       return;
     }
 
-    const exists = reviewers.some((r) => r.email === form.email);
-    if (exists) {
-      setError("Reviewer email already exists.");
-      return;
+    try {
+      const res = await axios.post(API_BASE, form);
+      setReviewers((prev) => [res.data, ...prev]);
+      setSuccess("Reviewer account created ✅");
+
+      setForm({
+        name: "",
+        email: "",
+        password: "",
+        expertise: "",
+      });
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.message || "Failed to create reviewer");
     }
-
-    const newReviewer = {
-      id: Date.now(),
-      name: form.name,
-      email: form.email,
-      specializationTag: form.specializationTag || "data",
-    };
-
-    setReviewers([newReviewer, ...reviewers]);
-
-    setSuccess("Reviewer account created ✅");
-
-    setForm({
-      name: "",
-      email: "",
-      password: "",
-      specializationTag: "",
-    });
   };
 
+  // --- DELETE LOGIC ---
+  const confirmDelete = async () => {
+    try {
+      await axios.delete(`${API_BASE}/${deleteConfirmId}`);
+      setReviewers((prev) =>
+        prev.filter((r) => (r._id || r.id) !== deleteConfirmId)
+      );
+      setDeleteConfirmId(null); // Close modal
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete reviewer.");
+    }
+  };
+
+  // --- EDIT LOGIC ---
+  const handleEditChange = (e) => {
+    setEditingReviewer((p) => ({ ...p, [e.target.name]: e.target.value }));
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const id = editingReviewer._id || editingReviewer.id;
+      // We send the updated data to the PUT endpoint
+      const res = await axios.put(`${API_BASE}/${id}`, editingReviewer);
+      
+      // Update the state with the new data
+      setReviewers((prev) =>
+        prev.map((r) => ((r._id || r.id) === id ? res.data : r))
+      );
+      setEditingReviewer(null); // Close modal
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Failed to update reviewer.");
+    }
+  };
+
+  const filteredReviewers = reviewers.filter((r) =>
+    `${r.name} ${r.email} ${r.expertise}`
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  );
+
   return (
-    // ✅ FIX: allow page to grow + scroll on mobile
-    <div className="min-h-screen  from-emerald-50 to-white px-4 py-4">
-      {/* ✅ FIX: remove h-full so grid can expand on mobile */}
+    <div className="min-h-screen from-emerald-50 to-white px-4 py-4 relative">
       <div className="mx-auto max-w-6xl grid gap-5 lg:grid-cols-2">
-        {/* LEFT - FORM */}
-        {/* ✅ FIX: remove h-full / flex-1 so it doesn't force fixed height */}
+        {/* Create Reviewer Form */}
         <div className="rounded-[26px] bg-white/80 shadow-lg p-6 ring-1 ring-emerald-100">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">Create Reviewer</h2>
-            <p className="text-sm text-slate-500 mt-1">
-              Fill the form and create a new reviewer login.
-            </p>
-          </div>
+          <h2 className="text-lg font-bold text-slate-900">Create Reviewer</h2>
+          <p className="text-sm text-slate-500 mt-1">
+            Fill the form and create a new reviewer login.
+          </p>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {success && <p className="text-green-500 text-sm">{success}</p>}
+
             <div>
               <label className="text-sm font-semibold text-slate-700">Name</label>
               <input
@@ -143,7 +173,7 @@ export default function AdminReviewers() {
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => setShowPassword((v) => !v)}
                   className="absolute right-4 top-3.5 text-slate-400 hover:text-slate-600"
                 >
                   👁
@@ -153,21 +183,16 @@ export default function AdminReviewers() {
 
             <div>
               <label className="text-sm font-semibold text-slate-700">
-                Specialization Tag
+                Expertise
               </label>
               <input
-                name="specializationTag"
-                value={form.specializationTag}
+                name="expertise"
+                value={form.expertise}
                 onChange={handleChange}
                 placeholder="Eg: web-dev, ui-ux, data-science"
                 className="mt-2 w-full rounded-full border px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-emerald-100"
               />
             </div>
-
-            {error && <p className="text-sm text-red-500 font-semibold">{error}</p>}
-            {success && (
-              <p className="text-sm text-green-600 font-semibold">{success}</p>
-            )}
 
             <button
               type="submit"
@@ -175,23 +200,15 @@ export default function AdminReviewers() {
             >
               Create reviewer
             </button>
-
-            <p className="text-xs text-slate-500">
-              Tip: Use specialization tags to assign reviewers for specific course
-              categories.
-            </p>
           </form>
         </div>
 
-        {/* RIGHT - LIST */}
-        {/* ✅ FIX: remove h-full / flex-1; keep list scroll only on desktop */}
+        {/* Existing Reviewers List */}
         <div className="rounded-[26px] bg-white/80 shadow-lg p-6 ring-1 ring-emerald-100">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">Existing reviewers</h2>
-            <p className="text-sm text-slate-500 mt-1">
-              Search and view created reviewer accounts.
-            </p>
-          </div>
+          <h2 className="text-lg font-bold text-slate-900">Existing reviewers</h2>
+          <p className="text-sm text-slate-500 mt-1">
+            Search and view created reviewer accounts.
+          </p>
 
           <input
             value={search}
@@ -200,8 +217,6 @@ export default function AdminReviewers() {
             className="mt-4 w-full rounded-full border px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-emerald-100"
           />
 
-          {/* ✅ FIX: On mobile -> normal flow (page scroll)
-              On desktop -> make list scroll inside the card */}
           <div className="mt-4 space-y-3 lg:max-h-[520px] lg:overflow-y-auto pr-1">
             {filteredReviewers.length === 0 && (
               <p className="text-sm text-slate-400">No reviewers found...</p>
@@ -209,28 +224,143 @@ export default function AdminReviewers() {
 
             {filteredReviewers.map((r) => (
               <div
-                key={r.id}
+                key={r._id || r.id}
                 className="flex items-center justify-between rounded-2xl border bg-white px-4 py-3 shadow-sm"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center font-bold text-emerald-700 text-sm shrink-0">
                     {getInitials(r.name)}
                   </div>
-
                   <div className="min-w-0">
                     <p className="font-semibold text-slate-800 truncate text-sm">{r.name}</p>
                     <p className="text-sm text-slate-500 truncate">{r.email}</p>
                   </div>
                 </div>
 
-                <span className="shrink-0 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                  {r.specializationTag}
-                </span>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="hidden sm:inline-block rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                    {r.expertise}
+                  </span>
+                  
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-1 border-l pl-3 ml-1">
+                    <button
+                      onClick={() => setEditingReviewer(r)}
+                      className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition"
+                      title="Edit"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirmId(r._id || r.id)}
+                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"
+                      title="Delete"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </div>
+      <br />
+      <AdminFooter />
+
+      {/* --- EDIT MODAL --- */}
+      {editingReviewer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-[26px] bg-white p-6 shadow-2xl">
+            <h3 className="text-xl font-bold text-slate-900 mb-4">Edit Reviewer</h3>
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div>
+                <label className="text-sm font-semibold text-slate-700">Name</label>
+                <input
+                  name="name"
+                  value={editingReviewer.name}
+                  onChange={handleEditChange}
+                  className="mt-1 w-full rounded-xl border px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-400"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-slate-700">Email</label>
+                <input
+                  name="email"
+                  type="email"
+                  value={editingReviewer.email}
+                  onChange={handleEditChange}
+                  className="mt-1 w-full rounded-xl border px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-400"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-slate-700">Expertise</label>
+                <input
+                  name="expertise"
+                  value={editingReviewer.expertise}
+                  onChange={handleEditChange}
+                  className="mt-1 w-full rounded-xl border px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-400"
+                  required
+                />
+              </div>
+              
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setEditingReviewer(null)}
+                  className="flex-1 rounded-full bg-slate-100 py-2.5 font-semibold text-slate-600 hover:bg-slate-200 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 rounded-full bg-emerald-500 py-2.5 font-semibold text-white shadow-md hover:bg-emerald-600 transition"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- DELETE CONFIRMATION MODAL --- */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-[26px] bg-white p-6 shadow-2xl text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-100 mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8 text-red-500">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">Delete Reviewer?</h3>
+            <p className="text-slate-500 text-sm mb-6">
+              Are you sure you want to delete this reviewer? This action cannot be undone.
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirmId(null)}
+                className="flex-1 rounded-full bg-slate-100 py-2.5 font-semibold text-slate-600 hover:bg-slate-200 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 rounded-full bg-red-500 py-2.5 font-semibold text-white shadow-md hover:bg-red-600 transition"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
