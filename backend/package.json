@@ -1,11 +1,10 @@
 {
-  "name": "edupath-frontend",
+  "name": "edupath-backend",
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "node server.js",
+    "start": "node server.js"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.60.0",
@@ -26,7 +25,8 @@
     "nodemailer": "^8.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.30.3"
+    "react-router-dom": "^6.30.3",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.0.0",
