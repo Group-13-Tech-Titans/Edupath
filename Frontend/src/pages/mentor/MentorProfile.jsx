@@ -460,4 +460,145 @@ function InfoRow({ label, value }) {
     </div>
   );
 }
+
+function UserIcon() {
+  return (
+    <svg className="h-6 w-6 text-[#5DD9C1]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function LightbulbIcon() {
+  return (
+    <svg className="h-6 w-6 text-[#5DD9C1]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M9 18h6" />
+      <path d="M10 22h4" />
+      <path d="M12 2a7 7 0 00-4 12.9V17a2 2 0 002 2h4a2 2 0 002-2v-2.1A7 7 0 0012 2z" />
+    </svg>
+  );
+}
+
+function WorkIcon() {
+  return (
+    <svg className="h-6 w-6 text-[#5DD9C1]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="7" width="18" height="13" rx="2" />
+      <path d="M16 7V5a2 2 0 00-2-2H10a2 2 0 00-2 2v2" />
+    </svg>
+  );
+}
+
+function EducationIcon() {
+  return (
+    <svg className="h-6 w-6 text-[#5DD9C1]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M12 3L2 7l10 4 10-4-10-4z" />
+      <path d="M2 17l10 4 10-4" />
+      <path d="M2 7l10 4 10-4" />
+      <path d="M12 11v10" />
+    </svg>
+  );
+}
+
+function StarIcon() {
+  return (
+    <svg className="h-6 w-6 text-[#5DD9C1]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  );
+}
+
+function MailIcon() {
+  return (
+    <svg className="h-6 w-6 text-[#5DD9C1]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M4 4h16v16H4z" />
+      <polyline points="22,6 12,13 2,6" />
+    </svg>
+  );
+}
+
+function LinkedInIcon() {
+  return (
+    <svg className="h-5 w-5 text-[#0A66C2]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M4 4h4v16H4z" />
+      <circle cx="6" cy="6" r="2" />
+      <path d="M10 8h4v12h-4z" />
+      <path d="M10 12h4" />
+    </svg>
+  );
+}
+
+function GitHubIcon() {
+  return (
+    <svg className="h-5 w-5 text-[#333]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M9 19c-4.3 1.4-4.3-2-6-2" />
+      <path d="M12 2a9 9 0 00-9 9c0 4 2.6 7.4 6.2 8.6" />
+      <path d="M15 22c3.4-1.2 6-4.6 6-8.6a9 9 0 00-9-9" />
+      <path d="M12 14a3 3 0 01-3-3" />
+    </svg>
+  );
+}
+
+function TwitterIcon() {
+  return (
+    <svg className="h-5 w-5 text-[#1DA1F2]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M23 3a10.9 10.9 0 01-3.14 1.53A4.48 4.48 0 0016 3a4.5 4.5 0 00-4.5 4.5c0 .35.04.7.1 1.03A12.94 12.94 0 013 4s-4 9 5 13a13 13 0 01-8 2c12 7 27 0 27-16a9.22 9.22 0 00-.08-1.82A6.72 6.72 0 0023 3z" />
+    </svg>
+  );
+}
+
+function RedditIcon() {
+  return (
+    <svg className="h-5 w-5 text-[#FF4500]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M15 8a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path d="M8 16a4 4 0 008 0" />
+      <path d="M8 9l3-2 3 2" />
+      <path d="M15 9l1-4" />
+    </svg>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg className="h-6 w-6 text-[#5DD9C1]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 3" />
+    </svg>
+  );
+}
+
+function TargetIcon() {
+  return (
+    <svg className="h-6 w-6 text-[#5DD9C1]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
+      <path d="M22 12h-2" />
+    </svg>
+  );
+}
+
+function CertificateIcon() {
+  return (
+    <svg className="h-6 w-6 text-[#5DD9C1]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M4 4h16v16H4z" />
+      <path d="M4 14h16" />
+      <path d="M9 4v4" />
+      <path d="M15 4v4" />
+      <path d="M9 20l3-3 3 3" />
+    </svg>
+  );
+}
+
+function ChartIcon() {
+  return (
+    <svg className="h-6 w-6 text-[#5DD9C1]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M4 19h16" />
+      <path d="M8 15v4" />
+      <path d="M12 11v8" />
+      <path d="M16 7v12" />
+    </svg>
+  );
+}
  
