@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import AdminFooter from "./AdminFooter.jsx";
+import { useApp } from "../../context/AppProvider.jsx";
 
-const API_BASE = "http://localhost:5000/api/reviewers";
+// 🟢 FIXED: Point to the correct authenticated admin endpoint
+const API_BASE = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/admin/reviewers`;
 
 const getInitials = (name = "") => {
   const parts = name.trim().split(" ").filter(Boolean);
@@ -17,103 +19,87 @@ export default function AdminReviewers() {
     name: "",
     email: "",
     password: "",
-    expertise: "",
+    specializationTag: "", // 🟢 FIXED: Match your DB schema
   });
   const [search, setSearch] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
 
-  // New States for Edit & Delete Modals
   const [editingReviewer, setEditingReviewer] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
+  // Helper to get Auth Headers
+  const getAuthHeader = () => ({
+    headers: { Authorization: `Bearer ${localStorage.getItem("edupath_token")}` }
+  });
+
   // Fetch reviewers from database
-  const fetchReviewers = async () => {
+  const fetchReviewers = useCallback(async () => {
     try {
-      const res = await axios.get(API_BASE);
-      setReviewers(res.data);
+      setError("");
+      // 🟢 FIXED: Added Auth Headers
+      const res = await axios.get(API_BASE, getAuthHeader());
+      
+      // Your backend returns { reviewers: [...] }. Ensure we handle that correctly.
+      setReviewers(res.data.reviewers || res.data || []);
     } catch (err) {
       console.error(err);
-      setError("Failed to fetch reviewers");
+      setError("Failed to fetch reviewers. Please ensure you are logged in as Admin.");
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchReviewers();
-  }, []);
+  }, [fetchReviewers]);
 
-  // Create Form handler
   const handleChange = (e) => {
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
   };
 
-  // Create Submit handler
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
-    if (!form.name || !form.email || !form.password || !form.expertise) {
-      setError("All fields are required!");
-      return;
-    }
-
-    if (form.password.length < 6) {
-      setError("Password must be at least 6 characters.");
-      return;
-    }
-
     try {
-      const res = await axios.post(API_BASE, form);
-      setReviewers((prev) => [res.data, ...prev]);
+      // 🟢 FIXED: Sending specializationTag and Auth Headers
+      const res = await axios.post(API_BASE, form, getAuthHeader());
+      
+      // After success, just refresh the list
+      fetchReviewers();
       setSuccess("Reviewer account created ✅");
-
-      setForm({
-        name: "",
-        email: "",
-        password: "",
-        expertise: "",
-      });
+      setForm({ name: "", email: "", password: "", specializationTag: "" });
     } catch (err) {
-      console.error(err);
       setError(err.response?.data?.message || "Failed to create reviewer");
     }
   };
 
-  // --- DELETE LOGIC ---
   const confirmDelete = async () => {
     try {
-      await axios.delete(`${API_BASE}/${deleteConfirmId}`);
-      setReviewers((prev) =>
-        prev.filter((r) => (r._id || r.id) !== deleteConfirmId)
-      );
-      setDeleteConfirmId(null); // Close modal
+      const id = deleteConfirmId;
+      // 🟢 FIXED: Added Auth Headers
+      await axios.delete(`${API_BASE}/${id}`, getAuthHeader());
+      setReviewers((prev) => prev.filter((r) => (r._id || r.id) !== id));
+      setDeleteConfirmId(null);
     } catch (err) {
-      console.error(err);
       alert("Failed to delete reviewer.");
     }
-  };
-
-  // --- EDIT LOGIC ---
-  const handleEditChange = (e) => {
-    setEditingReviewer((p) => ({ ...p, [e.target.name]: e.target.value }));
   };
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
       const id = editingReviewer._id || editingReviewer.id;
-      // We send the updated data to the PUT endpoint
-      const res = await axios.put(`${API_BASE}/${id}`, editingReviewer);
+      // 🟢 FIXED: Added Auth Headers
+      const res = await axios.put(`${API_BASE}/${id}`, editingReviewer, getAuthHeader());
       
-      // Update the state with the new data
       setReviewers((prev) =>
         prev.map((r) => ((r._id || r.id) === id ? res.data : r))
       );
-      setEditingReviewer(null); // Close modal
+      setEditingReviewer(null);
+      setSuccess("Reviewer updated successfully");
     } catch (err) {
-      console.error(err);
       alert(err.response?.data?.message || "Failed to update reviewer.");
     }
   };
@@ -168,7 +154,7 @@ export default function AdminReviewers() {
                   name="password"
                   value={form.password}
                   onChange={handleChange}
-                  placeholder="Min 6 characters"
+                  placeholder="Min 8 characters"
                   className="w-full rounded-full border px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-emerald-100"
                 />
                 <button
@@ -186,8 +172,8 @@ export default function AdminReviewers() {
                 Expertise
               </label>
               <input
-                name="expertise"
-                value={form.expertise}
+                name="specializationTag"
+                value={form.specializationTag}
                 onChange={handleChange}
                 placeholder="Eg: web-dev, ui-ux, data-science"
                 className="mt-2 w-full rounded-full border px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-emerald-100"
