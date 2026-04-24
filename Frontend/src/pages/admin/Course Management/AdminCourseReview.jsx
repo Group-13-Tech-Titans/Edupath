@@ -209,7 +209,4 @@ const StatCard = ({ label, value }) => (
 );
 
 
-
-
-
 export default AdminCourseReview;

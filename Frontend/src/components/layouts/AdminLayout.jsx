@@ -24,7 +24,10 @@ const AdminLayout = () => {
     { to: "/admin", label: "Home", end: true },
     { to: "/admin/verify-educators", label: "Verify Educators" },
     { to: "/admin/approvals", label: "Reviews Course" },
+    {to: "/admin/specializations", label: "specializations" },
+    { to: "/admin/pathways", label: "Pathway Management" },
     { to: "/admin/reviewers", label: "Create Reviewer" },
+
     
   ];
 
