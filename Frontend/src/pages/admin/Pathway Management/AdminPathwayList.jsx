@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
-import PageShell from "../../components/PageShell.jsx";
+import PageShell from "../../../components/PageShell.jsx";
 
 const AdminPathwayList = () => {
   const [templates, setTemplates] = useState([]);

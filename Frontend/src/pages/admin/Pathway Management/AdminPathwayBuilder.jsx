@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import PageShell from "../../components/PageShell.jsx"; // Adjust path as needed
+import PageShell from "../../../components/PageShell.jsx"; // Adjust path as needed
 
 // Helper to generate a unique ID for React keys
 const generateId = () =>

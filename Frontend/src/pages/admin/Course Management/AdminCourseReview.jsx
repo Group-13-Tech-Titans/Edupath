@@ -1,9 +1,9 @@
 
 import React, { useEffect, useMemo, useState } from "react";
-import PageShell from "../../components/PageShell.jsx";
-import { useApp } from "../../context/AppProvider.jsx";
+import PageShell from "../../../components/PageShell.jsx";
+import { useApp } from "../../../context/AppProvider.jsx";
 import AdminFooter from "./AdminFooter.jsx";
-import ComingSoon from "../ComingSoon.jsx";
+import ComingSoon from "../../ComingSoon.jsx";
 
 
 

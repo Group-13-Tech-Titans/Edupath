@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
-import PageShell from "../../components/PageShell.jsx";
+import PageShell from "../../../components/PageShell.jsx";
 
 // Helper to generate a unique ID for new steps added during editing
 const generateId = () =>

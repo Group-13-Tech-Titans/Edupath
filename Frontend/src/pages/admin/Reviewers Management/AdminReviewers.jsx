@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
-import AdminFooter from "./AdminFooter.jsx";
-import { useApp } from "../../context/AppProvider.jsx";
+import AdminFooter from "../General Pages/AdminFooter.jsx";
+import { useApp } from "../../../context/AppProvider.jsx";
 
 // 🟢 FIXED: Point to the correct authenticated admin endpoint
 const API_BASE = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/admin/reviewers`;

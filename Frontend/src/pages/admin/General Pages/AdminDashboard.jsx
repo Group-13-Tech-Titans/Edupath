@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom"; // Imported for navigation
-import PageShell from "../../components/PageShell.jsx";
-import { useApp } from "../../context/AppProvider.jsx";
+import PageShell from "../../../components/PageShell.jsx";
+import { useApp } from "../../../context/AppProvider.jsx";
 import AdminFooter from "./AdminFooter.jsx";
-import ComingSoon from "../ComingSoon.jsx";
+import ComingSoon from "../../ComingSoon.jsx";
 
 // API Endpoints
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";

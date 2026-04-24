@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom"; // Imported for navigation
-import PageShell from "../../components/PageShell.jsx";
-import AdminFooter from "./AdminFooter.jsx";
+import PageShell from "../../../components/PageShell.jsx";
+import AdminFooter from "../General Pages/AdminFooter.jsx";
 
 // API Endpoint for fetching pending educators
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";

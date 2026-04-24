@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import PageShell from "../../components/PageShell.jsx";
+import PageShell from "../../../components/PageShell.jsx";
 import AdminFooter from "./AdminFooter.jsx";
 
 const LS_KEY = "edupath_admin_profile_v1";

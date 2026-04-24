@@ -36,16 +36,16 @@ import EducatorPayouts from "./pages/educator/EducatorPayouts.jsx";
 import EducatorProfile from "./pages/educator/EducatorProfile.jsx";
 import EducatorVerificationPendingPage from "./pages/educator/EducatorVerificationPendingPage.jsx";
 
-import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
-import AdminReviewers from "./pages/admin/AdminReviewers.jsx";
-import AdminViewCourses from "./pages/admin/AdminViewCourses.jsx";
-import AdminVerifyEducators from "./pages/admin/AdminVerifyEducators.jsx";
-import AdminReviewDashboard from "./pages/admin/AdminReviewDashboard.jsx";
-import AdminProfile from "./pages/admin/AdminProfile.jsx";
-import AdminPathwayBuilder from "./pages/admin/AdminPathwayBuilder.jsx";
-import AdminPathwayList from "./pages/admin/AdminPathwayList.jsx";
-import AdminPathwayEdit from "./pages/admin/AdminPathwayEdit.jsx";
-import AdminEducatorReview from '../src/pages/admin/AdminEducatorReview.jsx';
+import AdminDashboard from "./pages/admin/General Pages/AdminDashboard.jsx";
+import AdminReviewers from "./pages/admin/Reviewers Management/AdminReviewers.jsx";
+import AdminViewCourses from "./pages/admin/Course Management/AdminViewCourses.jsx";
+import AdminVerifyEducators from "./pages/admin/Educator Management/AdminVerifyEducators.jsx";
+import AdminReviewDashboard from "./pages/admin/Reviewers Management/AdminReviewDashboard.jsx";
+import AdminProfile from "./pages/admin/General Pages/AdminProfile.jsx";
+import AdminPathwayBuilder from "./pages/admin/Pathway Management/AdminPathwayBuilder.jsx";
+import AdminPathwayList from "./pages/admin/Pathway Management/AdminPathwayList.jsx";
+import AdminPathwayEdit from "./pages/admin/Pathway Management/AdminPathwayEdit.jsx";
+import AdminEducatorReview from './pages/admin/Educator Management/AdminEducatorReview.jsx';
 
 import ReviewerDashboard from "./pages/reviewer/ReviewerDashboard.jsx";
 import ReviewerQueue from "./pages/reviewer/ReviewerQueue.jsx";
