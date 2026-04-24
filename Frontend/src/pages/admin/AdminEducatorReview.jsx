@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 import AdminFooter from "./AdminFooter.jsx";
 
+// API Endpoints
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const VERIFY_EDUCATOR_API = (id) => `${API_URL}/api/auth/admin/educators/${id}/verify`;
 
@@ -42,22 +43,24 @@ export default function AdminEducatorReview() {
   const fullName = educator.fullName || educator.name || "Unknown";
   const educatorId = educator._id || educator.id;
 
-  // Handle Verify Action (Approve or Reject)
+  // Handle Verify Action (Sends exactly "VERIFIED" or "REJECTED" to the database)
   const handleVerifyAction = async (status) => {
     setIsProcessing(true);
 
     try {
       await axios.patch(
         VERIFY_EDUCATOR_API(educatorId),
-        { status: status }, 
+        { status: status }, // This will now send "VERIFIED" or "REJECTED"
         getAuthHeader()
       );
 
-      showToast("success", `Educator successfully ${status}!`);
+      // Format the success message nicely based on the status sent
+      const actionWord = status === "VERIFIED" ? "approved" : "rejected";
+      showToast("success", `Educator successfully ${actionWord}!`);
       
       // Wait a moment then redirect back to the list
       setTimeout(() => {
-        navigate("/admin/verify-educators"); // Adjust this route to match your actual list route
+        navigate("/admin/verify-educators"); 
       }, 1500);
 
     } catch (err) {
@@ -76,6 +79,7 @@ export default function AdminEducatorReview() {
 
   return (
     <PageShell>
+      {/* Toast Notification */}
       {toast && (
         <div className="fixed right-4 top-20 z-50">
           <div
@@ -150,8 +154,9 @@ export default function AdminEducatorReview() {
           <div className="rounded-[28px] border border-black/5 bg-white/70 p-6 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur h-fit space-y-4">
             <h2 className="text-lg font-bold text-slate-800 mb-4">Actions</h2>
             
+            {/* Passes "VERIFIED" as the strict status payload */}
             <button
-              onClick={() => handleVerifyAction("approved")}
+              onClick={() => handleVerifyAction("VERIFIED")}
               disabled={isProcessing}
               className="w-full rounded-2xl bg-emerald-500 py-3.5 font-bold text-white shadow hover:bg-emerald-600 transition disabled:opacity-70 flex items-center justify-center gap-2"
             >
@@ -159,8 +164,9 @@ export default function AdminEducatorReview() {
               {isProcessing ? "Processing..." : "Approve Educator"}
             </button>
 
+            {/* Passes "REJECTED" as the strict status payload */}
             <button
-              onClick={() => handleVerifyAction("rejected")}
+              onClick={() => handleVerifyAction("REJECTED")}
               disabled={isProcessing}
               className="w-full rounded-2xl bg-red-500 py-3.5 font-bold text-white shadow hover:bg-red-600 transition disabled:opacity-70 flex items-center justify-center gap-2"
             >
