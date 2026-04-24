@@ -3,9 +3,9 @@ import axios from "axios";
 import PageShell from "../../../components/PageShell.jsx";
 import AdminFooter from "../General Pages/AdminFooter.jsx";
 
-// API Endpoint - Make sure this matches your server.js route path!
+// API Endpoint - Make sure this matches the route defined in your server.js
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const SPEC_API = `${API_URL}/api/specializations`;
+const SPEC_API = `${API_URL}/api/specializations`; // Adjust if your route prefix is different
 
 export default function AdminSpecializations() {
   const [specializations, setSpecializations] = useState([]);
@@ -14,17 +14,18 @@ export default function AdminSpecializations() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
 
-  // Helper to get Auth Headers
+  // Helper to attach authorization token to requests
   const getAuthHeader = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem("edupath_token")}` }
   });
 
+  // Display a temporary toast notification
   const showToast = (type, text) => {
     setToast({ type, text });
     setTimeout(() => setToast(null), 3000);
   };
 
-  // Fetch specializations from the Backend
+  // Fetch all specializations from the backend
   const fetchSpecializations = async () => {
     setIsLoading(true);
     try {
@@ -38,26 +39,23 @@ export default function AdminSpecializations() {
     }
   };
 
+  // Load data when the component mounts
   useEffect(() => {
     fetchSpecializations();
   }, []);
 
-  // Handle Add New Specialization
+  // Handle the submission of a new specialization
   const handleAddSpecialization = async (e) => {
     e.preventDefault();
     if (!newSpecName.trim()) return;
 
     setIsSubmitting(true);
     try {
-      await axios.post(
-        SPEC_API,
-        { name: newSpecName },
-        getAuthHeader()
-      );
+      await axios.post(SPEC_API, { name: newSpecName }, getAuthHeader());
       
       showToast("success", "Specialization added successfully!");
-      setNewSpecName(""); // Clear the input field
-      fetchSpecializations(); // Refresh the list to show the new item
+      setNewSpecName(""); // Clear the input field after successful addition
+      fetchSpecializations(); // Reload the list to display the new item
     } catch (error) {
       console.error(error);
       showToast("error", error.response?.data?.message || "Failed to add specialization.");
@@ -66,9 +64,30 @@ export default function AdminSpecializations() {
     }
   };
 
+  // Handle toggling the Active/Inactive status of an item
+  const handleToggleStatus = async (id, currentStatus) => {
+    try {
+      // Send a PATCH request to toggle the status in the database
+      await axios.patch(`${SPEC_API}/${id}/toggle`, {}, getAuthHeader());
+      
+      // Update the local state immediately for a responsive UI (no full reload needed)
+      setSpecializations(prevSpecs => 
+        prevSpecs.map(spec => 
+          spec._id === id ? { ...spec, isActive: !spec.isActive } : spec
+        )
+      );
+
+      // Show a success message reflecting the new status
+      showToast("success", `Status updated to ${!currentStatus ? 'Active' : 'Inactive'}`);
+    } catch (error) {
+      console.error(error);
+      showToast("error", "Failed to change status.");
+    }
+  };
+
   return (
     <PageShell>
-      {/* Toast Notification */}
+      {/* Toast Notification Container */}
       {toast && (
         <div className="fixed right-4 top-20 z-50">
           <div className={`rounded-2xl border px-4 py-3 text-sm shadow-lg backdrop-blur bg-white/80 ${
@@ -81,7 +100,7 @@ export default function AdminSpecializations() {
 
       <div className="space-y-6">
         
-        {/* Header Area */}
+        {/* Header Section */}
         <div className="rounded-[28px] border border-black/5 bg-white/70 p-6 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
           <div>
             <h1 className="text-xl font-semibold text-slate-900">Manage Specializations</h1>
@@ -114,7 +133,7 @@ export default function AdminSpecializations() {
           </form>
         </div>
 
-        {/* List of Specializations */}
+        {/* Specializations List Display */}
         <div className="rounded-[28px] border border-black/5 bg-white/70 p-6 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-base font-semibold text-slate-800">Current Specializations</h2>
@@ -133,20 +152,24 @@ export default function AdminSpecializations() {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {specializations.map((spec) => (
                 <div key={spec._id} className="p-4 rounded-2xl border border-black/5 bg-white shadow-sm flex items-center justify-between hover:shadow-md transition">
-                  <div className="min-w-0">
+                  <div className="min-w-0 pr-3">
                     <p className="font-bold text-sm text-slate-800 truncate">{spec.name}</p>
                     <p className="text-[10px] text-slate-400 mt-0.5 truncate">Slug: {spec.slug}</p>
                   </div>
+                  
+                  {/* Interactive Status Toggle Button */}
                   <div>
-                    {spec.isActive ? (
-                      <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-extrabold uppercase rounded-full tracking-wider">
-                        Active
-                      </span>
-                    ) : (
-                      <span className="px-2.5 py-1 bg-red-100 text-red-700 text-[10px] font-extrabold uppercase rounded-full tracking-wider">
-                        Inactive
-                      </span>
-                    )}
+                    <button
+                      onClick={() => handleToggleStatus(spec._id, spec.isActive)}
+                      className={`px-3 py-1 text-[10px] font-extrabold uppercase rounded-full tracking-wider transition-colors shadow-sm hover:shadow focus:outline-none ${
+                        spec.isActive 
+                          ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" 
+                          : "bg-red-100 text-red-700 hover:bg-red-200"
+                      }`}
+                      title={`Click to make ${spec.isActive ? 'Inactive' : 'Active'}`}
+                    >
+                      {spec.isActive ? "Active" : "Inactive"}
+                    </button>
                   </div>
                 </div>
               ))}

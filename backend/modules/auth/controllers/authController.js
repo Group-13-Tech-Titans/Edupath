@@ -350,7 +350,8 @@ exports.getAllReviewers = async (req, res) => {
 // Create a new reviewer
 exports.createReviewer = async (req, res) => {
   try {
-    const { name, email, password, specializationTag } = req.body;
+    // 🟢 FIXED: Use specializationTags (Array) instead of singular
+    const { name, email, password, specializationTags } = req.body;
 
     const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ message: "Email already in use" });
@@ -361,8 +362,8 @@ exports.createReviewer = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role: "reviewer", // Explicitly set role
-      specializationTag, 
+      role: "reviewer",
+      specializationTags: specializationTags || [], // 🟢 Save as Array
       authProvider: "local",
       isVerified: true, 
     });
@@ -376,15 +377,22 @@ exports.createReviewer = async (req, res) => {
 // Update a reviewer
 exports.updateReviewer = async (req, res) => {
   try {
-    const { name, email, password, specializationTag } = req.body;
-    const updateData = { name, email, specializationTag };
+    // 🟢 FIXED: Use specializationTags (Array) instead of singular
+    const { name, email, password, specializationTags } = req.body;
+    
+    // 🟢 Save the array to updateData
+    const updateData = { 
+        name, 
+        email, 
+        specializationTags: specializationTags || [] 
+    };
 
     if (password) {
       updateData.password = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
     }
 
     const updated = await User.findOneAndUpdate(
-      { _id: req.params.id, role: "reviewer" }, // Security: Only update if it's a reviewer
+      { _id: req.params.id, role: "reviewer" }, 
       { $set: updateData },
       { returnDocument: 'after', runValidators: true }
     ).select("-password");

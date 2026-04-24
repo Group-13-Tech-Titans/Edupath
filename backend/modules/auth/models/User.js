@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema({
   quizCompleted: { type: Boolean, default: false },
 
   status: { type: String, default: null },
-  specializationTag: { type: String, default: null },
+  specializationTags: [{ type: String }],
   // Mixed type allows flexible schema-less data for varied profiles (e.g., student vs educator metadata)
   profile: { type: mongoose.Schema.Types.Mixed, default: {} },
   resetPasswordToken: String,
