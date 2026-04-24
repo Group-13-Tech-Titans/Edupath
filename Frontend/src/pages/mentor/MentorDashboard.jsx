@@ -166,6 +166,12 @@ export default function MentorDashboard() {
             </div>
           </div>
           <div className="flex gap-3">
+            {/* 🟢 NEW: Switch back to Educator button */}
+            <Link to="/educator"
+              className="inline-block rounded-xl border-2 border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+              Switch to Educator 🔄
+            </Link>
+
             <Link to="/mentor/profile"
               className="inline-block rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-semibold text-teal-500 transition hover:bg-teal-400 hover:text-white">
               View Profile

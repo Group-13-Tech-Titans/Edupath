@@ -244,7 +244,7 @@ exports.getCurrentUser = (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    const { name, role, password, profile, status, specializationTag } = req.body;
+    const { name, role, password, profile, status, specializationTag, isMentor } = req.body;
 
     // Build update object dynamically to prevent overwriting with nulls
     const updates = {};
@@ -253,6 +253,7 @@ exports.updateProfile = async (req, res) => {
     if (status != null) updates.status = status;
     if (specializationTag != null) updates.specializationTag = specializationTag;
     if (profile != null) updates.profile = profile;
+    if (isMentor != null) updates.isMentor = isMentor;
     if (password && password.length >= 6) {
       updates.password = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
     }
@@ -330,7 +331,7 @@ exports.createAdminUser = async (req, res) => {
 exports.adminWelcome = (req, res) => res.json({ message: "Welcome Admin" });
 exports.educatorWelcome = (req, res) => res.json({ message: "Welcome Educator" });
 
-// 🟢 MERGED: GET all reviewers (using your User model)
+// GET all reviewers (using your User model)
 exports.getAllReviewers = async (req, res) => {
   try {
     const reviewers = await User.find({ role: "reviewer" }).select("-password");
@@ -340,7 +341,7 @@ exports.getAllReviewers = async (req, res) => {
   }
 };
 
-// 🟢 MERGED: ADD a reviewer (Modified your createAdminUser logic)
+// ADD a reviewer (Modified your createAdminUser logic)
 exports.createReviewer = async (req, res) => {
   try {
     const { name, email, password, specializationTag } = req.body;
@@ -366,7 +367,7 @@ exports.createReviewer = async (req, res) => {
   }
 };
 
-// 🟢 MERGED: UPDATE a reviewer (From friend's logic)
+// UPDATE a reviewer (From friend's logic)
 exports.updateReviewer = async (req, res) => {
   try {
     const { name, email, password, specializationTag } = req.body;
@@ -389,7 +390,7 @@ exports.updateReviewer = async (req, res) => {
   }
 };
 
-// 🟢 MERGED: DELETE a reviewer
+// DELETE a reviewer
 exports.deleteReviewer = async (req, res) => {
   try {
     const deleted = await User.findOneAndDelete({ _id: req.params.id, role: "reviewer" });
@@ -399,3 +400,4 @@ exports.deleteReviewer = async (req, res) => {
     res.status(500).json({ message: "Delete failed", error: err.message });
   }
 };
+

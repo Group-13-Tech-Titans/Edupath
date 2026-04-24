@@ -22,6 +22,9 @@ const userSchema = new mongoose.Schema({
     enum: ["student", "educator", "admin", "reviewer", "pending"],
     default: "pending",
   },
+
+  isMentor: { type: Boolean, default: false },
+
   learningPath: { type: String },
   level: { type: String },
   quizCompleted: { type: Boolean, default: false },

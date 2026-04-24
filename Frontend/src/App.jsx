@@ -66,6 +66,7 @@ import MentorResources from "./pages/mentor/MentorResources.jsx";
 import MentorMessages from "./pages/mentor/MentorMessages.jsx";
 import MentorStudentDetails from "./pages/mentor/MentorStudentDetails.jsx";
 import MentorAnalytics from "./pages/mentor/MentorAnalytics.jsx";
+import MentorTerms from "./pages/mentor/MentorTerms.jsx"
 
 import ComingSoon from './pages/ComingSoon.jsx';
 
@@ -110,9 +111,10 @@ const App = () => {
             <Route path="add-content/:id" element={<EducatorAddContent />} />
             <Route path="payouts" element={<EducatorPayouts />} />
             <Route path="profile" element={<EducatorProfile />} />
+            <Route path="mentor" element={<MentorTerms />} />
           </Route>
         </Route>
-
+        
         <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />

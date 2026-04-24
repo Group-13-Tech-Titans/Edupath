@@ -14,7 +14,8 @@ const roleHomePath = {
   student: "/student",
   educator: "/educator",
   admin: "/admin",
-  reviewer: "/reviewer"
+  reviewer: "/reviewer",
+  mentor: "/mentor"
 };
 
 const ProtectedRoute = ({ allowedRoles }) => {
@@ -45,10 +46,17 @@ const ProtectedRoute = ({ allowedRoles }) => {
     return <Navigate to={`/signup/${currentUser.role}`} replace />;
   }
 
-  // AUTHORIZATION CHECK (RBAC): If they have a user, but the wrong role
-  if (allowedRoles && !allowedRoles.includes(currentUser.role)) {
-    const target = roleHomePath[currentUser.role] || "/";
-    return <Navigate to={target} replace />;
+  // AUTHORIZATION CHECK (Dual-Role Aware)
+  if (allowedRoles) {
+    // Check if they have the primary role OR if they are an educator with the mentor VIP pass
+    const isPrimaryRole = allowedRoles.includes(currentUser.role);
+    const isDualRoleMentor = allowedRoles.includes("mentor") && currentUser.isMentor === true;
+
+    // If they have NEITHER permission, kick them back to their home dashboard
+    if (!isPrimaryRole && !isDualRoleMentor) {
+      const target = roleHomePath[currentUser.role] || "/";
+      return <Navigate to={target} replace />;
+    }
   }
 
   return <Outlet />;
