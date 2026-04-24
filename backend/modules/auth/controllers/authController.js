@@ -23,7 +23,7 @@ const RESET_TOKEN_EXPIRY_MS = 15 * 60 * 1000; // Reset token expire time - 15 mi
 // Google Login
 exports.googleLogin = async (req, res) => {
   try {
-    const { credential } = req.body;
+    const { credential, isSignup } = req.body;
     if (!credential) return res.status(400).json({ message: "Missing Google credential" });
 
     // Verify token cryptographically with Google to prevent spoofing
@@ -39,6 +39,13 @@ exports.googleLogin = async (req, res) => {
     const avatar = payload.picture || "";
 
     let user = await User.findOne({ email });
+
+    // Block duplicate signups
+    if (user && isSignup) {
+      return res.status(400).json({
+        message: "Account already exists. Please log in."
+      });
+    }
 
     // Logic Flow: Handle positive condition first
     if (user) {
@@ -56,7 +63,7 @@ exports.googleLogin = async (req, res) => {
         authProvider: "google",
         googleId,
         avatar,
-        isVerified: true // Implicitly email verified by Google
+        isVerified: true, // Implicitly email verified by Google
       });
     }
 
@@ -67,8 +74,9 @@ exports.googleLogin = async (req, res) => {
       message: "Google login success",
       token,
       // Only send necessary data back, never the whole user object
-      user: { id: user._id, name: user.name, email: user.email, role: user.role, avatar: user.avatar },
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, avatar: user.avatar, status: user.status },
     });
+
   } catch (err) {
     res.status(500).json({ message: "Google login failed", error: err.message });
   }
@@ -93,6 +101,7 @@ exports.selectRole = async (req, res) => {
     }
 
     user.role = role;
+    user.status = "onboarding";
     await user.save();
 
     // Re-issue JWT because the payload (role) has changed
@@ -248,7 +257,7 @@ exports.updateProfile = async (req, res) => {
       updates.password = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
     }
 
-    const user = await User.findByIdAndUpdate(req.user._id, { $set: updates }, { new: true }).select("-password");
+    const user = await User.findByIdAndUpdate(req.user._id, { $set: updates }, { returnDocument: 'after' }).select("-password");
 
     const safe = user.toObject();
     safe.id = safe._id.toString();
@@ -318,14 +327,75 @@ exports.createAdminUser = async (req, res) => {
   }
 };
 
+exports.adminWelcome = (req, res) => res.json({ message: "Welcome Admin" });
+exports.educatorWelcome = (req, res) => res.json({ message: "Welcome Educator" });
+
+// 🟢 MERGED: GET all reviewers (using your User model)
 exports.getAllReviewers = async (req, res) => {
   try {
     const reviewers = await User.find({ role: "reviewer" }).select("-password");
-    res.json({ reviewers });
+    res.json(reviewers);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch reviewers", error: err.message });
   }
 };
 
-exports.adminWelcome = (req, res) => res.json({ message: "Welcome Admin" });
-exports.educatorWelcome = (req, res) => res.json({ message: "Welcome Educator" });
+// 🟢 MERGED: ADD a reviewer (Modified your createAdminUser logic)
+exports.createReviewer = async (req, res) => {
+  try {
+    const { name, email, password, specializationTag } = req.body;
+
+    const existing = await User.findOne({ email });
+    if (existing) return res.status(400).json({ message: "Email already in use" });
+
+    const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+
+    const newUser = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      role: "reviewer", // Explicitly set role
+      specializationTag, // Friend's expertise
+      authProvider: "local",
+      isVerified: true, 
+    });
+
+    res.status(201).json({ message: "Reviewer created", id: newUser._id });
+  } catch (err) {
+    res.status(500).json({ message: "Creation failed", error: err.message });
+  }
+};
+
+// 🟢 MERGED: UPDATE a reviewer (From friend's logic)
+exports.updateReviewer = async (req, res) => {
+  try {
+    const { name, email, password, specializationTag } = req.body;
+    const updateData = { name, email, specializationTag };
+
+    if (password) {
+      updateData.password = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+    }
+
+    const updated = await User.findOneAndUpdate(
+      { _id: req.params.id, role: "reviewer" }, // Security: Only update if it's a reviewer
+      { $set: updateData },
+      { returnDocument: 'after', runValidators: true }
+    ).select("-password");
+
+    if (!updated) return res.status(404).json({ message: "Reviewer not found" });
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ message: "Update failed", error: err.message });
+  }
+};
+
+// 🟢 MERGED: DELETE a reviewer
+exports.deleteReviewer = async (req, res) => {
+  try {
+    const deleted = await User.findOneAndDelete({ _id: req.params.id, role: "reviewer" });
+    if (!deleted) return res.status(404).json({ message: "Reviewer not found" });
+    res.json({ message: "Reviewer deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Delete failed", error: err.message });
+  }
+};

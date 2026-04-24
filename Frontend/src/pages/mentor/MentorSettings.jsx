@@ -488,7 +488,7 @@ export default function MentorSettingsInlineLikeDashboard() {
             <Card>
               <SectionTitle icon={<SettingsCalendarIcon />} title="Availability Preferences" />
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Available Days">
+                <Field label="Available Days" hint="Hold Ctrl/Cmd to select multiple.">
                   <select multiple size={7} defaultValue={["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]} onChange={markDirty} className="min-h-[210px] w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100">
                     <option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option>
                   </select>
@@ -503,6 +503,7 @@ export default function MentorSettingsInlineLikeDashboard() {
                   </Field>
                 </div>
               </div>
+              <DangerBox>Availability is used to show students your likely response and active hours.</DangerBox>
             </Card>
           )}
 
@@ -521,21 +522,39 @@ export default function MentorSettingsInlineLikeDashboard() {
               <SectionTitle icon={<SettingsEyeIcon />} title="Profile Visibility" />
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="md:col-span-2">
-                  <Field label="Public Profile"><Select defaultValue="Visible to students"><option>Visible to students</option><option>Hidden</option></Select></Field>
+                  <Field label="Public Profile" hint="If hidden, students cannot find your profile in search.">
+                    <Select defaultValue="Visible to students">
+                      <option>Visible to students</option><option>Hidden (not searchable)</option>
+                    </Select>
+                  </Field>
                 </div>
                 <Field label="Show Email"><Select defaultValue="Yes"><option>Yes</option><option>No</option></Select></Field>
                 <Field label="Show Phone"><Select defaultValue="No"><option>No</option><option>Yes</option></Select></Field>
               </div>
+              <DangerBox>Keep personal contact details limited. Use in-app messaging when possible.</DangerBox>
             </Card>
           )}
 
           {activeTab === "security" && (
             <Card>
               <SectionTitle icon={<SettingsLockIcon />} title="Security" />
-              <SwitchRow title="Two‑Factor Authentication (2FA)" checked={toggles.twoFA} onToggle={() => toggle("twoFA")} />
+              <SwitchRow title="Two‑Factor Authentication (2FA)" desc="Extra protection for your mentor account." checked={toggles.twoFA} onToggle={() => toggle("twoFA")} />
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <Field label="Login Alerts" hint="Get notified when a new device signs in.">
+                  <Select defaultValue="Enabled"><option>Enabled</option><option>Disabled</option></Select>
+                </Field>
+                <Field label="Session Timeout">
+                  <Select defaultValue="30 minutes">
+                    <option>15 minutes</option><option>30 minutes</option>
+                    <option>60 minutes</option><option>Never (not recommended)</option>
+                  </Select>
+                </Field>
+              </div>
               <div className="mt-4 flex flex-wrap gap-3">
-                <button type="button" onClick={() => setModal("devices")} className="rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-semibold text-teal-500 hover:bg-teal-400 hover:text-white transition">View Devices</button>
-                <button type="button" onClick={() => setModal("reset")} className="rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-semibold text-teal-500 hover:bg-teal-400 hover:text-white transition">Change Password</button>
+                <button type="button" onClick={() => setModal("devices")}
+                  className="rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-semibold text-teal-500 transition hover:bg-teal-400 hover:text-white">View Devices</button>
+                <button type="button" onClick={() => setModal("reset")}
+                  className="rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-semibold text-teal-500 transition hover:bg-teal-400 hover:text-white">Change Password</button>
               </div>
             </Card>
           )}
@@ -547,55 +566,69 @@ export default function MentorSettingsInlineLikeDashboard() {
                 <span className={`h-2.5 w-2.5 rounded-full ${status.dot}`} />{status.label}
               </div>
               <div className="flex flex-wrap gap-3">
-                <button type="button" onClick={discardChanges} className="rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-semibold text-teal-500 hover:bg-teal-400 hover:text-white transition">Cancel</button>
-                <button type="button" onClick={saveChanges} className="rounded-xl bg-teal-400 px-6 py-2.5 text-sm font-semibold text-white hover:bg-teal-500 transition shadow-lg">Save Changes</button>
+                <button type="button" onClick={discardChanges}
+                  className="rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-semibold text-teal-500 transition hover:bg-teal-400 hover:text-white">Cancel</button>
+                <button type="button" onClick={saveChanges}
+                  className="rounded-xl bg-teal-400 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-500 hover:shadow-[0_4px_12px_rgba(93,217,193,0.35)]">Save Changes</button>
               </div>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Toast */}
       {toastState.open && (
-        <div className="fixed bottom-5 left-1/2 z-[1100] w-[min(520px,92%)] -translate-x-1/2 rounded-2xl border border-black/5 bg-white p-4 shadow-2xl">
+        <div className="fixed bottom-5 left-1/2 z-[1100] w-[min(520px,92%)] -translate-x-1/2 rounded-2xl border border-black/5 bg-white p-4 shadow-[0_10px_30px_rgba(0,0,0,0.18)]">
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="mb-1 text-sm font-extrabold text-slate-800">{toastState.title}</div>
-              <div className="text-[13px] text-slate-500">{toastState.msg}</div>
+              <div className="text-[13px] leading-5 text-slate-500">{toastState.msg}</div>
             </div>
-            <button type="button" onClick={closeToast} className="grid h-9 w-9 place-items-center rounded-full bg-slate-50 text-slate-500 hover:bg-slate-200">×</button>
+            <button type="button" onClick={closeToast} className="grid h-9 w-9 place-items-center rounded-full bg-slate-50 text-lg text-slate-500 hover:bg-slate-200">×</button>
           </div>
         </div>
       )}
 
       {/* Modals */}
-      <ModalShell open={modal === "reset"} title="Reset Password" onClose={() => setModal(null)}>
+      <ModalShell open={modal === "reset"} title="Reset Password" onClose={() => { setModal(null); }}>
         <PasswordModal onClose={() => setModal(null)} showToast={showToast} />
       </ModalShell>
 
       <ModalShell open={modal === "devices"} title="Signed-in Devices" onClose={() => setModal(null)}>
         <div className="space-y-3">
-          <div className="flex items-center justify-between gap-4 rounded-2xl border-2 border-slate-100 bg-white px-4 py-4">
-            <div><div className="text-sm font-extrabold text-slate-800">Windows PC • Chrome</div><div className="text-xs text-slate-500">Current</div></div>
-            <Pill>Active</Pill>
+          <DangerBox>This list is a demo. In your real system, show device name, location, and last active time.</DangerBox>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-4 rounded-2xl border-2 border-slate-100 bg-white px-4 py-4">
+              <div><div className="text-sm font-extrabold text-slate-800">Windows PC • Chrome</div><div className="text-xs text-slate-500">Last active: Today</div></div>
+              <Pill>Current</Pill>
+            </div>
+            <div className="flex items-center justify-between gap-4 rounded-2xl border-2 border-slate-100 bg-white px-4 py-4">
+              <div><div className="text-sm font-extrabold text-slate-800">Android • Mobile App</div><div className="text-xs text-slate-500">Last active: Yesterday</div></div>
+              <button type="button" onClick={() => showToast("Signed out", "Device signed out (demo).")} className="rounded-xl border-2 border-teal-400 bg-white px-4 py-2 text-sm font-semibold text-teal-500 transition hover:bg-teal-400 hover:text-white">Sign out</button>
+            </div>
           </div>
-          <button type="button" onClick={() => setModal(null)} className="w-full rounded-xl bg-teal-400 py-3 text-sm font-semibold text-white mt-4">Close</button>
+          <div className="flex justify-end pt-2">
+            <button type="button" onClick={() => setModal(null)} className="rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-semibold text-teal-500 transition hover:bg-teal-400 hover:text-white">Close</button>
+          </div>
         </div>
       </ModalShell>
 
       <ModalShell open={modal === "deactivate"} title="Deactivate Account" onClose={() => setModal(null)}>
-        <DangerBox>Deactivating hides your mentor profile.</DangerBox>
+        <DangerBox>Deactivating hides your mentor profile and pauses notifications.</DangerBox>
         <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={() => setModal(null)} className="rounded-xl border-2 border-teal-400 px-5 py-2.5 text-sm font-semibold text-teal-500">Cancel</button>
-          <button type="button" onClick={() => { setModal(null); showToast("Deactivated", "Demo."); }} className="rounded-xl bg-teal-400 px-6 py-2.5 text-sm font-semibold text-white">Deactivate</button>
+          <button type="button" onClick={() => setModal(null)} className="rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-semibold text-teal-500 transition hover:bg-teal-400 hover:text-white">Cancel</button>
+          <button type="button" onClick={() => { setModal(null); showToast("Deactivated", "Account deactivated (demo)."); }} className="rounded-xl bg-teal-400 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-500">Deactivate</button>
         </div>
       </ModalShell>
 
       <ModalShell open={modal === "delete"} title="Delete Account" onClose={() => setModal(null)}>
-        <DangerBox>Permanent action. Type DELETE.</DangerBox>
-        <Field label="Type DELETE"><input value={deleteConfirm} onChange={(e) => setDeleteConfirm(e.target.value)} placeholder="DELETE" className={inputCls} /></Field>
+        <DangerBox>This action is permanent. Your mentor profile, sessions history, and resources will be removed.</DangerBox>
+        <Field label={<span>Type <b>DELETE</b> to confirm</span>}>
+          <input value={deleteConfirm} onChange={(e) => setDeleteConfirm(e.target.value)} placeholder="DELETE" className={inputCls} />
+        </Field>
         <div className="flex justify-end gap-3 pt-4">
-          <button type="button" onClick={() => setModal(null)} className="rounded-xl border-2 border-teal-400 px-5 py-2.5 text-sm font-semibold text-teal-500">Cancel</button>
-          <button type="button" onClick={doDelete} className="rounded-xl border-2 border-teal-500 px-5 py-2.5 text-sm font-semibold text-teal-600">Delete</button>
+          <button type="button" onClick={() => setModal(null)} className="rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-semibold text-teal-500 transition hover:bg-teal-400 hover:text-white">Cancel</button>
+          <button type="button" onClick={doDelete} className="rounded-xl border-2 border-teal-500 bg-white px-5 py-2.5 text-sm font-semibold text-teal-600 transition hover:bg-teal-500 hover:text-white">Delete</button>
         </div>
       </ModalShell>
     </>

@@ -1,3 +1,9 @@
+/**
+ * USER DATABASE MODEL
+ * Defines the schema, data types, and validations for users in MongoDB.
+ * Design Pattern: Active Record / Data Mapper (via Mongoose)
+ */
+
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
@@ -5,6 +11,8 @@ const userSchema = new mongoose.Schema({
   email: { type: String, unique: true },
   password: {
     type: String,
+
+    // Dynamic Validation: Password is only required if they register normally and Bypasses this for Google OAuth users.
     required: function () {
       return this.authProvider === "local";
     },
@@ -20,6 +28,7 @@ const userSchema = new mongoose.Schema({
 
   status: { type: String, default: null },
   specializationTag: { type: String, default: null },
+  // Mixed type allows flexible schema-less data for varied profiles (e.g., student vs educator metadata)
   profile: { type: mongoose.Schema.Types.Mixed, default: {} },
   resetPasswordToken: String,
   resetPasswordExpire: Date,

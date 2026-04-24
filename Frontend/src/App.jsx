@@ -40,6 +40,7 @@ import EducatorCourses from "./pages/educator/EducatorCourses.jsx";
 import EducatorPublish from "./pages/educator/EducatorPublish.jsx";
 import EducatorEditCourse from "./pages/educator/EducatorEditCourse.jsx";
 import EducatorAddContent from "./pages/educator/EducatorAddContent.jsx";
+import EducatorCourseDetail from "./pages/educator/EducatorCourseDetail.jsx";
 import EducatorPayouts from "./pages/educator/EducatorPayouts.jsx";
 import EducatorProfile from "./pages/educator/EducatorProfile.jsx";
 import EducatorVerificationPendingPage from "./pages/educator/EducatorVerificationPendingPage.jsx";
@@ -47,6 +48,7 @@ import EducatorVerificationPendingPage from "./pages/educator/EducatorVerificati
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import AdminReviewers from "./pages/admin/AdminReviewers.jsx";
+import AdminViewCourses from "./pages/admin/AdminViewCourses.jsx";
 import AdminVerifyEducators from "./pages/admin/AdminVerifyEducators.jsx";
 import AdminReviewDashboard from "./pages/admin/AdminReviewDashboard.jsx";
 import AdminCourseReview from "./pages/admin/AdminCourseReview.jsx";
@@ -75,6 +77,10 @@ import MentorResources from "./pages/mentor/MentorResources.jsx";
 import MentorMessages from "./pages/mentor/MentorMessages.jsx";
 import MentorStudentDetails from "./pages/mentor/MentorStudentDetails.jsx";
 import MentorAnalytics from "./pages/mentor/MentorAnalytics.jsx";
+
+import ComingSoon from './pages/ComingSoon.jsx';
+
+import NotFound from "./pages/NotFound.jsx";
 
 const App = () => {
   return (
@@ -115,6 +121,7 @@ const App = () => {
           <Route path="/educator" element={<EducatorLayout />}>
             <Route index element={<EducatorDashboard />} />
             <Route path="courses" element={<EducatorCourses />} />
+            <Route path="courses/:id" element={<EducatorCourseDetail />} />
             <Route path="publish" element={<EducatorPublish />} />
             <Route path="edit/:id" element={<EducatorEditCourse />} />
             <Route path="add-content/:id" element={<EducatorAddContent />} />
@@ -128,6 +135,7 @@ const App = () => {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="reviewers" element={<AdminReviewers />} />
+            <Route path="approvals" element={<AdminViewCourses />} />
             <Route path="verify-educators" element={<AdminVerifyEducators />} />
             <Route path="review-dashboard" element={<AdminReviewDashboard />} />
             <Route path="queue" element={<ReviewerQueue />} />
@@ -154,7 +162,7 @@ const App = () => {
         </Route>
 
         {/* Mentor Protected Routes */}
-        {/* <Route element={<ProtectedRoute allowedRoles={["mentor"]} />}> */}
+        <Route element={<ProtectedRoute allowedRoles={["mentor"]} />}>
           <Route path="/mentor" element={<MentorLayout />}>
             <Route index element={<MentorDashboard />} />
             <Route path="sessions" element={<MentorSessions />} />
@@ -167,8 +175,7 @@ const App = () => {
             <Route path="student-details/:id" element={<MentorStudentDetails />} />
             <Route path="analytics" element={<MentorAnalytics />} />
           </Route>
-        {/* </Route> */}
-
+        </Route>
 
         <Route path="/MentorDashboard" element={<Navigate to="/mentor" replace />} />
 

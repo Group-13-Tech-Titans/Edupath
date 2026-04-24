@@ -147,7 +147,6 @@ export default function MentorAnalytics() {
             <h2 className="text-xl font-semibold text-slate-800">Weekly Activity Heatmap</h2>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Activity Patterns</p>
           </div>
-
           <div className="flex flex-col gap-2">
             <div className="flex gap-2">
               <div className="w-16"></div>

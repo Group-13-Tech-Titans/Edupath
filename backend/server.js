@@ -11,6 +11,7 @@ connectDB();
 app.use(cors());
 app.use(express.json());
 
+
 // Routes
 app.use("/api/auth", require("./modules/auth/routes/authRoutes"));
 
@@ -28,6 +29,11 @@ app.use("/api/admin", require("./modules/admin/routes/adminRoutes"));
 
 // Mentor routes
 app.use("/api/mentor", require("./modules/mentor/routes/mentorRoutes"));
+app.use("/api/courses", require("./modules/courses/routes/courseRoutes"));
+
+app.use("/api/upload", require("./modules/upload/routes/uploadRoutes"));
+
+app.use("/api/specializations", require("./modules/specializations/routes/specializationRoutes"));
 
 app.get("/test", (req, res) => {
   res.send("Working");
