@@ -9,6 +9,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const Course = require("../../../modules/courses/models/course"); // Ensure this path is correct for your structure
 const sendEmail = require("../../../utils/sendEmail");
 const crypto = require("node:crypto");
 const { OAuth2Client } = require("google-auth-library");
@@ -18,7 +19,9 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const BCRYPT_SALT_ROUNDS = 10;
 const RESET_TOKEN_EXPIRY_MS = 15 * 60 * 1000; // Reset token expire time - 15 minutes
 
-//  AUTH LOGIC
+// ==========================================
+//   AUTH LOGIC
+// ==========================================
 
 // Google Login
 exports.googleLogin = async (req, res) => {
@@ -223,7 +226,7 @@ exports.resetPassword = async (req, res) => {
 
     user.password = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
-    // Invalidate the token immediately use
+    // Invalidate the token immediately after use
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
     await user.save();
@@ -330,7 +333,11 @@ exports.createAdminUser = async (req, res) => {
 exports.adminWelcome = (req, res) => res.json({ message: "Welcome Admin" });
 exports.educatorWelcome = (req, res) => res.json({ message: "Welcome Educator" });
 
-// 🟢 MERGED: GET all reviewers (using your User model)
+// ==========================================
+//   ADMIN: REVIEWER MANAGEMENT
+// ==========================================
+
+// Get all reviewers
 exports.getAllReviewers = async (req, res) => {
   try {
     const reviewers = await User.find({ role: "reviewer" }).select("-password");
@@ -340,7 +347,7 @@ exports.getAllReviewers = async (req, res) => {
   }
 };
 
-// 🟢 MERGED: ADD a reviewer (Modified your createAdminUser logic)
+// Create a new reviewer
 exports.createReviewer = async (req, res) => {
   try {
     const { name, email, password, specializationTag } = req.body;
@@ -355,7 +362,7 @@ exports.createReviewer = async (req, res) => {
       email,
       password: hashedPassword,
       role: "reviewer", // Explicitly set role
-      specializationTag, // Friend's expertise
+      specializationTag, 
       authProvider: "local",
       isVerified: true, 
     });
@@ -366,7 +373,7 @@ exports.createReviewer = async (req, res) => {
   }
 };
 
-// 🟢 MERGED: UPDATE a reviewer (From friend's logic)
+// Update a reviewer
 exports.updateReviewer = async (req, res) => {
   try {
     const { name, email, password, specializationTag } = req.body;
@@ -389,7 +396,7 @@ exports.updateReviewer = async (req, res) => {
   }
 };
 
-// 🟢 MERGED: DELETE a reviewer
+// Delete a reviewer
 exports.deleteReviewer = async (req, res) => {
   try {
     const deleted = await User.findOneAndDelete({ _id: req.params.id, role: "reviewer" });
@@ -397,5 +404,126 @@ exports.deleteReviewer = async (req, res) => {
     res.json({ message: "Reviewer deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: "Delete failed", error: err.message });
+  }
+};
+
+// ==============================================================
+//  ADMIN: EDUCATOR VERIFICATION FUNCTIONS
+// ==============================================================
+
+// Fetch educators who are waiting for verification
+exports.getPendingEducators = async (req, res) => {
+  try {
+    // Find users with role 'educator' and status 'PENDING_VERIFICATION'
+    const pendingEducators = await User.find({ 
+      role: "educator", 
+      status: "PENDING_VERIFICATION" 
+    }).select("-password");
+
+    res.status(200).json({
+      success: true,
+      educators: pendingEducators
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch pending educators." });
+  }
+};
+
+// Verify (Approve/Reject) an educator (General purpose route)
+exports.verifyEducator = async (req, res) => {
+  try {
+    const educatorId = req.params.id;
+    const { status } = req.body; // Expects "approved" or "rejected"
+
+    // Find the educator by ID and update their status
+    const updatedEducator = await User.findByIdAndUpdate(
+      educatorId,
+      { status: status }, 
+      { new: true } 
+    ).select("-password");
+
+    if (!updatedEducator) {
+      return res.status(404).json({ message: "Educator not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Educator successfully ${status}`,
+      educator: updatedEducator
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to verify educator." });
+  }
+};
+
+// Reject an educator explicitly (Dedicated route)
+exports.rejectEducator = async (req, res) => {
+  try {
+    const educatorId = req.params.id;
+
+    // Explicitly update status to REJECTED
+    const updatedEducator = await User.findByIdAndUpdate(
+      educatorId,
+      { status: "REJECTED" }, 
+      { new: true } 
+    ).select("-password");
+
+    if (!updatedEducator) {
+      return res.status(404).json({ message: "Educator not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Educator successfully rejected",
+      educator: updatedEducator
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to reject educator." });
+  }
+}; 
+
+// ==============================================================
+//  ADMIN: COURSE MANAGEMENT FUNCTIONS
+// ==============================================================
+
+// Fetch all pending courses
+exports.getPendingCourses = async (req, res) => {
+  try {
+    // Find courses with status 'pending'
+    const pendingCourses = await Course.find({ status: "pending" });
+
+    res.status(200).json({
+      success: true,
+      courses: pendingCourses
+    });
+  } catch (error) {
+    console.error("Error in getPendingCourses:", error);
+    res.status(500).json({ message: "Failed to fetch pending courses." });
+  }
+};
+
+// 🟢 NEW: Fetch course statistics (counts for pending, approved, rejected)
+exports.getCourseStats = async (req, res) => {
+  try {
+    // Count documents for each status directly from the Database
+    // Adjust strings "approved" or "rejected" to uppercase if your DB schema uses "APPROVED"
+    const pendingCount = await Course.countDocuments({ status: "pending" });
+    const approvedCount = await Course.countDocuments({ status: "approved" }); 
+    const rejectedCount = await Course.countDocuments({ status: "rejected" }); 
+
+    res.status(200).json({
+      success: true,
+      stats: {
+        pending: pendingCount,
+        approved: approvedCount,
+        rejected: rejectedCount
+      }
+    });
+  } catch (error) {
+    console.error("Error in getCourseStats:", error);
+    res.status(500).json({ message: "Failed to fetch course statistics." });
   }
 };

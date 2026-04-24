@@ -1,53 +1,66 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom"; // Imported for navigation
 import PageShell from "../../components/PageShell.jsx";
 import AdminFooter from "./AdminFooter.jsx";
 
-
-const mockRecentRequests = [
-  {
-    id: "req-1001",
-    fullName: "Yasindu Gunasekara",
-    email: "yasindu.gunasekara@edupath.com",
-    field: "Software Engineering",
-    educationLevel: "BSc",
-    courseCount: 4,
-    submittedAt: "2026-02-10T10:30:00.000Z",
-    docs: { nic: true, certificate: true, portfolio: "https://www.linkedin.com/in/yasindu-gunasekara-5a247a27b/" },
-  },
-  {
-    id: "req-1002",
-    fullName: "Sahan Fernando",
-    email: "sahan.fernando@edupath.com",
-    field: "UI/UX Design",
-    educationLevel: "Diploma",
-    courseCount: 2,
-    submittedAt: "2026-02-11T15:05:00.000Z",
-    docs: { nic: true, certificate: false, portfolio: "https://behance.net/sarah" },
-  },
-  {
-    id: "req-1003",
-    fullName: "Kevin Silva",
-    email: "kevin.silva@edupath.com",
-    field: "Data Science",
-    educationLevel: "MSc",
-    courseCount: 6,
-    submittedAt: "2026-02-12T09:10:00.000Z",
-    docs: { nic: true, certificate: true, portfolio: "https://github.com/kevinsilva" },
-  },
-];
+// API Endpoint for fetching pending educators
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const PENDING_EDUCATORS_API = `${API_URL}/api/auth/admin/educators/pending`;
 
 const AdminVerifyEducators = () => {
-  const [requests] = useState(mockRecentRequests);
+  const [requests, setRequests] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const navigate = useNavigate(); // Hook for routing
 
+  // Helper to get Auth Headers
+  const getAuthHeader = () => ({
+    headers: { Authorization: `Bearer ${localStorage.getItem("edupath_token")}` }
+  });
+
+  // Fetch pending educators from database
+  useEffect(() => {
+    const fetchPendingEducators = async () => {
+      try {
+        setIsLoading(true);
+        setError("");
+        const res = await axios.get(PENDING_EDUCATORS_API, getAuthHeader());
+        setRequests(res.data.educators || res.data || []);
+      } catch (err) {
+        console.error("Fetch error:", err);
+        setError(err.response?.data?.message || "Failed to load pending educators.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPendingEducators();
+  }, []);
+
+  // Sort by submitted date or created date
   const sorted = useMemo(() => {
     return [...requests].sort(
-      (a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+      (a, b) => {
+        const dateB = new Date(b.submittedAt || b.createdAt).getTime();
+        const dateA = new Date(a.submittedAt || a.createdAt).getTime();
+        return dateB - dateA;
+      }
     );
   }, [requests]);
+
+  // Navigate to the new review page and pass the educator data
+  const handleNavigateToReview = (educator) => {
+    // Navigate to the review page, passing the educator object in the route state
+    navigate(`/admin/verify-educator/${educator._id || educator.id}`, { 
+      state: { educator } 
+    });
+  };
 
   return (
     <PageShell>
       <div className="space-y-6">
+        {/* Header */}
         <div className="rounded-[28px] border border-black/5 bg-white/70 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -58,37 +71,39 @@ const AdminVerifyEducators = () => {
                 Recent educator verification requests submitted to the platform.
               </p>
             </div>
-            {/* <a
-              href="/coming-soon"
-              className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary/90"
-            >
-              View All Requests
-            </a> */}
           </div>
         </div>
 
-        {/* Requests List (matches screenshot style) */}
+        {/* Requests List */}
         <div className="rounded-[28px] border border-black/5 bg-white/70 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-text-dark">Requests</h2>
-            <span className="text-xs text-muted">
-              {/* <a
-              href="/coming-soon"
-              className=" px-4 py-2 text-xs font-semibold text-black hover:bg-primary/90 hover:text-white rounded-full"
-            >
-              View All
-            </a> */}
-            </span>
+            <h2 className="text-base font-semibold text-text-dark">Pending Approvals</h2>
           </div>
 
           <div className="mt-4 space-y-3">
-            {sorted.map((e) => (
-              <RequestCard key={e.id} educator={e} />
+            {isLoading && (
+              <div className="rounded-2xl border border-black/5 bg-white/60 p-4 text-sm text-muted animate-pulse">
+                Loading pending requests...
+              </div>
+            )}
+
+            {error && (
+              <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+                {error}
+              </div>
+            )}
+
+            {!isLoading && !error && sorted.map((e) => (
+              <RequestCard 
+                key={e._id || e.id} 
+                educator={e} 
+                onVerifyClick={() => handleNavigateToReview(e)} 
+              />
             ))}
 
-            {sorted.length === 0 && (
+            {!isLoading && !error && sorted.length === 0 && (
               <div className="rounded-2xl border border-black/5 bg-white/60 p-4 text-sm text-muted">
-                No educators found for this filter.
+                No pending educators found.
               </div>
             )}
           </div>
@@ -100,81 +115,51 @@ const AdminVerifyEducators = () => {
   );
 };
 
-const RequestCard = ({ educator }) => {
+const RequestCard = ({ educator, onVerifyClick }) => {
+  const fullName = educator.fullName || educator.name || "Unknown";
+  const field = educator.field || educator.specialization || "N/A";
+  const submitDate = educator.submittedAt || educator.createdAt;
+
   return (
     <div className="rounded-[22px] border border-black/5 bg-white/80 p-4 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3 min-w-0">
-          <Avatar name={educator.fullName || educator.email} />
+          <Avatar name={fullName !== "Unknown" ? fullName : educator.email} />
 
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-text-dark">
-              {educator.fullName}
+              {fullName}
             </p>
             <p className="truncate text-xs text-muted">{educator.email}</p>
 
             <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
-              <MiniPill label={`Field: ${educator.field || "N/A"}`} />
+              <MiniPill label={`Field: ${field}`} />
               <MiniPill label={`Level: ${educator.educationLevel || "N/A"}`} />
-              <MiniPill label={`Courses: ${educator.courseCount ?? 0}`} />
               <MiniPill
                 label={`Submitted: ${
-                  educator.submittedAt
-                    ? new Date(educator.submittedAt).toLocaleDateString()
+                  submitDate
+                    ? new Date(submitDate).toLocaleDateString()
                     : "—"
                 }`}
               />
-            </div>
-
-            <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-muted">
-              <DocLine label="NIC" ok={!!educator.docs?.nic} />
-              <DocLine label="Certificates" ok={!!educator.docs?.certificate} />
-              <DocLink label="Portfolio" url={educator.docs?.portfolio} />
             </div>
           </div>
         </div>
 
         <button
-          onClick={() => window.location.href = "/coming-soon"}
-          className="rounded-full bg-amber-100 px-4 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-200"
+          onClick={onVerifyClick}
+          className="rounded-full bg-amber-100 px-5 py-2.5 text-xs font-bold text-amber-700 hover:bg-amber-200 transition shadow-sm"
         >
-          Action
+          Verify
         </button>
       </div>
     </div>
   );
 };
 
+// Sub-components
 const MiniPill = ({ label }) => (
   <span className="rounded-full bg-black/5 px-3 py-1">{label}</span>
-);
-
-const DocLine = ({ label, ok }) => (
-  <span
-    className={`rounded-full px-3 py-1 ${
-      ok ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-    }`}
-  >
-    {label}: {ok ? "Provided" : "Missing"}
-  </span>
-);
-
-const DocLink = ({ label, url }) => (
-  <span className="rounded-full bg-black/5 px-3 py-1">
-    {label}:{" "}
-    {url ? (
-      <a
-        className="text-primary font-semibold hover:underline"
-        href={url}
-        target="_blank"
-        rel="noreferrer"
-      >
-        Open
-      </a>
-    ) : (
-      "N/A"
-    )}
-  </span>
 );
 
 const Avatar = ({ name }) => (
