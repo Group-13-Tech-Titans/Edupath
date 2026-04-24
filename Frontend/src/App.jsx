@@ -78,10 +78,6 @@ import MentorMessages from "./pages/mentor/MentorMessages.jsx";
 import MentorStudentDetails from "./pages/mentor/MentorStudentDetails.jsx";
 import MentorAnalytics from "./pages/mentor/MentorAnalytics.jsx";
 
-import ComingSoon from './pages/ComingSoon.jsx';
-
-import NotFound from "./pages/NotFound.jsx";
-
 const App = () => {
   return (
     <AnimatePresence mode="wait">
@@ -135,7 +131,6 @@ const App = () => {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="reviewers" element={<AdminReviewers />} />
-            <Route path="approvals" element={<AdminViewCourses />} />
             <Route path="verify-educators" element={<AdminVerifyEducators />} />
             <Route path="review-dashboard" element={<AdminReviewDashboard />} />
             <Route path="queue" element={<ReviewerQueue />} />
@@ -188,5 +183,6 @@ const App = () => {
 };
 
 export default App;
+
 
 
