@@ -1,8 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import axios from "axios";
 import AdminFooter from "./AdminFooter.jsx";
+import { useApp } from "../../context/AppProvider.jsx";
 
-const API_BASE = "http://localhost:5000/api/reviewers";
+// Point to the correct authenticated admin endpoint
+const API_BASE = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/admin/reviewers`;
+
+// ADD THE SPECIALIZATION API URL
+const SPECS_API_BASE = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/specializations`;
 
 const getInitials = (name = "") => {
   const parts = name.trim().split(" ").filter(Boolean);
@@ -17,109 +22,131 @@ export default function AdminReviewers() {
     name: "",
     email: "",
     password: "",
-    expertise: "",
+    specializationTag: "",
   });
   const [search, setSearch] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
 
-  // New States for Edit & Delete Modals
   const [editingReviewer, setEditingReviewer] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
-  // Fetch reviewers from database
-  const fetchReviewers = async () => {
-    try {
-      const res = await axios.get(API_BASE);
-      setReviewers(res.data);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to fetch reviewers");
-    }
+  const [specializationList, setSpecializationList] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const submitLock = useRef(false);
+
+  // Helper to translate slug to nice name
+  const getSpecName = (slug) => {
+    if (!slug) return "No Specialization";
+    const spec = specializationList.find((s) => s.slug === slug);
+    return spec ? spec.name : slug;
   };
 
-  useEffect(() => {
-    fetchReviewers();
+  // Helper to get Auth Headers
+  const getAuthHeader = () => ({
+    headers: { Authorization: `Bearer ${localStorage.getItem("edupath_token")}` }
+  });
+
+  // Fetch both Reviewers and Specializations
+  const fetchData = useCallback(async () => {
+    try {
+      setError("");
+      // Fetch Reviewers
+      const resReviewers = await axios.get(API_BASE, getAuthHeader());
+      setReviewers(resReviewers.data.reviewers || resReviewers.data || []);
+
+      // Fetch Specializations
+      const resSpecs = await axios.get(SPECS_API_BASE);
+      setSpecializationList(resSpecs.data.specializations || []);
+      
+    } catch (err) {
+      console.error(err);
+      setError("Failed to fetch data. Please ensure you are logged in as Admin.");
+    }
   }, []);
 
-  // Create Form handler
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Form handler for CREATE
   const handleChange = (e) => {
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
   };
 
-  // Create Submit handler
+  // 🟢 1. අලුතින් එකතු කරපු Function එක! (Edit ෆෝම් එකේ දත්ත වෙනස් කරන්න)
+  const handleEditChange = (e) => {
+    setEditingReviewer((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  };
+
+  // Submit handler for CREATE
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitLock.current) return;
+
     setError("");
     setSuccess("");
 
-    if (!form.name || !form.email || !form.password || !form.expertise) {
+    if (!form.name || !form.email || !form.password || !form.specializationTag) {
       setError("All fields are required!");
       return;
     }
 
-    if (form.password.length < 6) {
-      setError("Password must be at least 6 characters.");
-      return;
-    }
+    submitLock.current = true; 
+    setIsLoading(true);
 
     try {
-      const res = await axios.post(API_BASE, form);
-      setReviewers((prev) => [res.data, ...prev]);
+      await axios.post(API_BASE, form, getAuthHeader());
+      await fetchData();
+      
       setSuccess("Reviewer account created ✅");
-
-      setForm({
-        name: "",
-        email: "",
-        password: "",
-        expertise: "",
-      });
+      setForm({ name: "", email: "", password: "", specializationTag: "" });
     } catch (err) {
-      console.error(err);
       setError(err.response?.data?.message || "Failed to create reviewer");
+    } finally {
+      submitLock.current = false; 
+      setIsLoading(false);
     }
   };
 
-  // --- DELETE LOGIC ---
+  // Submit handler for DELETE
   const confirmDelete = async () => {
     try {
-      await axios.delete(`${API_BASE}/${deleteConfirmId}`);
-      setReviewers((prev) =>
-        prev.filter((r) => (r._id || r.id) !== deleteConfirmId)
-      );
-      setDeleteConfirmId(null); // Close modal
+      const id = deleteConfirmId;
+      await axios.delete(`${API_BASE}/${id}`, getAuthHeader());
+      setReviewers((prev) => prev.filter((r) => (r._id || r.id) !== id));
+      setDeleteConfirmId(null);
     } catch (err) {
-      console.error(err);
       alert("Failed to delete reviewer.");
     }
   };
 
-  // --- EDIT LOGIC ---
-  const handleEditChange = (e) => {
-    setEditingReviewer((p) => ({ ...p, [e.target.name]: e.target.value }));
-  };
-
+  // Submit handler for EDIT
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
       const id = editingReviewer._id || editingReviewer.id;
-      // We send the updated data to the PUT endpoint
-      const res = await axios.put(`${API_BASE}/${id}`, editingReviewer);
+      const res = await axios.put(`${API_BASE}/${id}`, editingReviewer, getAuthHeader());
       
-      // Update the state with the new data
       setReviewers((prev) =>
         prev.map((r) => ((r._id || r.id) === id ? res.data : r))
       );
-      setEditingReviewer(null); // Close modal
+      setEditingReviewer(null);
+      
+      // Update the main list just to be safe
+      await fetchData();
+      setSuccess("Reviewer updated successfully ✅");
     } catch (err) {
-      console.error(err);
       alert(err.response?.data?.message || "Failed to update reviewer.");
     }
   };
 
   const filteredReviewers = reviewers.filter((r) =>
-    `${r.name} ${r.email} ${r.expertise}`
+    `${r.name} ${r.email} ${r.specializationTag}` 
       .toLowerCase()
       .includes(search.toLowerCase())
   );
@@ -168,7 +195,7 @@ export default function AdminReviewers() {
                   name="password"
                   value={form.password}
                   onChange={handleChange}
-                  placeholder="Min 6 characters"
+                  placeholder="Min 8 characters"
                   className="w-full rounded-full border px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-emerald-100"
                 />
                 <button
@@ -181,21 +208,29 @@ export default function AdminReviewers() {
               </div>
             </div>
 
+            {/* Create Form Expertise Select */}
             <div>
               <label className="text-sm font-semibold text-slate-700">
                 Expertise
               </label>
-              <input
-                name="expertise"
-                value={form.expertise}
+              <select
+                name="specializationTag"
+                value={form.specializationTag}
                 onChange={handleChange}
-                placeholder="Eg: web-dev, ui-ux, data-science"
-                className="mt-2 w-full rounded-full border px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-emerald-100"
-              />
+                className="mt-2 w-full rounded-full border px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-emerald-100 bg-white"
+              >
+                <option value="">Select expertise...</option>
+                {specializationList.map((spec) => (
+                  <option key={spec._id} value={spec.slug}>
+                    {spec.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <button
               type="submit"
+              disabled={isLoading}
               className="w-full rounded-full bg-emerald-500 py-3 font-bold text-white shadow-md hover:bg-emerald-600 transition"
             >
               Create reviewer
@@ -239,7 +274,7 @@ export default function AdminReviewers() {
 
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="hidden sm:inline-block rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                    {r.expertise}
+                    {getSpecName(r.specializationTag)}
                   </span>
                   
                   {/* Action Buttons */}
@@ -282,8 +317,8 @@ export default function AdminReviewers() {
                 <label className="text-sm font-semibold text-slate-700">Name</label>
                 <input
                   name="name"
-                  value={editingReviewer.name}
-                  onChange={handleEditChange}
+                  value={editingReviewer.name || ""}
+                  onChange={handleEditChange} // දැන් මේක වැඩ කරනවා!
                   className="mt-1 w-full rounded-xl border px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-400"
                   required
                 />
@@ -293,21 +328,30 @@ export default function AdminReviewers() {
                 <input
                   name="email"
                   type="email"
-                  value={editingReviewer.email}
+                  value={editingReviewer.email || ""}
                   onChange={handleEditChange}
                   className="mt-1 w-full rounded-xl border px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-400"
                   required
                 />
               </div>
+              
+              {/* 🟢 2. Edit Modal Expertise Select (Create ෆෝම් එකේ විදිහටමයි) */}
               <div>
                 <label className="text-sm font-semibold text-slate-700">Expertise</label>
-                <input
-                  name="expertise"
-                  value={editingReviewer.expertise}
+                <select
+                  name="specializationTag"
+                  value={editingReviewer.specializationTag || ""}
                   onChange={handleEditChange}
-                  className="mt-1 w-full rounded-xl border px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-400"
+                  className="mt-1 w-full rounded-xl border px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-400 bg-white"
                   required
-                />
+                >
+                  <option value="">Select expertise...</option>
+                  {specializationList.map((spec) => (
+                    <option key={spec._id} value={spec.slug}>
+                      {spec.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               
               <div className="flex gap-3 pt-4">

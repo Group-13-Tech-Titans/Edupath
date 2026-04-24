@@ -84,7 +84,6 @@ exports.welcomeEmail = ({ name, email, role }) => {
   };
 };
 
-
 // ─────────────────────────────────────────────
 // 2. Password changed
 // ─────────────────────────────────────────────
@@ -145,7 +144,6 @@ exports.courseSubmittedEmail = ({ educatorName, educatorEmail, courseTitle, cate
 // ─────────────────────────────────────────────
 // 4. Course review decision (approved or rejected)
 // ─────────────────────────────────────────────
-
 exports.courseReviewedEmail = ({ educatorName, educatorEmail, courseTitle, decision, rating, notes, reviewerName }) => {
   const approved = decision === "approved";
   const decisionLabel = approved ? "Approved ✓" : "Rejected";

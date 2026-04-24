@@ -1,35 +1,40 @@
 require("dotenv").config();
+
 const express = require("express");
-const mongoose = require("mongoose");
 const cors = require("cors");
+const connectDB = require("./config/db");
 
 const dns = require('dns');
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 
-const authRoutes = require("./auth/routes/authRoutes");  
-const reviewerRoutes = require("./auth/routes/reviewersRoutes");
-const courseRoutes = require("./courses/routes/courseRoutes");
-const specializationRoutes = require("./specializations/routes/specializationRoutes");
-
-
-
 const app = express();
 
-app.use(express.json());
-app.use(cors());
+connectDB();
 
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB Connected"))
-  .catch((err) => console.log("❌ MongoDB Error:", err));
+app.use(cors());
+app.use(express.json());
+
 
 // Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/reviewers", reviewerRoutes);
-app.use("/api/courses", courseRoutes);
-app.use("/api/upload", specializationRoutes);
+app.use("/api/auth", require("./modules/auth/routes/authRoutes"));
 
-app.listen(5000, () =>
-  console.log("🚀 Server running on http://localhost:5000")
-);
+// Pathway
+app.use("/api/pathway", require("./modules/pathway/routes/pathwayRoutes"));
+
+// Quiz for each step
+app.use("/api/step-quiz", require("./modules/quiz/routes/stepQuizRoutes"));
+
+app.use("/api/courses", require("./modules/courses/routes/courseRoutes"));
+
+app.use("/api/upload", require("./modules/upload/routes/uploadRoutes"));
+
+app.use("/api/specializations", require("./modules/specializations/routes/specializationRoutes"));
+
+app.get("/test", (req, res) => {
+  res.send("Working");
+});
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

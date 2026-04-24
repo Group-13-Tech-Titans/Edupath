@@ -6,7 +6,7 @@ export async function login(email, password) {
     body: JSON.stringify({ email, password })
   });
   setToken(data.token);
-  return { success: true, user: data.user };
+  return { success: true, user: data.user, token: data.token };
 }
 
 export async function register(payload) {
@@ -33,4 +33,12 @@ export async function updateProfile(body) {
     body: JSON.stringify(body)
   });
   return { success: true, user: data.user };
+}
+
+export async function changePassword(currentPassword, newPassword) {
+  const data = await apiRequest("/api/auth/change-password", {
+    method: "PATCH",
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+  return data;
 }
