@@ -2,9 +2,10 @@
 const User = require("../../auth/models/User"); 
 const Course = require("../../courses/models/course"); 
 const sendEmail = require("../../../utils/sendEmail"); 
-const { welcomeEmail,educatorVerificationResultEmail} = require("../../../utils/emailTemplates");
+const { welcomeEmail,educatorVerificationResultEmail,reviewerAccountCreatedEmail} = require("../../../utils/emailTemplates");
 const bcrypt = require("bcryptjs");
 const BCRYPT_SALT_ROUNDS = 10;
+const crypto = require("crypto");
 
 exports.adminWelcome = (req, res) => res.json({ message: "Welcome Admin" });
 
@@ -46,30 +47,50 @@ exports.getAllReviewers = async (req, res) => {
   }
 };
 
+// Create a new reviewer
 exports.createReviewer = async (req, res) => {
   try {
-    const { name, email, password, specializationTags } = req.body;
+    const { name, email, specializationTags } = req.body;
+    
     const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ message: "Email already in use" });
 
-    const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+    // 🟢 Auto-Generate a secure 8-character password
+    const generatedPassword = crypto.randomBytes(4).toString("hex");
+
+    const hashedPassword = await bcrypt.hash(generatedPassword, BCRYPT_SALT_ROUNDS);
+
     const newUser = await User.create({
-      name, email, password: hashedPassword, role: "reviewer",
-      specializationTags: specializationTags || [], authProvider: "local", isVerified: true, 
+      name, 
+      email, 
+      password: hashedPassword, 
+      role: "reviewer",
+      specializationTags: specializationTags || [], 
+      authProvider: "local", 
+      isVerified: true, 
     });
-    res.status(201).json({ message: "Reviewer created", id: newUser._id });
 
-    const emailContent = welcomeEmail({ name: newUser.name, email: newUser.email, role: "reviewer" });
+    try {
+      const emailContent = reviewerAccountCreatedEmail({
+        name: newUser.name,
+        email: newUser.email,
+        plainPassword: generatedPassword 
+      });
 
-    await sendEmail({
-      to: newUser.email,
-      subject: emailContent.subject,
-      text: emailContent.text,
-      html: emailContent.html
-    });
-    res.status(201).json({ message: "Reviewer created and email sent!", id: newUser._id });
+      await sendEmail({
+        to: newUser.email,
+        subject: emailContent.subject,
+        text: emailContent.text,
+        html: emailContent.html
+      });
+      console.log(`✅ Account credentials emailed to Reviewer: ${newUser.email}`);
+    } catch (emailError) {
+      console.error("⚠️ Failed to send credentials email:", emailError.message);
+    }
+
+    res.status(201).json({ message: "Reviewer created and credentials sent via email", id: newUser._id });
   } catch (err) {
-    res.status(500).json({ message: "Creation failed" });
+    res.status(500).json({ message: "Creation failed", error: err.message });
   }
 };
 

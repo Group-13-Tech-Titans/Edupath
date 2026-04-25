@@ -22,7 +22,6 @@ export default function AdminReviewers() {
   const [form, setForm] = useState({
     name: "",
     email: "",
-    password: "",
     specializationTags: [], // Always an array
   });
   
@@ -143,7 +142,7 @@ export default function AdminReviewers() {
       await axios.post(API_BASE, form, getAuthHeader());
       fetchReviewers();
       setSuccess("Reviewer account created ✅");
-      setForm({ name: "", email: "", password: "", specializationTags: [] });
+      setForm({ name: "", email: "" , specializationTags: [] });
     } catch (err) {
       setError(err.response?.data?.message || "Failed to create reviewer");
     }
@@ -228,28 +227,7 @@ export default function AdminReviewers() {
               />
             </div>
 
-            <div>
-              <label className="text-sm font-semibold text-slate-700">Password</label>
-              <div className="relative mt-2">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  value={form.password}
-                  onChange={handleChange}
-                  placeholder="Min 6 characters"
-                  className="w-full rounded-full border px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-emerald-100"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-4 top-3.5 text-slate-400 hover:text-slate-600"
-                >
-                  👁
-                </button>
-              </div>
-            </div>
-
+            
             {/* MULTI-SELECT SPECIALIZATIONS UI */}
             <div>
               <label className="text-sm font-semibold text-slate-700 block mb-2">

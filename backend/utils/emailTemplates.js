@@ -208,3 +208,25 @@ exports.educatorVerificationResultEmail = ({ educatorName, status }) => {
     text: `Hi ${educatorName || "Educator"}, your educator application has been ${status}. Please log in to your account for more details.`
   };
 };
+
+// ─────────────────────────────────────────────
+// 6. Reviewer Account Created (Sent to new Reviewer)
+// ─────────────────────────────────────────────
+exports.reviewerAccountCreatedEmail = ({ name, email, plainPassword }) => {
+  return {
+    subject: "Welcome to EduPath! Your Reviewer Account Details",
+    html: wrapper(`
+      ${heading("Your Reviewer Account is Ready")}
+      ${para(`Hi ${name},`)}
+      ${para("An administrator has created a reviewer account for you on EduPath. You can use the credentials below to log in to your account:")}
+      ${infoBox([
+        ["Email", email],
+        ["Temporary Password", `<span style="font-family: monospace; font-size: 16px; background: #e0f2ee; padding: 2px 6px; border-radius: 4px;">${plainPassword}</span>`],
+        ["Role", "Reviewer"]
+      ])}
+      ${para("<strong>Important:</strong> For security reasons, we strongly recommend changing this temporary password immediately after your first login.")}
+      ${btn(`${BASE_URL}/login`, "Log In to EduPath")}
+    `),
+    text: `Hi ${name}, your EduPath reviewer account is ready. Email: ${email}, Password: ${plainPassword}. Please login and change your password immediately.`
+  };
+};
