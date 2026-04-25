@@ -181,3 +181,30 @@ exports.courseReviewedEmail = ({ educatorName, educatorEmail, courseTitle, decis
     text: `Hi ${educatorName}, your course "${courseTitle}" has been ${decision}. ${notes ? `Reviewer notes: ${notes}` : ""}`
   };
 };
+
+
+// ─────────────────────────────────────────────
+// 5. Educator Verification Result (Sent to Educator)
+// ─────────────────────────────────────────────
+exports.educatorVerificationResultEmail = ({ educatorName, status }) => {
+  const isApproved = status.toLowerCase() === "approved" || status.toLowerCase() === "verified";
+  const decisionLabel = isApproved ? "Approved ✓" : "Rejected";
+  const decisionColor = isApproved ? "#1ebea5" : "#e05c5c";
+
+  return {
+    subject: `Update on your EduPath Educator Application: ${decisionLabel}`,
+    html: wrapper(`
+      ${heading("Educator Application Update")}
+      ${para(`Hi ${educatorName || "Educator"},`)}
+      ${para(`We have reviewed your application to become an educator on EduPath. Your account has been <span style="color:${decisionColor};font-weight:700;text-transform:uppercase;">${status}</span>.`)}
+      
+      ${isApproved
+        ? para("Congratulations! You can now log in to your Educator Dashboard, set up your profile, and start publishing courses for students worldwide.")
+        : para("Unfortunately, we cannot approve your educator application at this time. Please ensure your profile details are complete. If you have questions, please contact our support team.")
+      }
+      
+      ${btn(`${BASE_URL}/login`, "Go to EduPath")}
+    `),
+    text: `Hi ${educatorName || "Educator"}, your educator application has been ${status}. Please log in to your account for more details.`
+  };
+};
