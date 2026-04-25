@@ -1,9 +1,7 @@
 /**
  * AUTHENTICATION CONTROLLER
  * Handles all business logic for user registration, login, role selection, 
- * password management, and Google OAuth integration.
- * * Design Pattern: MVC (Controller layer)
- * Auth Strategy: Stateless JWT (JSON Web Tokens) + Hybrid Authentication (Local/Google)
+ * password management, Google OAuth integration, Admin, and Dashboard features.
  */
 
 const bcrypt = require("bcryptjs");
@@ -84,7 +82,6 @@ exports.googleLogin = async (req, res) => {
     res.status(500).json({ message: "Google login failed", error: err.message });
   }
 };
-
 
 exports.selectRole = async (req, res) => {
   try {
@@ -517,7 +514,6 @@ exports.getPendingCourses = async (req, res) => {
 exports.getCourseStats = async (req, res) => {
   try {
     // Count documents for each status directly from the Database
-    // Adjust strings "approved" or "rejected" to uppercase if your DB schema uses "APPROVED"
     const pendingCount = await Course.countDocuments({ status: "pending" });
     const approvedCount = await Course.countDocuments({ status: "approved" }); 
     const rejectedCount = await Course.countDocuments({ status: "rejected" }); 
@@ -588,5 +584,103 @@ exports.adminReviewCourse = async (req, res) => {
   } catch (error) {
     console.error("Error submitting admin review:", error);
     res.status(500).json({ message: "Failed to submit review." });
+  }
+};
+
+// ==========================================
+//   ADMIN: DASHBOARD STATS (CHART DATA)
+// ==========================================
+
+exports.getStudentGrowthStats = async (req, res) => {
+  try {
+    const { range = "6m" } = req.query; 
+    
+    const startDate = new Date();
+    let groupBy = "month"; 
+
+    if (range === "1d") {
+      startDate.setHours(startDate.getHours() - 24);
+      groupBy = "hour"; 
+    } else if (range === "7d") {
+      startDate.setDate(startDate.getDate() - 7);
+      groupBy = "day"; 
+    } else if (range === "30d") {
+      startDate.setDate(startDate.getDate() - 30);
+      groupBy = "day"; 
+    } else if (range === "3m") {
+      startDate.setMonth(startDate.getMonth() - 3);
+    } else if (range === "6m") {
+      startDate.setMonth(startDate.getMonth() - 6);
+    } else if (range === "1y") {
+      startDate.setFullYear(startDate.getFullYear() - 1);
+    }
+
+    const groupStage = groupBy === "hour"
+      ? { year: { $year: "$actualCreatedAt" }, month: { $month: "$actualCreatedAt" }, day: { $dayOfMonth: "$actualCreatedAt" }, hour: { $hour: "$actualCreatedAt" } }
+      : groupBy === "day"
+      ? { year: { $year: "$actualCreatedAt" }, month: { $month: "$actualCreatedAt" }, day: { $dayOfMonth: "$actualCreatedAt" } }
+      : { year: { $year: "$actualCreatedAt" }, month: { $month: "$actualCreatedAt" } };
+
+    const sortStage = groupBy === "hour" 
+      ? { "_id.year": 1, "_id.month": 1, "_id.day": 1, "_id.hour": 1 }
+      : groupBy === "day" 
+      ? { "_id.year": 1, "_id.month": 1, "_id.day": 1 } 
+      : { "_id.year": 1, "_id.month": 1 };
+
+    // 🟢 FIXED: Extract date from MongoDB _id if createdAt is missing
+    const studentStats = await User.aggregate([
+      {
+        // 1. Create a virtual date field by extracting the timestamp from _id
+        $addFields: {
+          actualCreatedAt: { $ifNull: ["$createdAt", { $toDate: "$_id" }] }
+        }
+      },
+      {
+        // 2. Filter students based on this new date field
+        $match: {
+          role: "student", 
+          actualCreatedAt: { $gte: startDate } 
+        }
+      },
+      {
+        // 3. Group them
+        $group: {
+          _id: groupStage,
+          count: { $sum: 1 } 
+        }
+      },
+      {
+        $sort: sortStage
+      }
+    ]);
+
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    
+    // Format the data for the frontend
+    const formattedData = studentStats.map(stat => {
+      if (groupBy === "hour") {
+        const ampm = stat._id.hour >= 12 ? 'PM' : 'AM';
+        const hour12 = stat._id.hour % 12 || 12;
+        return {
+          name: `${hour12} ${ampm}`,
+          Students: stat.count
+        };
+      } else if (groupBy === "day") {
+        return {
+          name: `${monthNames[stat._id.month - 1]} ${stat._id.day}`,
+          Students: stat.count
+        };
+      } else {
+        return {
+          name: monthNames[stat._id.month - 1], 
+          Students: stat.count
+        };
+      }
+    });
+
+    res.status(200).json({ success: true, data: formattedData });
+  } catch (error) {
+    console.error("Error fetching student stats:", error);
+    res.status(500).json({ message: "Failed to fetch student statistics." });
   }
 };

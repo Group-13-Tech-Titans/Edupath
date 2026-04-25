@@ -1,9 +1,3 @@
-/**
- * USER DATABASE MODEL
- * Defines the schema, data types, and validations for users in MongoDB.
- * Design Pattern: Active Record / Data Mapper (via Mongoose)
- */
-
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
@@ -37,6 +31,6 @@ const userSchema = new mongoose.Schema({
   googleId: { type: String },
   avatar: { type: String },
   isVerified: { type: Boolean, default: false },
-});
+},{ timestamps: true });
 
 module.exports = mongoose.model("User", userSchema);

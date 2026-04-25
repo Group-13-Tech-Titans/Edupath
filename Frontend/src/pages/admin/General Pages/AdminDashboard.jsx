@@ -5,6 +5,7 @@ import PageShell from "../../../components/PageShell.jsx";
 import { useApp } from "../../../context/AppProvider.jsx";
 import AdminFooter from "./AdminFooter.jsx";
 import ComingSoon from "../../ComingSoon.jsx";
+import StudentGrowthChart from "../chart/StudentGrowthChart.jsx";
 
 // API Endpoints
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -139,22 +140,17 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Platform Statistics */}
-        <div className="rounded-[28px] border border-black/5 bg-white/70 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-text-dark">
-              Platform Statistics
-            </h2>
-            <span className="text-xs font-semibold text-muted">Last 30 days</span>
-          </div>
+        
 
-          <div className="mt-4 rounded-[22px] border border-dashed border-black/10 bg-white/60 p-10 text-center text-sm text-muted">
-            Coming Soon
-          </div>
+          <div> 
+            <StudentGrowthChart />
+            </div>
+           
+          <br />
         </div>
 
         <AdminFooter />
-      </div>
+      
     </PageShell>
   );
 };

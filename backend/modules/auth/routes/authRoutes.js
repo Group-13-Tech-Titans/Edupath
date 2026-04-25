@@ -5,7 +5,7 @@ const router = express.Router();
 const authMiddleware = require("../../../middleware/authMiddleware");
 const roleMiddleware = require("../../../middleware/roleMiddleware");
 
-// CONTROLLER IMPORTS (Adjust the path to point to your new file)
+// CONTROLLER IMPORTS
 const authController = require("../controllers/authController");
 
 // PUBLIC ROUTES
@@ -28,63 +28,39 @@ router.get("/admin", authMiddleware, roleMiddleware(["admin"]), authController.a
 router.post("/admin/create-user", authMiddleware, roleMiddleware(["admin"]), authController.createAdminUser);
 
 // ==========================================
-//   ADMIN: REVIEWER MANAGEMENT (MERGED)
+//   ADMIN: REVIEWER MANAGEMENT
 // ==========================================
-
-// Get all reviewers
 router.get("/admin/reviewers", authMiddleware, roleMiddleware(["admin"]), authController.getAllReviewers);
-
-// Create a new reviewer
 router.post("/admin/reviewers", authMiddleware, roleMiddleware(["admin"]), authController.createReviewer);
-
-// Update a reviewer
 router.put("/admin/reviewers/:id", authMiddleware, roleMiddleware(["admin"]), authController.updateReviewer);
-
-// Delete a reviewer
 router.delete("/admin/reviewers/:id", authMiddleware, roleMiddleware(["admin"]), authController.deleteReviewer);
-
 
 // ==========================================
 //   ADMIN: EDUCATOR VERIFICATION MANAGEMENT
 // ==========================================
-
-// Fetch all pending educators
 router.get("/admin/educators/pending", authMiddleware, roleMiddleware(["admin"]), authController.getPendingEducators);
-
-// Verify (Approve/Reject) an educator
 router.patch("/admin/educators/:id/verify", authMiddleware, roleMiddleware(["admin"]), authController.verifyEducator);
-
-// Dedicated route to explicitly Reject an educator
 router.patch("/admin/educators/:id/reject", authMiddleware, roleMiddleware(["admin"]), authController.rejectEducator);
 
-
 // ==========================================
 //   ADMIN: COURSE MANAGEMENT
 // ==========================================
-
-// Fetch all pending courses
-router.get("/admin/courses/pending", authMiddleware, roleMiddleware(["admin"]), authController.getPendingCourses);
-
-router.get("/admin/courses/stats", authMiddleware, roleMiddleware(["admin"]), authController.getCourseStats);
-
-
-
-// ==========================================
-//   ADMIN: COURSE MANAGEMENT
-// ==========================================
-
 // Fetch all pending courses
 router.get("/admin/courses/pending", authMiddleware, roleMiddleware(["admin"]), authController.getPendingCourses);
 
 // Fetch course statistics
 router.get("/admin/courses/stats", authMiddleware, roleMiddleware(["admin"]), authController.getCourseStats);
 
-// Get single course by ID
+// Get single course by ID (For Review Panel)
 router.get("/admin/courses/:id", authMiddleware, roleMiddleware(["admin"]), authController.getCourseById);
 
 // Submit Admin Review (Approve/Reject)
 router.patch("/admin/courses/:id/review", authMiddleware, roleMiddleware(["admin"]), authController.adminReviewCourse);
 
+// ==========================================
+//   ADMIN: DASHBOARD STATS (CHARTS)
+// ==========================================
+// Admin Student Growth Chart Route
+router.get("/admin/stats/students-growth", authMiddleware, roleMiddleware(["admin"]), authController.getStudentGrowthStats);
+
 module.exports = router;
-
-
