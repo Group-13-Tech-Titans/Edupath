@@ -10,7 +10,7 @@ const PENDING_COURSES_API = `${API_URL}/api/auth/admin/courses/pending`;
 const COURSE_STATS_API = `${API_URL}/api/auth/admin/courses/stats`;
 
 export default function AdminViewCourses() {
-  const navigate = useNavigate(); // 🟢 Redirect කිරීම සඳහා hook එක
+  const navigate = useNavigate(); // 
 
   // States
   const [courses, setCourses] = useState([]);
@@ -63,7 +63,6 @@ export default function AdminViewCourses() {
     });
   }, [courses, search]);
 
-  // 🟢 මෙතනින් තමයි Review Course බට්න් එක එබුවම අලුත් පිටුවට යන්නේ
   const openCourse = (id) => navigate(`/admin/course-rating/${id}`);
 
   const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80";
