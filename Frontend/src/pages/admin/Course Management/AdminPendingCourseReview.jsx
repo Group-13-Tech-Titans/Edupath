@@ -6,8 +6,8 @@ import AdminFooter from "../General Pages/AdminFooter.jsx";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-export default function AdminPendingCourseReview() {
-  const { id } = useParams(); // URL එකෙන් Course ID එක ගන්නවා
+export default function AdminCourseReview() {
+  const { id } = useParams(); 
   const navigate = useNavigate();
 
   const [course, setCourse] = useState(null);
@@ -16,10 +16,10 @@ export default function AdminPendingCourseReview() {
   const [error, setError] = useState("");
   const [toast, setToast] = useState(null);
 
-  // Review Form State
+  // Review Form State (Name and Email will be auto-filled)
   const [review, setReview] = useState({
-    reviewerName: "Admin", // Default admin name
-    reviewerEmail: "", 
+    reviewerName: "Loading...", 
+    reviewerEmail: "Loading...", 
     rating: 0,
     notes: ""
   });
@@ -33,12 +33,27 @@ export default function AdminPendingCourseReview() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // Course විස්තර Backend එකෙන් ගෙන ඒම
+  // 🟢 FIXED: Fetch both Course Details AND Current Admin Details
   useEffect(() => {
-    const fetchCourse = async () => {
+    const fetchData = async () => {
       try {
-        const res = await axios.get(`${API_URL}/api/auth/admin/courses/${id}`, getAuthHeader());
-        setCourse(res.data.course);
+        // 1. Fetch Course Details
+        const resCourse = await axios.get(`${API_URL}/api/auth/admin/courses/${id}`, getAuthHeader());
+        setCourse(resCourse.data.course);
+
+        // 2. Fetch Logged-in Admin Details
+        const resUser = await axios.get(`${API_URL}/api/auth/me`, getAuthHeader());
+        const adminUser = resUser.data.user;
+
+        // Auto-fill the review state with actual admin details
+        if (adminUser) {
+          setReview(prev => ({
+            ...prev,
+            reviewerName: adminUser.name || "Admin",
+            reviewerEmail: adminUser.email || "admin@edupath.com"
+          }));
+        }
+
       } catch (err) {
         console.error(err);
         setError("Failed to load course details. It may have been deleted.");
@@ -46,7 +61,8 @@ export default function AdminPendingCourseReview() {
         setIsLoading(false);
       }
     };
-    fetchCourse();
+    
+    fetchData();
   }, [id]);
 
   const handleInputChange = (e) => {
@@ -57,7 +73,6 @@ export default function AdminPendingCourseReview() {
     setReview(prev => ({ ...prev, rating: rateValue }));
   };
 
-  // Review එක Submit කිරීම (Approve හෝ Reject)
   const submitReview = async (decision) => {
     if (decision === "approved" && review.rating === 0) {
       showToast("error", "Please provide a star rating before approving.");
@@ -71,7 +86,7 @@ export default function AdminPendingCourseReview() {
       
       showToast("success", `Course successfully ${decision}!`);
       setTimeout(() => {
-        navigate(-1); // ආපහු Pending Courses ලිස්ට් එකට යනවා
+        navigate(-1); 
       }, 1500);
     } catch (err) {
       console.error(err);
@@ -101,14 +116,11 @@ export default function AdminPendingCourseReview() {
     );
   }
 
-  // 🟢 FIXED: Format the JSON content into a nice clickable list of files
   const renderContent = (content) => {
-    // 1. හිස් නම් හෝ දත්ත නැත්නම්
     if (!content || (typeof content === 'object' && Object.keys(content).length === 0)) {
       return <p className="text-sm text-slate-500">No content or files uploaded.</p>;
     }
 
-    // 2. සාමාන්‍ය Link එකක් විතරක් නම්
     if (typeof content === 'string') {
       if (content.startsWith('http')) {
         return (
@@ -120,7 +132,6 @@ export default function AdminPendingCourseReview() {
       return <p className="text-sm text-slate-600">{content}</p>;
     }
 
-    // 3. ඩේටාබේස් එකේ තියෙන විදිහට Items ලිස්ට් එකක් (PDFs, Documents) තියෙනවා නම්
     if (typeof content === 'object' && content.items && Array.isArray(content.items)) {
       if (content.items.length === 0) {
         return <p className="text-sm text-slate-500">No files found in the content list.</p>;
@@ -131,13 +142,11 @@ export default function AdminPendingCourseReview() {
           {content.items.map((item, index) => (
             <li key={item.id || index} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl hover:shadow-sm transition">
               <div className="flex items-center gap-3 overflow-hidden">
-                {/* File Icon */}
                 <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 shrink-0">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                   </svg>
                 </div>
-                {/* File Details */}
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-slate-800 truncate" title={item.name}>
                     {item.name || "Unnamed Document"}
@@ -155,7 +164,6 @@ export default function AdminPendingCourseReview() {
                 </div>
               </div>
               
-              {/* Clickable URL */}
               {item.url && (
                 <a 
                   href={item.url} 
@@ -172,7 +180,6 @@ export default function AdminPendingCourseReview() {
       );
     }
 
-    // 4. වෙනත් නොදන්නා Object එකක් ආවොත් Fallback එකක් විදිහට JSON පෙන්වනවා
     return (
       <pre className="text-xs font-mono text-slate-700 bg-slate-100 p-2 rounded max-h-64 overflow-y-auto">
         {JSON.stringify(content, null, 2)}
@@ -194,7 +201,6 @@ export default function AdminPendingCourseReview() {
 
       <div className="space-y-6">
         
-        {/* Top Header */}
         <div className="rounded-[28px] border border-black/5 bg-white/70 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur flex items-center gap-4">
           <button onClick={() => navigate(-1)} className="p-2 rounded-full bg-white hover:bg-slate-100 shadow-sm transition">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-slate-600"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" /></svg>
@@ -210,7 +216,6 @@ export default function AdminPendingCourseReview() {
           {/* LEFT SIDE: Course Details */}
           <div className="rounded-[28px] border border-black/5 bg-white/80 p-6 shadow-sm space-y-5 h-fit">
             
-            {/* Thumbnail Image (Clickable) */}
             <div className="relative h-48 w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 group cursor-pointer">
               <a href={course.thumbnailUrl || course.content} target="_blank" rel="noreferrer" title="Click to view full image">
                 <img 
@@ -226,7 +231,6 @@ export default function AdminPendingCourseReview() {
               </a>
             </div>
 
-            {/* Course Info */}
             <div>
               <h2 className="text-2xl font-extrabold text-slate-900">{course.title}</h2>
               <p className="text-sm font-medium text-emerald-600 mt-1 flex items-center gap-1.5">
@@ -251,11 +255,12 @@ export default function AdminPendingCourseReview() {
               </p>
             </div>
 
-            {/* 🟢 Clickable Resources List */}
             <div>
               <h3 className="text-sm font-bold text-slate-800 mb-1.5">Course Content / Resources</h3>
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                {renderContent(course.content)}
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 overflow-x-auto">
+                <div className="text-sm text-slate-600 break-all">
+                  {renderContent(course.content)}
+                </div>
               </div>
             </div>
 
@@ -267,22 +272,28 @@ export default function AdminPendingCourseReview() {
             
             <div className="space-y-4">
               
-              {/* Admin Details */}
+              {/* 🟢 FIXED: Admin Details are now Read-Only and Auto-Filled */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Admin Name</label>
                   <input 
-                    type="text" name="reviewerName" value={review.reviewerName} onChange={handleInputChange}
-                    placeholder="Admin Name"
-                    className="w-full rounded-xl border border-white bg-white px-4 py-2.5 text-sm shadow-sm outline-none focus:ring-2 focus:ring-emerald-400"
+                    type="text" 
+                    name="reviewerName" 
+                    value={review.reviewerName} 
+                    readOnly
+                    className="w-full rounded-xl border border-slate-200 bg-slate-100 text-slate-500 px-4 py-2.5 text-sm shadow-sm cursor-not-allowed focus:outline-none"
+                    title="Auto-filled from your logged-in account"
                   />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Admin Email</label>
                   <input 
-                    type="email" name="reviewerEmail" value={review.reviewerEmail} onChange={handleInputChange}
-                    placeholder="admin@edupath.com"
-                    className="w-full rounded-xl border border-white bg-white px-4 py-2.5 text-sm shadow-sm outline-none focus:ring-2 focus:ring-emerald-400"
+                    type="email" 
+                    name="reviewerEmail" 
+                    value={review.reviewerEmail} 
+                    readOnly
+                    className="w-full rounded-xl border border-slate-200 bg-slate-100 text-slate-500 px-4 py-2.5 text-sm shadow-sm cursor-not-allowed focus:outline-none"
+                    title="Auto-filled from your logged-in account"
                   />
                 </div>
               </div>
@@ -344,7 +355,6 @@ export default function AdminPendingCourseReview() {
   );
 }
 
-// Reusable Pill Component
 function Pill({ label, bg = "bg-slate-100", text = "text-slate-600" }) {
   if (!label) return null;
   return (
