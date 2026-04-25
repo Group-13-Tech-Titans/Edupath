@@ -350,7 +350,7 @@ exports.getAllReviewers = async (req, res) => {
 // Create a new reviewer
 exports.createReviewer = async (req, res) => {
   try {
-    // 🟢 FIXED: Use specializationTags (Array) instead of singular
+    // Use specializationTags (Array) instead of singular
     const { name, email, password, specializationTags } = req.body;
 
     const existing = await User.findOne({ email });
@@ -363,7 +363,7 @@ exports.createReviewer = async (req, res) => {
       email,
       password: hashedPassword,
       role: "reviewer",
-      specializationTags: specializationTags || [], // 🟢 Save as Array
+      specializationTags: specializationTags || [], // Save as Array
       authProvider: "local",
       isVerified: true, 
     });
@@ -377,10 +377,10 @@ exports.createReviewer = async (req, res) => {
 // Update a reviewer
 exports.updateReviewer = async (req, res) => {
   try {
-    // 🟢 FIXED: Use specializationTags (Array) instead of singular
+    // Use specializationTags (Array) instead of singular
     const { name, email, password, specializationTags } = req.body;
     
-    // 🟢 Save the array to updateData
+    // Save the array to updateData
     const updateData = { 
         name, 
         email, 
@@ -513,7 +513,7 @@ exports.getPendingCourses = async (req, res) => {
   }
 };
 
-// 🟢 NEW: Fetch course statistics (counts for pending, approved, rejected)
+// Fetch course statistics (counts for pending, approved, rejected)
 exports.getCourseStats = async (req, res) => {
   try {
     // Count documents for each status directly from the Database
@@ -533,5 +533,60 @@ exports.getCourseStats = async (req, res) => {
   } catch (error) {
     console.error("Error in getCourseStats:", error);
     res.status(500).json({ message: "Failed to fetch course statistics." });
+  }
+};
+
+// ==============================================================
+//  ADMIN: SINGLE COURSE REVIEW FUNCTIONS (NEW)
+// ==============================================================
+
+// Fetch details of a single course by its ID
+exports.getCourseById = async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id);
+    if (!course) return res.status(404).json({ message: "Course not found" });
+    
+    res.status(200).json({ success: true, course });
+  } catch (error) {
+    console.error("Error fetching course:", error);
+    res.status(500).json({ message: "Failed to fetch course details." });
+  }
+};
+
+// Admin submits review to Approve or Reject a single course
+exports.adminReviewCourse = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { decision, rating, notes, reviewerName, reviewerEmail } = req.body;
+
+    // Validate decision input
+    if (!["approved", "rejected"].includes(decision)) {
+      return res.status(400).json({ message: "Invalid decision. Must be 'approved' or 'rejected'." });
+    }
+
+    const course = await Course.findById(id);
+    if (!course) return res.status(404).json({ message: "Course not found" });
+
+    // Update Course Status and Review Details in Database
+    course.status = decision;
+    course.review = {
+      decision: decision,
+      rating: Number(rating) || 0,
+      notes: notes || "",
+      reviewerName: reviewerName || "Admin",
+      reviewerEmail: reviewerEmail || (req.user && req.user.email) || "admin@edupath.com",
+      reviewedAt: new Date()
+    };
+
+    await course.save();
+
+    res.status(200).json({ 
+      success: true, 
+      message: `Course successfully ${decision}!`,
+      course 
+    });
+  } catch (error) {
+    console.error("Error submitting admin review:", error);
+    res.status(500).json({ message: "Failed to submit review." });
   }
 };

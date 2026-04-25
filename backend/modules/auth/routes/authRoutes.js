@@ -66,4 +66,25 @@ router.patch("/admin/educators/:id/reject", authMiddleware, roleMiddleware(["adm
 router.get("/admin/courses/pending", authMiddleware, roleMiddleware(["admin"]), authController.getPendingCourses);
 
 router.get("/admin/courses/stats", authMiddleware, roleMiddleware(["admin"]), authController.getCourseStats);
+
+
+
+// ==========================================
+//   ADMIN: COURSE MANAGEMENT
+// ==========================================
+
+// Fetch all pending courses
+router.get("/admin/courses/pending", authMiddleware, roleMiddleware(["admin"]), authController.getPendingCourses);
+
+// Fetch course statistics
+router.get("/admin/courses/stats", authMiddleware, roleMiddleware(["admin"]), authController.getCourseStats);
+
+// Get single course by ID
+router.get("/admin/courses/:id", authMiddleware, roleMiddleware(["admin"]), authController.getCourseById);
+
+// Submit Admin Review (Approve/Reject)
+router.patch("/admin/courses/:id/review", authMiddleware, roleMiddleware(["admin"]), authController.adminReviewCourse);
+
 module.exports = router;
+
+

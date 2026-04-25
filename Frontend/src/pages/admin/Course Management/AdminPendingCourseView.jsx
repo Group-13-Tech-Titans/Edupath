@@ -10,7 +10,7 @@ const PENDING_COURSES_API = `${API_URL}/api/auth/admin/courses/pending`;
 const COURSE_STATS_API = `${API_URL}/api/auth/admin/courses/stats`;
 
 export default function AdminViewCourses() {
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // 🟢 Redirect කිරීම සඳහා hook එක
 
   // States
   const [courses, setCourses] = useState([]);
@@ -63,6 +63,7 @@ export default function AdminViewCourses() {
     });
   }, [courses, search]);
 
+  // 🟢 මෙතනින් තමයි Review Course බට්න් එක එබුවම අලුත් පිටුවට යන්නේ
   const openCourse = (id) => navigate(`/admin/course-rating/${id}`);
 
   const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80";
@@ -111,19 +112,6 @@ export default function AdminViewCourses() {
           </div>
         </div>
 
-        {/* Section Header */}
-        {/* <div className="rounded-[28px] border border-black/5 bg-white/70 p-6 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur flex justify-between items-center">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900">Pending Approvals</h2>
-            <p className="mt-1 text-xs text-slate-500">
-              Review and manage courses waiting for admin action.
-            </p>
-          </div>
-          <span className="px-4 py-1.5 rounded-full bg-slate-100 text-xs font-bold text-slate-700 border border-slate-200">
-            Total: {filtered.length}
-          </span>
-        </div> */}
-
         {/* Loading and Error States */}
         {isLoading && (
           <div className="rounded-[26px] border border-black/5 bg-white/60 p-5 text-sm text-slate-500 animate-pulse text-center">
@@ -142,7 +130,7 @@ export default function AdminViewCourses() {
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((c) => {
               const courseId = c._id || c.id;
-              const educatorName = c.educator?.name || c.educator?.fullName || c.educator || "Unknown Educator";
+              const educatorName = c.educator?.name || c.educator?.fullName || c.educatorName || "Unknown Educator";
               
               return (
                 <div
@@ -157,7 +145,7 @@ export default function AdminViewCourses() {
                     title="Open course"
                   >
                     <img
-                      src={c.imageUrl || c.thumbnail || FALLBACK_IMAGE}
+                      src={c.thumbnailUrl || c.imageUrl || FALLBACK_IMAGE}
                       alt={c.title}
                       className="h-full w-full object-cover"
                       loading="lazy"
@@ -187,12 +175,11 @@ export default function AdminViewCourses() {
 
                     {/* Pills row */}
                     <div className="mt-4 flex flex-wrap items-center gap-2">
-                      <Pill>{c.category || "General"}</Pill>
-                      <Pill>{c.level || "Beginner"}</Pill>
-                      {c.durationHrs && <Pill>{c.durationHrs} hrs</Pill>}
+                      {c.category && <Pill>{c.category}</Pill>}
+                      {c.level && <Pill>{c.level}</Pill>}
                     </div>
 
-                    {/* Action Button */}
+                    {/* 🟢 Review Action Button */}
                     <div className="mt-auto pt-5">
                       <button
                         type="button"

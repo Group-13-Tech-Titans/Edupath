@@ -38,7 +38,7 @@ import EducatorVerificationPendingPage from "./pages/educator/EducatorVerificati
 
 import AdminDashboard from "./pages/admin/General Pages/AdminDashboard.jsx";
 import AdminReviewers from "./pages/admin/Reviewers Management/AdminReviewers.jsx";
-import AdminViewCourses from "./pages/admin/Course Management/AdminViewCourses.jsx";
+import AdminViewCourses from "./pages/admin/Course Management/AdminPendingCourseView.jsx";
 import AdminVerifyEducators from "./pages/admin/Educator Management/AdminVerifyEducators.jsx";
 import AdminReviewDashboard from "./pages/admin/Reviewers Management/AdminReviewDashboard.jsx";
 import AdminProfile from "./pages/admin/General Pages/AdminProfile.jsx";
@@ -47,6 +47,7 @@ import AdminPathwayList from "./pages/admin/Pathway Management/AdminPathwayList.
 import AdminPathwayEdit from "./pages/admin/Pathway Management/AdminPathwayEdit.jsx";
 import AdminEducatorReview from './pages/admin/Educator Management/AdminEducatorReview.jsx';
 import AdminSpecializations from './pages/admin/Reviewers Management/AdminSpecializations.jsx';
+import AdminCourseReview from './pages/admin/Course Management/AdminPendingCourseReview.jsx';
 
 import ReviewerDashboard from "./pages/reviewer/ReviewerDashboard.jsx";
 import ReviewerQueue from "./pages/reviewer/ReviewerQueue.jsx";
@@ -118,6 +119,7 @@ const App = () => {
             <Route index element={<AdminDashboard />} />
             <Route path="reviewers" element={<AdminReviewers />} />
             <Route path="approvals" element={<AdminViewCourses />} />
+            {/* <Route path="approvals/:id" element={<AdminCourseReview />} /> */}
             <Route path="verify-educators" element={<AdminVerifyEducators />} />
             <Route path="review-dashboard" element={<AdminReviewDashboard />} />
             <Route path="queue" element={<ReviewerQueue />} />
@@ -128,6 +130,7 @@ const App = () => {
             <Route path="pathway-edit/:id" element={<AdminPathwayEdit />} />
             <Route path="/admin/verify-educator/:id" element={<AdminEducatorReview />} />
             <Route path="/admin/specializations" element={<AdminSpecializations />} />
+            <Route path="/admin/course-rating/:id" element={<AdminCourseReview />} />
             
           </Route>
         </Route>
