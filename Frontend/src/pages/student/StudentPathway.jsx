@@ -4,6 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import PageShell from "../../components/PageShell.jsx";
 
+// 🟢 HELPER: Strips MongoDB _id to accurately compare arrays
+const cleanForSync = (arr) => (Array.isArray(arr) ? arr.map(({ _id, id, ...rest }) => rest) : []);
+
 const StudentPathway = () => {
   const navigate = useNavigate();
   const [pathway, setPathway] = useState(null);
@@ -35,7 +38,6 @@ const StudentPathway = () => {
             config,
           );
           
-          // 🟢 FIXED: Use originalTemplateId to find the EXACT match, fallback to name+level for old data
           const pathwayTemplate = templateData.templates.find((t) => {
             if (currentStudentPathway.originalTemplateId) {
               return t._id === currentStudentPathway.originalTemplateId;
@@ -47,37 +49,33 @@ const StudentPathway = () => {
             let hasUpdates = false;
             let syncedSteps = [...currentStudentPathway.steps];
 
-            // Iterate through the master template to find changes
             pathwayTemplate.steps.forEach((templateStep) => {
-              // Match steps by their exact ORDER, not their Title
               const existingIndex = syncedSteps.findIndex(
                 (s) => s.order === templateStep.order,
               );
 
               if (existingIndex !== -1) {
-                // 1. STEP EXISTS: Did the admin change the content?
                 const studentStep = syncedSteps[existingIndex];
 
+                // 🟢 FIXED: Use cleanForSync to ignore MongoDB _id noise!
                 if (
                   studentStep.title !== templateStep.title ||
                   studentStep.description !== templateStep.description ||
-                  // Compare the new arrays using JSON.stringify to detect ANY changes in links, titles, or quizzes
-                  JSON.stringify(studentStep.resources || []) !==
-                    JSON.stringify(templateStep.resources || []) ||
-                  JSON.stringify(studentStep.quiz || []) !== JSON.stringify(templateStep.quiz || [])
+                  JSON.stringify(cleanForSync(studentStep.resources)) !== JSON.stringify(cleanForSync(templateStep.resources)) ||
+                  JSON.stringify(cleanForSync(studentStep.linkedCourses)) !== JSON.stringify(cleanForSync(templateStep.linkedCourses)) ||
+                  JSON.stringify(cleanForSync(studentStep.quiz)) !== JSON.stringify(cleanForSync(templateStep.quiz))
                 ) {
-                  // Update the text and resources, but PRESERVE the student's progress
                   syncedSteps[existingIndex] = {
                     ...studentStep,
                     title: templateStep.title,
                     description: templateStep.description,
-                    resources: templateStep.resources || [], // Safely copy the resources array
-                    quiz: templateStep.quiz || [], // Sync the quiz
+                    resources: templateStep.resources || [], 
+                    linkedCourses: templateStep.linkedCourses || [],
+                    quiz: templateStep.quiz || [], 
                   };
                   hasUpdates = true;
                 }
               } else {
-                // 2. STEP IS BRAND NEW: Admin added a completely new step
                 const isFullyComplete = syncedSteps.every((s) => s.isCompleted);
                 const isUnlockable =
                   isFullyComplete &&
@@ -89,6 +87,7 @@ const StudentPathway = () => {
                   type: templateStep.type,
                   resource: templateStep.resource,
                   resources: templateStep.resources || [],
+                  linkedCourses: templateStep.linkedCourses || [], // 🟢 FIXED: Added linkedCourses here!
                   quiz: templateStep.quiz || [],
                   order: templateStep.order,
                   isCompleted: false,
@@ -98,12 +97,10 @@ const StudentPathway = () => {
               }
             });
 
-            // If changes were found, sort them and send the full synced array to the backend
             if (hasUpdates) {
               syncedSteps.sort((a, b) => a.order - b.order);
               currentStudentPathway.steps = syncedSteps;
 
-              // Silent background save of the PERFECTLY synced array
               axios
                 .put(
                   `http://localhost:5000/api/pathway/my/sync`,
@@ -375,7 +372,7 @@ const StudentPathway = () => {
                             onClick={() =>
                               navigate(`/student/journey/step/${step.order}`)
                             }
-                            className="mt-5 text-xs font-black bg-white text-gray-800 px-6 py-2.5 rounded-full shadow hover:bg-gray-100 transition-transform active:scale-95"
+                            className="mt-5 text-xs font-black bg-white text-gray-800 px-6 py-2.5 rounded-full shadow hover:bg-gray-50 active:scale-95"
                           >
                             START LEARNING
                           </button>

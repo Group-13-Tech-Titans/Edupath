@@ -41,6 +41,10 @@ const ReviewerLayout = () => {
             <NavLink to="/reviewer/history" className={navLink}>
               History
             </NavLink>
+
+            <NavLink to="/reviewer/pathways" className={navLink}>
+              Pathways
+            </NavLink>
           </nav>
 
           <div className="flex items-center gap-3">

@@ -137,9 +137,9 @@ const App = () => {
             <Route path="queue" element={<ReviewerQueue />} />
             <Route path="queue/:id" element={<ReviewerCourseReview />} />
             <Route path="history" element={<ReviewerHistory />} />
-            <Route path="/reviewer/pathways" element={<ReviewerPathwayList />} />
-            <Route path="/reviewer/pathway-builder" element={<ReviewerPathwayBuilder />} />
-            <Route path="/reviewer/pathway-edit/:id" element={<ReviewerPathwayEdit />} />
+            <Route path="pathways" element={<ReviewerPathwayList />} />
+            <Route path="pathway-builder" element={<ReviewerPathwayBuilder />} />
+            <Route path="pathway-edit/:id" element={<ReviewerPathwayEdit />} />
           </Route>
         </Route>
 

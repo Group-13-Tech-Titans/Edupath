@@ -25,6 +25,11 @@ const userSchema = new mongoose.Schema({
 
   isMentor: { type: Boolean, default: false },
 
+  enrolledCourses: [{
+    courseId: String,
+    enrolledAt: { type: Date, default: Date.now }
+  }],
+
   learningPath: { type: String },
   level: { type: String },
   quizCompleted: { type: Boolean, default: false },

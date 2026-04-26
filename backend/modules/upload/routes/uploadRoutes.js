@@ -69,7 +69,7 @@ function sanitizeName(raw) {
 router.post(
   "/content",
   authMiddleware,
-  roleMiddleware(["educator", "admin"]),
+  roleMiddleware(["educator", "admin", "reviewer"]),
   upload.single("file"),
   async (req, res) => {
     try {
@@ -90,7 +90,16 @@ router.post(
 
       // Build a readable public_id so Cloudinary doesn't fall back to "file_<random>"
       const publicIdBase = sanitizeName(rawName);
-      const publicId = `${publicIdBase}_${Date.now()}`;
+      // 🟢 FIXED: Grab the original file extension (e.g., "pdf", "pptx")
+      const ext = req.file.originalname.includes(".")
+        ? req.file.originalname.split(".").pop().toLowerCase()
+        : "";
+
+      // 🟢 FIXED: If it's a "raw" file, Cloudinary REQUIRES the extension in the public_id!
+      let publicId = `${publicIdBase}_${Date.now()}`;
+      if (resourceType === "raw" && ext) {
+        publicId = `${publicId}.${ext}`;
+      }
 
       const result = await uploadToCloudinary(req.file.buffer, {
         resource_type: resourceType,
@@ -141,7 +150,7 @@ router.post(
 router.delete(
   "/content",
   authMiddleware,
-  roleMiddleware(["educator", "admin"]),
+  roleMiddleware(["educator", "admin", "reviewer"]),
   async (req, res) => {
     try {
       const { publicId, resourceType = "raw" } = req.body;

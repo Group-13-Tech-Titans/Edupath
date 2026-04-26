@@ -202,7 +202,7 @@ exports.addStepToTemplate = async (req, res) => {
     const { templateId } = req.params;
     
     // 🟢 FIXED: We must explicitly extract the new 'resources' and 'quiz' arrays!
-    const { title, description, type, resources, quiz, order } = req.body;
+    const { title, description, type, resources, quiz, linkedCourses, order } = req.body;
 
     let query = { _id: templateId, isTemplate: true };
     // 🛡️ SECURITY: Ensure reviewers only edit their own specializations
@@ -225,6 +225,7 @@ exports.addStepToTemplate = async (req, res) => {
       description,
       type,
       resources: resources || [], // Save learning materials
+      linkedCourses: linkedCourses || [],
       quiz: quiz || [],           // Save the quizzes
       order,
       isUnlocked: true,
@@ -401,6 +402,7 @@ exports.enrollInTemplate = async (req, res) => {
       description: step.description,
       type: step.type,
       resources: step.resources || [],
+      linkedCourses: step.linkedCourses || [],
       quiz: step.quiz || [],
       order: step.order || index + 1,
       isUnlocked: index === 0,

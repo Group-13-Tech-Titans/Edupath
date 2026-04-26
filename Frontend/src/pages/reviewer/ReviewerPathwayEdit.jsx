@@ -6,6 +6,107 @@ import PageShell from "../../components/PageShell.jsx";
 const generateId = () =>
   Date.now().toString(36) + Math.random().toString(36).substring(2);
 
+// 🟢 HELPER: Formats the slug for nice UI viewing
+const formatSpecializationName = (slug) => {
+  if (!slug) return "Specialization Not Found";
+  return slug
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
+const CourseSelectionPage = ({ onClose, onSelect }) => {
+  const [dbCourses, setDbCourses] = useState([]);
+  const [search, setSearch] = useState("");
+  const [loadingCourses, setLoadingCourses] = useState(true);
+
+  useEffect(() => {
+    const fetchAllCourses = async () => {
+      try {
+        const token = localStorage.getItem("edupath_token");
+        const config = { headers: { Authorization: `Bearer ${token}` } };
+        const { data } = await axios.get("http://localhost:5000/api/courses", config); 
+        setDbCourses(data.courses || data || []);
+      } catch (err) {
+        console.error("Failed to fetch courses for selector:", err);
+      } finally {
+        setLoadingCourses(false);
+      }
+    };
+    fetchAllCourses();
+  }, []);
+
+  const filteredCourses = dbCourses.filter((c) => {
+    const status = (c.status || "").toLowerCase();
+    const isVisible = status === "approve" || status === "approved" || status === "published" || status === "pending";
+    const matchesSearch = (c.title || "").toLowerCase().includes(search.toLowerCase());
+    return isVisible && matchesSearch;
+  });
+
+  return (
+    <div className="min-h-[calc(100vh-80px)] bg-emerald-50/50 px-4 py-8 sm:px-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-between mb-8 bg-white p-6 rounded-3xl shadow-sm border border-emerald-100/50">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800">Select a Platform Course</h1>
+            <p className="text-slate-500 text-sm mt-1">Browse and attach existing EduPath courses to your pathway step.</p>
+          </div>
+          <button 
+            onClick={onClose}
+            className="bg-slate-100 text-slate-600 px-6 py-3 rounded-full font-bold hover:bg-slate-200 transition active:scale-95"
+          >
+            ← Back to Builder
+          </button>
+        </div>
+
+        <input
+          type="text"
+          placeholder="Search by course title..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full bg-white border border-emerald-100 p-4 rounded-2xl shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 mb-8 text-lg"
+        />
+
+        {loadingCourses ? (
+          <div className="text-center py-10 text-slate-500 font-bold">Fetching courses from database...</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredCourses.length === 0 ? (
+              <p className="col-span-full text-center text-slate-500 py-10 italic">No courses found matching your search.</p>
+            ) : (
+              filteredCourses.map((course) => (
+                <div key={course.id || course._id} className="bg-white rounded-[24px] shadow-sm border border-slate-100 overflow-hidden flex flex-col hover:shadow-xl hover:-translate-y-1 hover:border-primary/40 transition-all duration-300">
+                  <img 
+                    src={course.thumbnailUrl || course.thumbnail || "https://placehold.co/600x400?text=No+Image"} 
+                    alt="course" 
+                    className="w-full h-48 object-cover bg-slate-100"
+                  />
+                  <div className="p-6 flex flex-col flex-1">
+                    <h3 className="font-bold text-lg text-slate-800 line-clamp-2 mb-2">{course.title}</h3>
+                    <p className="text-sm text-slate-500 mb-6">{course.educatorName}</p>
+                    
+                    <div className="mt-auto flex items-center justify-between">
+                      <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${course.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                        {course.status ? course.status.toUpperCase() : "ALL LEVELS"}
+                      </span>
+                      <button
+                        onClick={() => onSelect(course)}
+                        className="bg-primary/10 text-primary hover:bg-primary hover:text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors active:scale-95"
+                      >
+                        + Select Course
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const ReviewerPathwayEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -13,6 +114,12 @@ const ReviewerPathwayEdit = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [uploadingFile, setUploadingFile] = useState(null); 
+
+  const [activeCourseSelector, setActiveCourseSelector] = useState({
+    isActive: false,
+    stepIndex: null,
+  });
 
   const [pathway, setPathway] = useState({ pathName: "", level: "Beginner" });
   const [steps, setSteps] = useState([]);
@@ -23,13 +130,11 @@ const ReviewerPathwayEdit = () => {
         const token = localStorage.getItem("edupath_token");
         const { data } = await axios.get(
           `http://localhost:5000/api/pathway/template/${id}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
+          { headers: { Authorization: `Bearer ${token}` } }
         );
 
         setPathway({
-          pathName: data.template.pathName,
+          pathName: data.template.pathName, // 🟢 Keeps raw slug in state
           level: data.template.level,
         });
         setSteps(data.template.steps || []);
@@ -60,17 +165,16 @@ const ReviewerPathwayEdit = () => {
         description: "",
         type: "course",
         resources: [],
+        linkedCourses: [], 
         quiz: [],
       },
     ]);
 
   const removeStep = (index) => setSteps(steps.filter((_, i) => i !== index));
 
-  // 🟢 NEW HELPER FUNCTIONS FOR MULTIPLE RESOURCES
   const addResourceToStep = (stepIndex) => {
     const newSteps = [...steps];
     if (!newSteps[stepIndex].resources) newSteps[stepIndex].resources = [];
-    // 🟢 Added type: "video" below
     newSteps[stepIndex].resources.push({ title: "", url: "", type: "video" });
     setSteps(newSteps);
   };
@@ -84,6 +188,80 @@ const ReviewerPathwayEdit = () => {
   const removeResourceFromStep = (stepIndex, resIndex) => {
     const newSteps = [...steps];
     newSteps[stepIndex].resources.splice(resIndex, 1);
+    setSteps(newSteps);
+  };
+
+  const handleFileUpload = async (event, stepIndex, resIndex) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    setUploadingFile({ stepIndex, resIndex });
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("contentType", "Document");
+    formData.append("itemName", file.name);
+
+    try {
+      const token = localStorage.getItem("edupath_token");
+      const res = await axios.post("http://localhost:5000/api/upload/content", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (res.data.success) {
+        const newSteps = [...steps];
+        newSteps[stepIndex].resources[resIndex].url = res.data.item.url;
+        
+        if (!newSteps[stepIndex].resources[resIndex].title) {
+          newSteps[stepIndex].resources[resIndex].title = file.name;
+        }
+        
+        if (file.name.toLowerCase().endsWith('.pdf')) {
+            newSteps[stepIndex].resources[resIndex].type = "pdf";
+        }
+        
+        setSteps(newSteps);
+      }
+    } catch (err) {
+      alert("Upload failed: " + (err.response?.data?.message || err.message));
+    } finally {
+      setUploadingFile(null);
+      event.target.value = null; 
+    }
+  };
+
+  const openCourseSelector = (stepIndex) => {
+    setActiveCourseSelector({ isActive: true, stepIndex });
+  };
+
+  const handleAttachCourse = (course) => {
+    const newSteps = [...steps];
+    const stepIdx = activeCourseSelector.stepIndex;
+    
+    if (!newSteps[stepIdx].linkedCourses) newSteps[stepIdx].linkedCourses = [];
+    
+    const courseId = course._id || course.id;
+    const exists = newSteps[stepIdx].linkedCourses.find((c) => c.courseId === courseId);
+    
+    if (!exists) {
+      newSteps[stepIdx].linkedCourses.push({
+        courseId: courseId,
+        title: course.title,
+        thumbnail: course.thumbnailUrl || course.thumbnail || "https://placehold.co/600x400?text=Course",
+        educatorName: course.educatorName || course.createdByEducatorEmail || "EduPath Educator"
+      });
+    }
+    
+    setSteps(newSteps);
+    setActiveCourseSelector({ isActive: false, stepIndex: null }); 
+  };
+
+  const removeLinkedCourse = (stepIndex, courseIndex) => {
+    const newSteps = [...steps];
+    newSteps[stepIndex].linkedCourses.splice(courseIndex, 1);
     setSteps(newSteps);
   };
 
@@ -112,17 +290,49 @@ const ReviewerPathwayEdit = () => {
     setSteps(newSteps);
   };
 
+  // 🟢 Included robust validation
   const handleUpdatePathway = async () => {
     setError("");
-    if (steps.length === 0) return setError("Add at least one step.");
+
+    if (!pathway.pathName || pathway.pathName === "Loading specialization..." || pathway.pathName === "Specialization Not Found") {
+      return setError("Valid Specialization required.");
+    }
+    
+    if (steps.length === 0) {
+      return setError("Add at least one step.");
+    }
 
     const formattedSteps = steps.map((step, index) => {
+      // Validate Step Info
       if (!step.title.trim() || !step.description.trim()) {
-        setError(
-          `Please fill out Title and Description for Step ${index + 1}.`,
-        );
+        setError(`Please fill out Title and Description for Step ${index + 1}.`);
         throw new Error("Validation Failed");
       }
+
+      // Validate Materials
+      for (let j = 0; j < (step.resources || []).length; j++) {
+        const res = step.resources[j];
+        
+        if (!res.title.trim()) {
+          setError(`Please provide a Title for Learning Material #${j + 1} in Step ${index + 1}.`);
+          throw new Error("Validation Failed");
+        }
+
+        if (!res.url.trim()) {
+          if (res.type === "pdf") {
+            setError(`Please upload the PDF document for "${res.title}" in Step ${index + 1}.`);
+          } else {
+            setError(`Please paste a URL for "${res.title}" in Step ${index + 1}.`);
+          }
+          throw new Error("Validation Failed");
+        }
+
+        if (!/^(https?:\/\/)/i.test(res.url.trim())) {
+           setError(`The URL for "${res.title}" in Step ${index + 1} is invalid. It must start with http:// or https://`);
+           throw new Error("Validation Failed");
+        }
+      }
+
       const { id, ...stepData } = step;
       return { ...stepData, order: index + 1 };
     });
@@ -142,7 +352,7 @@ const ReviewerPathwayEdit = () => {
 
       setSaving(false);
       alert("Pathway updated successfully!");
-      navigate("/reviewer/pathways"); // 🔗 Redirect to reviewer list
+      navigate("/reviewer/pathways"); 
     } catch (err) {
       if (err.message !== "Validation Failed") {
         setError(err?.response?.data?.message || "Failed to update pathway");
@@ -158,6 +368,17 @@ const ReviewerPathwayEdit = () => {
         <div className="p-10 text-center">Loading editor...</div>
       </PageShell>
     );
+
+  if (activeCourseSelector.isActive) {
+    return (
+      <PageShell>
+        <CourseSelectionPage 
+          onClose={() => setActiveCourseSelector({ isActive: false, stepIndex: null })} 
+          onSelect={handleAttachCourse} 
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell>
@@ -193,8 +414,9 @@ const ReviewerPathwayEdit = () => {
                 id="pathName"
                 type="text"
                 name="pathName"
-                value={pathway.pathName}
-                disabled // 🔥 LOCKED INPUT
+                // 🟢 FIXED: Format the raw slug into a pretty name ONLY for the visual input box
+                value={formatSpecializationName(pathway.pathName)}
+                disabled 
                 className="w-full rounded-xl border border-black/10 bg-gray-100 text-gray-500 cursor-not-allowed px-4 py-2 text-sm outline-none"
               />
             </div>
@@ -235,12 +457,14 @@ const ReviewerPathwayEdit = () => {
                   <span className="font-semibold text-primary">
                     Step {index + 1}
                   </span>
-                  <button
-                    onClick={() => removeStep(index)}
-                    className="text-xs font-semibold text-red-500 hover:text-red-700 hover:underline"
-                  >
-                    Remove Step
-                  </button>
+                  {steps.length > 1 && (
+                    <button
+                      onClick={() => removeStep(index)}
+                      className="text-xs font-semibold text-red-500 hover:text-red-700 hover:underline"
+                    >
+                      Remove Step
+                    </button>
+                  )}
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="sm:col-span-2">
@@ -278,7 +502,6 @@ const ReviewerPathwayEdit = () => {
                     />
                   </div>
 
-                  {/* 🟢 NEW: Multiple Resources UI */}
                   <div className="sm:col-span-2 pt-2 border-t border-black/5 mt-2">
                     <div className="flex items-center justify-between mb-2">
                       <label className="block text-xs font-bold text-text-dark uppercase tracking-wider">
@@ -289,75 +512,110 @@ const ReviewerPathwayEdit = () => {
                         onClick={() => addResourceToStep(index)}
                         className="text-[10px] font-bold bg-primary/10 text-primary px-3 py-1 rounded-full hover:bg-primary/20 transition-colors"
                       >
-                        + ADD LINK
+                        + ADD LINK / FILE
                       </button>
                     </div>
 
                     <div className="space-y-2">
-                      {(step.resources || []).map((res, resIndex) => (
-                        <div
-                          key={resIndex}
-                          className="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-100"
-                        >
-                          {/* 🟢 NEW: Content Type Selector for this specific link */}
-                          <select
-                            value={res.type || "video"}
-                            onChange={(e) =>
-                              handleResourceChange(
-                                index,
-                                resIndex,
-                                "type",
-                                e.target.value,
-                              )
-                            }
-                            className="w-full sm:w-auto rounded-md border border-black/10 px-2 py-1.5 text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-white"
-                          >
-                            <option value="video">🎥 Video</option>
-                            <option value="read">📖 Reading / PDF</option>
-                            <option value="project">💻 Project</option>
-                            <option value="quiz">📝 Quiz</option>
-                          </select>
+                      {(step.resources || []).map((res, resIndex) => {
+                        const isUploading =
+                          uploadingFile?.stepIndex === index &&
+                          uploadingFile?.resIndex === resIndex;
 
-                          <input
-                            type="text"
-                            placeholder="Link Title (e.g. Watch Video)"
-                            value={res.title}
-                            onChange={(e) =>
-                              handleResourceChange(
-                                index,
-                                resIndex,
-                                "title",
-                                e.target.value,
-                              )
-                            }
-                            className="flex-1 min-w-[120px] rounded-md border border-black/10 px-3 py-1.5 text-xs outline-none focus:border-primary"
-                          />
-                          <input
-                            type="text"
-                            placeholder="https://..."
-                            value={res.url}
-                            onChange={(e) =>
-                              handleResourceChange(
-                                index,
-                                resIndex,
-                                "url",
-                                e.target.value,
-                              )
-                            }
-                            className="flex-1 min-w-[120px] rounded-md border border-black/10 px-3 py-1.5 text-xs outline-none focus:border-primary"
-                          />
-                          <button
-                            type="button"
-                            onClick={() =>
-                              removeResourceFromStep(index, resIndex)
-                            }
-                            className="text-red-500 hover:bg-red-50 p-1.5 rounded-md transition-colors font-bold"
-                            title="Remove link"
+                        return (
+                          <div
+                            key={resIndex}
+                            className="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-100"
                           >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
+                            <select
+                              value={res.type || "video"}
+                              onChange={(e) =>
+                                handleResourceChange(
+                                  index,
+                                  resIndex,
+                                  "type",
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full sm:w-auto rounded-md border border-black/10 px-2 py-1.5 text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-white"
+                            >
+                              <option value="video">🎥 Video</option>
+                              <option value="pdf">📄 PDF Document</option>
+                              <option value="link">🔗 External Link</option>
+                            </select>
+
+                            <input
+                              type="text"
+                              placeholder="Link Title (e.g. Read PDF)"
+                              value={res.title}
+                              onChange={(e) =>
+                                handleResourceChange(
+                                  index,
+                                  resIndex,
+                                  "title",
+                                  e.target.value,
+                                )
+                              }
+                              className="flex-1 min-w-[120px] rounded-md border border-black/10 px-3 py-1.5 text-xs outline-none focus:border-primary"
+                            />
+
+                            <div className="flex-1 min-w-[160px] flex items-center gap-1">
+                              {res.type === "pdf" ? (
+                                <>
+                                  <input
+                                    type="text"
+                                    placeholder="Upload a PDF file →"
+                                    value={res.url}
+                                    readOnly 
+                                    className="w-full rounded-md border border-black/10 px-3 py-1.5 text-xs outline-none bg-slate-50 text-slate-500 cursor-not-allowed"
+                                  />
+                                  <label
+                                    className={`shrink-0 cursor-pointer bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-1.5 rounded-md text-xs font-bold transition-colors ${isUploading ? "opacity-50 pointer-events-none" : ""}`}
+                                  >
+                                    {isUploading
+                                      ? "⏳ Uploading..."
+                                      : "⬆️ Upload PDF"}
+                                    <input
+                                      type="file"
+                                      className="hidden"
+                                      accept=".pdf"
+                                      onChange={(e) =>
+                                        handleFileUpload(e, index, resIndex)
+                                      }
+                                    />
+                                  </label>
+                                </>
+                              ) : (
+                                <input
+                                  type="text"
+                                  placeholder="Paste URL here (https://...)"
+                                  value={res.url}
+                                  onChange={(e) =>
+                                    handleResourceChange(
+                                      index,
+                                      resIndex,
+                                      "url",
+                                      e.target.value,
+                                    )
+                                  }
+                                  className="w-full rounded-md border border-black/10 px-3 py-1.5 text-xs outline-none focus:border-primary bg-white"
+                                />
+                              )}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                removeResourceFromStep(index, resIndex)
+                              }
+                              className="text-red-500 hover:bg-red-50 p-1.5 rounded-md transition-colors font-bold shrink-0"
+                              title="Remove link"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        );
+                      })}
                       {(!step.resources || step.resources.length === 0) && (
                         <p className="text-xs text-muted italic">
                           No materials added yet.
@@ -365,12 +623,69 @@ const ReviewerPathwayEdit = () => {
                       )}
                     </div>
                   </div>
-                  {/* 🟢 NEW: QUIZ SECTION */}
+
                   <div className="sm:col-span-2 pt-4 border-t border-black/10 mt-4">
                     <div className="flex items-center justify-between mb-3">
-                      <label className="block text-xs font-bold text-text-dark uppercase tracking-wider">Step Assessment (Quiz)</label>
-                      <button 
-                        type="button" 
+                      <label className="block text-xs font-bold text-text-dark uppercase tracking-wider">
+                        Platform Courses
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => openCourseSelector(index)}
+                        className="text-[10px] font-bold bg-blue-100 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-200 transition-colors"
+                      >
+                        + ADD COURSE
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {(step.linkedCourses || []).map((c, cIndex) => (
+                        <div
+                          key={cIndex}
+                          className="flex items-center justify-between bg-blue-50/50 p-3 rounded-xl border border-blue-100"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-slate-200 overflow-hidden shrink-0">
+                              <img
+                                src={c.thumbnail}
+                                alt="thumb"
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-slate-800">
+                                {c.title}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {c.educatorName}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeLinkedCourse(index, cIndex)}
+                            className="text-red-400 hover:bg-red-50 p-2 rounded-lg font-bold transition-colors"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                      {(!step.linkedCourses ||
+                        step.linkedCourses.length === 0) && (
+                        <p className="text-xs text-muted italic">
+                          No internal courses linked yet.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="sm:col-span-2 pt-4 border-t border-black/10 mt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="block text-xs font-bold text-text-dark uppercase tracking-wider">
+                        Step Assessment (Quiz)
+                      </label>
+                      <button
+                        type="button"
                         onClick={() => addQuizQuestion(index)}
                         className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full hover:bg-emerald-200 transition-colors"
                       >
@@ -380,7 +695,10 @@ const ReviewerPathwayEdit = () => {
 
                     <div className="space-y-4">
                       {(step.quiz || []).map((q, qIndex) => (
-                        <div key={qIndex} className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100 relative">
+                        <div
+                          key={qIndex}
+                          className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100 relative"
+                        >
                           <button
                             type="button"
                             onClick={() => removeQuizQuestion(index, qIndex)}
@@ -388,33 +706,59 @@ const ReviewerPathwayEdit = () => {
                           >
                             ✕ Remove
                           </button>
-                          
-                          <label className="text-xs font-semibold text-emerald-800 mb-1 block">Question {qIndex + 1}</label>
+
+                          <label className="text-xs font-semibold text-emerald-800 mb-1 block">
+                            Question {qIndex + 1}
+                          </label>
                           <input
                             type="text"
                             placeholder="Enter question here..."
                             value={q.question}
-                            onChange={(e) => handleQuizChange(index, qIndex, "question", e.target.value)}
-                            className="w-full mb-3 rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+                            onChange={(e) =>
+                              handleQuizChange(
+                                index,
+                                qIndex,
+                                "question",
+                                e.target.value,
+                              )
+                            }
+                            className="w-full mb-3 rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-emerald-500 bg-white"
                           />
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             {q.options.map((opt, optIndex) => (
-                              <div key={optIndex} className="flex items-center gap-2">
+                              <div
+                                key={optIndex}
+                                className="flex items-center gap-2"
+                              >
                                 <input
                                   type="radio"
                                   name={`correct-ans-${stepIdentifier}-${qIndex}`}
                                   checked={q.correctAnswerIndex === optIndex}
-                                  onChange={() => handleQuizChange(index, qIndex, "correctAnswerIndex", optIndex)}
-                                  className="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
+                                  onChange={() =>
+                                    handleQuizChange(
+                                      index,
+                                      qIndex,
+                                      "correctAnswerIndex",
+                                      optIndex,
+                                    )
+                                  }
+                                  className="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                                   title="Mark as correct answer"
                                 />
                                 <input
                                   type="text"
                                   placeholder={`Option ${optIndex + 1}`}
                                   value={opt}
-                                  onChange={(e) => handleQuizOptionChange(index, qIndex, optIndex, e.target.value)}
-                                  className={`flex-1 rounded-md border px-3 py-1.5 text-xs outline-none focus:border-emerald-500 ${q.correctAnswerIndex === optIndex ? 'border-emerald-400 bg-emerald-50/50' : 'border-black/10'}`}
+                                  onChange={(e) =>
+                                    handleQuizOptionChange(
+                                      index,
+                                      qIndex,
+                                      optIndex,
+                                      e.target.value,
+                                    )
+                                  }
+                                  className={`flex-1 rounded-md border px-3 py-1.5 text-xs outline-none focus:border-emerald-500 bg-white ${q.correctAnswerIndex === optIndex ? "border-emerald-400 bg-emerald-50/50" : "border-black/10"}`}
                                 />
                               </div>
                             ))}
@@ -422,7 +766,10 @@ const ReviewerPathwayEdit = () => {
                         </div>
                       ))}
                       {(!step.quiz || step.quiz.length === 0) && (
-                        <p className="text-xs text-muted italic">No assessment added. Step will be completable without a quiz.</p>
+                        <p className="text-xs text-muted italic">
+                          No assessment added. Step will be completable without
+                          a quiz.
+                        </p>
                       )}
                     </div>
                   </div>
@@ -430,9 +777,10 @@ const ReviewerPathwayEdit = () => {
               </div>
             );
           })}
+
           <button
             onClick={addStep}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-[22px] border-2 border-dashed border-primary/40 bg-primary/5 py-4 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-[22px] border-2 border-dashed border-primary/40 bg-primary/5 py-4 text-sm font-semibold text-primary hover:bg-primary/10 hover:border-primary/60 transition-colors"
           >
             <span>+</span> Add Another Step
           </button>

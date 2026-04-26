@@ -401,3 +401,31 @@ exports.deleteReviewer = async (req, res) => {
   }
 };
 
+
+
+exports.enrollInCourse = async (req, res) => {
+  try {
+    const courseId = req.params.id;
+    const userId = req.user._id;
+
+    // Check if already enrolled
+    const user = await User.findById(userId);
+    const alreadyEnrolled = user.enrolledCourses.find(c => c.courseId === courseId);
+    
+    if (alreadyEnrolled) {
+      return res.status(400).json({ message: "Already enrolled in this course." });
+    }
+
+    // Add to array and save
+    user.enrolledCourses.push({ courseId });
+    await user.save();
+
+    // Return the updated user without the password
+    const safeUser = user.toObject();
+    delete safeUser.password;
+
+    res.status(200).json({ success: true, user: safeUser, message: "Successfully enrolled!" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

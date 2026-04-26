@@ -10,6 +10,13 @@ const stepSchema = new mongoose.Schema({
       type: { type: String, default: "video" }
     },
   ],
+  // 🟢 NEW: Store internal platform courses here!
+  linkedCourses: [{
+    courseId: String,
+    title: String,
+    thumbnail: String,
+    educatorName: String
+  }],
   order: Number,
 
   quiz: [{

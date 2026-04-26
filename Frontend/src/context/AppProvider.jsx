@@ -12,6 +12,7 @@ import * as authApi from "../api/authApi.js";
 import { getToken, setToken } from "../api/client.js";
 import { googleLogout } from "@react-oauth/google";
 import * as courseApi from '../api/courseApi';
+import axios from "axios";
 
 
 
@@ -495,6 +496,33 @@ export const AppProvider = ({ children }) => {
     }
   }, []);
 
+  // 🟢 FIXED: Using localStorage instead of getToken()
+  const enrollInCourse = useCallback(async (courseId) => {
+    try {
+      // Get the token exactly how you do it in your other files!
+      const token = localStorage.getItem("edupath_token"); 
+      
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/courses/enroll/${courseId}`, 
+        {}, 
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      // Update the current user state with the new enrolledCourses array
+      setState((prev) => ({
+        ...prev,
+        currentUser: res.data.user, // Let's safely just use the returned user directly
+      }));
+      return { success: true };
+    } catch (err) {
+      console.error("Enrollment Frontend Error:", err);
+      return { 
+        success: false, 
+        message: err.response?.data?.message || "Failed to enroll. Please check console." 
+      };
+    }
+  }, []);
+
   // Wrapped the value object in useMemo to prevent massive re-renders
   const value = useMemo(
     () => ({
@@ -529,7 +557,8 @@ export const AppProvider = ({ children }) => {
       rejectCourse,
       saveMentorRequest,
       markLessonCompleted,
-      updateUserProfile
+      updateUserProfile,
+      enrollInCourse
     }),
     [
       // This dependency array tells React: "Only recreate this object if one of these specific things changes"
@@ -555,7 +584,8 @@ export const AppProvider = ({ children }) => {
       rejectCourse,
       saveMentorRequest,
       markLessonCompleted,
-      updateUserProfile
+      updateUserProfile,
+      enrollInCourse
     ],
   );
 
