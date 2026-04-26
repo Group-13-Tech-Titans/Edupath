@@ -6,8 +6,8 @@ import PageShell from "../../../components/PageShell.jsx";
 
 // API Endpoints
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const PENDING_COURSES_API = `${API_URL}/api/auth/admin/courses/pending`;
-const COURSE_STATS_API = `${API_URL}/api/auth/admin/courses/stats`;
+const PENDING_COURSES_API = `${API_URL}/api/admin/courses/pending`;
+const COURSE_STATS_API = `${API_URL}/api/admin/courses/stats`;
 
 export default function AdminViewCourses() {
   const navigate = useNavigate(); // 

@@ -1,18 +1,12 @@
 require("dotenv").config();
-
 const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
 
-
-
-
 const dns = require('dns');
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 
-
 const app = express();
-
 connectDB();
 
 app.use(cors());
@@ -20,7 +14,7 @@ app.use(express.json());
 
 
 app.use("/api/auth", require("./modules/auth/routes/authRoutes"));
-app.use("/api/auth", require("./modules/admin/routes/authRoutes"));
+app.use("/api/admin", require("./modules/admin/routes/adminRoutes"));
 
 app.use("/api/pathway", require("./modules/pathway/routes/pathwayRoutes"));
 

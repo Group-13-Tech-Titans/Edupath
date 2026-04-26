@@ -25,7 +25,7 @@ export default function StudentGrowthChart() {
       setError(false);
       try {
         const token = localStorage.getItem("edupath_token");
-        const res = await axios.get(`${API_URL}/api/auth/admin/stats/students-growth?range=${timeRange}`, {
+        const res = await axios.get(`${API_URL}/api/admin/stats/students-growth?range=${timeRange}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         

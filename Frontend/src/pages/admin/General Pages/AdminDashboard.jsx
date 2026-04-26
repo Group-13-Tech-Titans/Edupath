@@ -9,7 +9,7 @@ import StudentGrowthChart from "../chart/StudentGrowthChart.jsx";
 
 // API Endpoints
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const PENDING_EDUCATORS_API = `${API_URL}/api/auth/admin/educators/pending`;
+const PENDING_EDUCATORS_API = `${API_URL}/api/admin/educators/pending`;
 
 const AdminDashboard = () => {
   const { users, courses } = useApp();

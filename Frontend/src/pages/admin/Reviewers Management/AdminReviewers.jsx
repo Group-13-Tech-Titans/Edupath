@@ -4,7 +4,7 @@ import AdminFooter from "../General Pages/AdminFooter.jsx";
 import { useApp } from "../../../context/AppProvider.jsx";
 
 // API Endpoints
-const API_BASE = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/admin/reviewers`;
+const API_BASE = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/admin/reviewers`;
 const SPEC_API_BASE = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/specializations`;
 
 const getInitials = (name = "") => {
