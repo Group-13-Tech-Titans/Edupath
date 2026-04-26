@@ -7,7 +7,7 @@ const roleMiddleware = require("../../../middleware/roleMiddleware");
 const adminController = require("../controller/adminController");
 
 router.get("/", authMiddleware, roleMiddleware(["admin"]), adminController.adminWelcome);
-router.post("/admin/create-user", authMiddleware, roleMiddleware(["admin"]), adminController.createAdminUser);
+router.post("/create-user", authMiddleware, roleMiddleware(["admin"]), adminController.createAdminUser);
 
 router.get("/reviewers", authMiddleware, roleMiddleware(["admin"]), adminController.getAllReviewers);
 router.post("/reviewers", authMiddleware, roleMiddleware(["admin"]), adminController.createReviewer);
