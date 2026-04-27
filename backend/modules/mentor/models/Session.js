@@ -14,6 +14,9 @@ const sessionSchema = new mongoose.Schema(
       required: true,
     },
 
+    // Mentor's name — saved here for quick UI display
+    mentorName: { type: String },
+
     // Who is the student requesting this session?
     studentId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -27,10 +30,9 @@ const sessionSchema = new mongoose.Schema(
     // What is this session about?
     topic: { type: String, required: true },
 
-    // "1-on-1" or "Group"
+    // Category of session (e.g. "Portfolio review", "Mock interview", "1-on-1")
     type: {
       type: String,
-      enum: ["1-on-1", "Group"],
       default: "1-on-1",
     },
 
@@ -43,6 +45,10 @@ const sessionSchema = new mongoose.Schema(
 
     // Any note the student wrote when requesting
     note: { type: String },
+
+    // Finalized schedule set by mentor when accepting
+    scheduledDate: { type: String },
+    scheduledTime: { type: String },
 
     // Where the session tracks in its lifecycle:
     // pending   → student requested, mentor hasn't responded yet

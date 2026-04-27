@@ -3,11 +3,10 @@ import { Link, NavLink, Outlet } from "react-router-dom";
 import { useApp } from "../../context/AppProvider.jsx";
 
 const StudentLayout = () => {
-  const { currentUser, logout } = useApp();
+  const { currentUser, logout, unreadMessagesCount } = useApp();
 
   const navLinkClass = ({ isActive }) =>
-    `px-3 py-1 rounded-full text-sm ${
-      isActive ? "bg-primary text-white" : "text-muted hover:bg-white/60"
+    `px-3 py-1 rounded-full text-sm ${isActive ? "bg-primary text-white" : "text-muted hover:bg-white/60"
     }`;
 
   return (
@@ -29,6 +28,19 @@ const StudentLayout = () => {
             </NavLink>
             <NavLink to="/student/mentor" className={navLinkClass}>
               Mentorship
+            </NavLink>
+            <NavLink to="/student/resources" className={navLinkClass}>
+              Resources
+            </NavLink>
+            <NavLink to="/student/messages" className={navLinkClass}>
+              <span className="relative">
+                Messages
+                {unreadMessagesCount > 0 && (
+                  <span className="absolute -right-3 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-2 ring-white">
+                    {unreadMessagesCount}
+                  </span>
+                )}
+              </span>
             </NavLink>
             <NavLink to="/student/profile" className={navLinkClass}>
               Profile

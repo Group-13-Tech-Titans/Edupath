@@ -12,10 +12,12 @@ const {
   updateProfile,
   getPublicProfile,
   getReviews,
+  getMentors,
 } = require("../controllers/mentorProfileController");
 
 const {
   getSessions,
+  getStudentSessions,
   requestSession,
   acceptSession,
   declineSession,
@@ -51,6 +53,7 @@ const {
   sendMessage,
   markAsRead,
   getUnreadCount,
+  getEligibleMentors,
 } = require("../controllers/messageController");
 
 const { getMentorAnalytics } = require("../controllers/analyticsController");
@@ -66,14 +69,16 @@ router.get("/analytics", authMiddleware, roleMiddleware(["mentor"]), getMentorAn
 // ═══════════════════════════════════════════════
 router.get("/profile/:mentorId", getPublicProfile);
 router.get("/profile",  authMiddleware, roleMiddleware(["mentor"]), getProfile);
-router.post("/profile", authMiddleware, roleMiddleware(["mentor"]), createProfile);
-router.put("/profile",  authMiddleware, roleMiddleware(["mentor"]), updateProfile);
+router.post("/profile", authMiddleware, roleMiddleware(["mentor", "educator"]), createProfile);
+router.put("/profile",  authMiddleware, roleMiddleware(["mentor", "educator"]), updateProfile);
 router.get("/profile/reviews", authMiddleware, roleMiddleware(["mentor"]), getReviews);
+router.get("/profiles", getMentors);
 
 // ═══════════════════════════════════════════════
 // SESSION ROUTES
 // ═══════════════════════════════════════════════
 router.get("/sessions",       authMiddleware, roleMiddleware(["mentor"]), getSessions);
+router.get("/sessions/student", authMiddleware, getStudentSessions);
 router.get("/sessions/stats", authMiddleware, roleMiddleware(["mentor"]), getStats);
 
 // Mentor responds to sessions
@@ -111,19 +116,22 @@ router.get("/resources/mine", authMiddleware, getMyResources);
 // MESSAGING ROUTES
 // ═══════════════════════════════════════════════
 
-// All conversations for the mentor
-router.get("/messages/conversations", authMiddleware, roleMiddleware(["mentor"]), getConversations);
+// All conversations for the logged-in user
+router.get("/messages/conversations", authMiddleware, getConversations);
 
 // Total unread count badge
-router.get("/messages/unread-count",  authMiddleware, roleMiddleware(["mentor"]), getUnreadCount);
+router.get("/messages/unread-count",  authMiddleware, getUnreadCount);
 
 // Specific conversation messages
-router.get("/messages/conversations/:studentId", authMiddleware, roleMiddleware(["mentor"]), getMessages);
+router.get("/messages/conversations/:targetId", authMiddleware, getMessages);
 
 // Send a message
 router.post("/messages/send", authMiddleware, sendMessage);
 
 // Mark conversation as read
-router.put("/messages/conversations/:studentId/read", authMiddleware, roleMiddleware(["mentor"]), markAsRead);
+router.put("/messages/conversations/:targetId/read", authMiddleware, markAsRead);
+
+// Get mentors eligible for messaging (student only)
+router.get("/messages/eligible-mentors", authMiddleware, getEligibleMentors);
 
 module.exports = router;

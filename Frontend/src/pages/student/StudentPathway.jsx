@@ -34,7 +34,7 @@ const StudentPathway = () => {
             `http://localhost:5000/api/pathway/published`,
             config,
           );
-          
+
           // 🟢 FIXED: Use originalTemplateId to find the EXACT match, fallback to name+level for old data
           const pathwayTemplate = templateData.templates.find((t) => {
             if (currentStudentPathway.originalTemplateId) {
@@ -63,7 +63,7 @@ const StudentPathway = () => {
                   studentStep.description !== templateStep.description ||
                   // Compare the new arrays using JSON.stringify to detect ANY changes in links, titles, or quizzes
                   JSON.stringify(studentStep.resources || []) !==
-                    JSON.stringify(templateStep.resources || []) ||
+                  JSON.stringify(templateStep.resources || []) ||
                   JSON.stringify(studentStep.quiz || []) !== JSON.stringify(templateStep.quiz || [])
                 ) {
                   // Update the text and resources, but PRESERVE the student's progress

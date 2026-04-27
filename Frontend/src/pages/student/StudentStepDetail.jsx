@@ -99,7 +99,7 @@ const StudentStepDetail = () => {
 
   const handleSubmitQuiz = () => {
     if (!currentStep.quiz || currentStep.quiz.length === 0) return;
-    
+
     // Check if all questions are answered
     if (Object.keys(quizAnswers).length < currentStep.quiz.length) {
       setShowQuizErrors(true);
@@ -214,8 +214,8 @@ const StudentStepDetail = () => {
                     <p className="font-semibold text-slate-800 mb-4"><span className="text-primary mr-2">Q{qIndex + 1}.</span>{q.question}</p>
                     <div className="space-y-2">
                       {q.options.map((opt, optIndex) => (
-                        <label 
-                          key={optIndex} 
+                        <label
+                          key={optIndex}
                           className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${quizAnswers[qIndex] === optIndex ? 'bg-primary/5 border-primary shadow-sm' : 'bg-white border-slate-200 hover:border-primary/50'}`}
                         >
                           <input
@@ -246,7 +246,7 @@ const StudentStepDetail = () => {
 
               {!quizPassed && (
                 <div className="mt-6 flex justify-center">
-                  <button 
+                  <button
                     onClick={handleSubmitQuiz}
                     className="bg-slate-800 text-white px-8 py-3 rounded-full font-bold shadow-md hover:bg-slate-700 transition-all active:scale-95"
                   >
@@ -272,7 +272,7 @@ const StudentStepDetail = () => {
                   <>
                     <h3 className="text-emerald-800 font-bold mb-2">Ready to move on?</h3>
                     <p className="text-emerald-600 text-sm mb-6 text-center">Mark this step as complete to unlock the next part of your journey.</p>
-                    <button 
+                    <button
                       onClick={handleCompleteAndContinue}
                       disabled={completing}
                       className="bg-primary text-white px-10 py-4 rounded-full font-black text-lg shadow-xl hover:brightness-95 hover:scale-105 transition-all active:scale-95 disabled:opacity-70"

@@ -1,11 +1,14 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { 
-  getConversations, 
-  getMessages as getMessagesApi, 
-  sendMessage as sendMessageApi, 
-  markAsRead 
+import {
+  getConversations,
+  getMessages as getMessagesApi,
+  sendMessage as sendMessageApi,
+  markAsRead
 } from "../../api/mentorApi.js";
+import { subscribeToMessages, unsubscribeFromMessages } from "../../socket.js";
+
+import { useApp } from "../../context/AppProvider.jsx";
 
 // ── Helpers ──────────────────────────────────────────────────────
 function formatTime(iso) {
@@ -31,6 +34,7 @@ export default function MentorMessages() {
   const [newMsg, setNewMsg] = useState("");
   const location = useLocation();
   const messagesEndRef = useRef(null);
+  const { fetchUnreadCount, currentUser } = useApp();
 
   // Initial fetch
   useEffect(() => {
@@ -52,9 +56,13 @@ export default function MentorMessages() {
   // Fetch messages when active conversation changes
   useEffect(() => {
     if (activeConv) {
-      fetchMessages(activeConv.studentId);
+      const isMentor = currentUser?.id === activeConv.mentorId;
+      const otherId = isMentor ? activeConv.studentId : activeConv.mentorId;
+      if (otherId) {
+        fetchMessages(otherId);
+      }
     }
-  }, [activeConv]);
+  }, [activeConv?.id, activeConv?.studentId, activeConv?.mentorId, currentUser?.id]);
 
   const fetchMessages = async (studentId) => {
     setMsgLoading(true);
@@ -63,8 +71,9 @@ export default function MentorMessages() {
       setMessages(data);
       // Mark as read
       await markAsRead(studentId);
+      fetchUnreadCount();
       // Update local unread count
-      setConversations(prev => prev.map(c => c.studentId === studentId ? { ...c, unread: 0 } : c));
+      setConversations(prev => prev.map(c => c.studentId === studentId ? { ...c, unreadCount: 0 } : c));
     } catch (err) {
       console.error("Failed to fetch messages:", err);
     } finally {
@@ -74,13 +83,27 @@ export default function MentorMessages() {
 
   // Set active conversation if studentId passed in state
   useEffect(() => {
-    if (location.state?.studentId && conversations.length > 0) {
-      const conv = conversations.find((c) => c.studentId === location.state.studentId);
+    const targetStudentId = location.state?.studentId;
+    if (targetStudentId && conversations.length > 0) {
+      // Avoid infinite loop: only set if different from current
+      if (activeConv?.studentId === targetStudentId) return;
+
+      const conv = conversations.find((c) => c.studentId === targetStudentId);
       if (conv) {
         setActiveConv(conv);
+      } else {
+        setActiveConv({
+          id: "new",
+          studentId: targetStudentId,
+          mentorId: currentUser?.id,
+          studentName: location.state.studentName || "New Student",
+          track: "General",
+          lastMessage: "",
+          unreadCount: 0
+        });
       }
     }
-  }, [location.state, conversations]);
+  }, [location.state?.studentId, location.state?.studentName, conversations.length, currentUser?.id]);
 
   // Scroll to bottom
   useEffect(() => {
@@ -89,10 +112,53 @@ export default function MentorMessages() {
     }
   }, [messages]);
 
+  // Real-time socket listener
+  useEffect(() => {
+    const handleNewMessage = (msg) => {
+      console.log("Real-time message received in MentorMessages:", msg);
+
+      // 1. If it's for the active conversation, add it to messages
+      if (activeConv && msg.senderRole === "student" && msg.senderId === activeConv.studentId) {
+        setMessages(prev => {
+          // Prevent duplicates
+          if (prev.find(m => m._id === msg._id)) return prev;
+          return [...prev, msg];
+        });
+        // Mark as read immediately since we are looking at it
+        markAsRead(activeConv.studentId).then(() => fetchUnreadCount()).catch(console.error);
+      } else {
+        // 2. If it's for another conversation, increment unread count in the list
+        setConversations(prev => prev.map(c => {
+          if (c.studentId === msg.senderId) {
+            return {
+              ...c,
+              lastMessage: msg.text,
+              lastTime: msg.createdAt,
+              unreadCount: (c.unreadCount || 0) + 1
+            };
+          }
+          return c;
+        }));
+      }
+
+      // If it's a new conversation (not in list), we should probably fetch conversations again
+      const exists = conversations.find(c => c.studentId === msg.senderId);
+      if (!exists && msg.senderRole === "student") {
+        fetchConversations();
+      }
+    };
+
+    subscribeToMessages(handleNewMessage);
+
+    return () => {
+      unsubscribeFromMessages(handleNewMessage);
+    };
+  }, [activeConv, conversations]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return conversations.filter((c) =>
-      !q || c.name.toLowerCase().includes(q) || (c.track && c.track.toLowerCase().includes(q))
+      !q || c.studentName?.toLowerCase().includes(q) || (c.track && c.track.toLowerCase().includes(q))
     );
   }, [conversations, search]);
 
@@ -105,21 +171,26 @@ export default function MentorMessages() {
     if (!text || !activeConv) return;
 
     try {
+      const isMentor = currentUser?.id === activeConv.mentorId;
+      const otherId = isMentor ? activeConv.studentId : activeConv.mentorId;
+
       const payload = {
-        receiverId: activeConv.studentId,
+        receiverId: otherId,
         text: text
       };
 
       const sentMsg = await sendMessageApi(payload);
       setMessages(prev => [...prev, sentMsg]);
       setNewMsg("");
-      
+
       // Update last message in conversation list
-      setConversations(prev => prev.map(c => 
-        c.studentId === activeConv.studentId 
-          ? { ...c, lastMessage: text, lastTime: new Date().toISOString() } 
-          : c
-      ));
+      setConversations(prev => prev.map(c => {
+        const cIsMentor = currentUser?.id === c.mentorId;
+        const cOtherId = cIsMentor ? c.studentId : c.mentorId;
+        return cOtherId === otherId
+          ? { ...c, lastMessage: text, lastTime: new Date().toISOString() }
+          : c;
+      }));
     } catch (err) {
       alert("Failed to send message: " + err.message);
     }
@@ -132,7 +203,7 @@ export default function MentorMessages() {
     }
   };
 
-  const totalUnread = conversations.reduce((sum, c) => sum + (c.unread || 0), 0);
+  const totalUnread = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
 
   return (
     <>
@@ -150,7 +221,7 @@ export default function MentorMessages() {
       </section>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[320px_1fr]">
-        <section className="rounded-2xl bg-white shadow-[0_4px_20_rgba(0,0,0,0.08)] flex flex-col overflow-hidden max-h-[700px]">
+        <section className="rounded-2xl bg-white shadow-[0_4px_20px_rgba(0,0,0,0.08)] flex flex-col overflow-hidden max-h-[700px]">
           <div className="p-4 border-b-2 border-slate-100">
             <div className="flex items-center gap-2 rounded-xl border-2 border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-teal-400 focus-within:bg-white">
               <SearchIcon />
@@ -167,33 +238,38 @@ export default function MentorMessages() {
               <p className="p-6 text-center text-sm text-slate-400">No conversations found.</p>
             ) : (
               filtered.map((c) => {
-                const initials = c.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "S";
+                const isMentor = currentUser?.id === c.mentorId;
+                const otherName = isMentor ? c.studentName : c.mentorName;
+                const otherId = isMentor ? c.studentId : c.mentorId;
+                const initials = otherName?.split(" ").map(n => n[0]).join("").toUpperCase() || "S";
+                const isUnread = isMentor ? (c.unreadCount || 0) > 0 : (c.studentUnreadCount || 0) > 0;
+                const unreadCount = isMentor ? c.unreadCount : c.studentUnreadCount;
+
                 return (
-                  <button key={c.studentId} type="button"
+                  <button key={c.id} type="button"
                     onClick={() => openConversation(c)}
-                    className={`w-full flex items-center gap-3 px-4 py-4 border-b border-slate-100 text-left transition hover:bg-emerald-50 ${
-                      activeConv?.studentId === c.studentId ? "bg-emerald-50 border-l-4 border-l-teal-400" : ""
-                    }`}>
+                    className={`w-full flex items-center gap-3 px-4 py-4 border-b border-slate-100 text-left transition hover:bg-emerald-50 ${activeConv?.id === c.id ? "bg-emerald-50 border-l-4 border-l-teal-400" : ""
+                      }`}>
                     <div className="relative flex-shrink-0">
                       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-teal-400 to-emerald-300 text-base font-extrabold text-white">
                         {initials}
                       </div>
-                      {c.unread > 0 && (
+                      {isUnread && (
                         <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-teal-400 text-xs font-bold text-white">
-                          {c.unread}
+                          {unreadCount}
                         </span>
                       )}
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <span className={`text-sm ${c.unread > 0 ? "font-extrabold text-slate-800" : "font-semibold text-slate-700"}`}>
-                          {c.name}
+                        <span className={`text-sm ${isUnread ? "font-extrabold text-slate-800" : "font-semibold text-slate-700"}`}>
+                          {otherName}
                         </span>
-                        <span className="text-xs text-slate-400 flex-shrink-0">{formatTime(c.lastTime)}</span>
+                        <span className="text-xs text-slate-400 flex-shrink-0">{formatTime(c.lastTime || c.lastMessageTime)}</span>
                       </div>
-                      <p className="text-xs text-slate-400 truncate">{c.track || "Student"}</p>
-                      <p className={`text-xs truncate mt-0.5 ${c.unread > 0 ? "font-semibold text-slate-600" : "text-slate-400"}`}>
+                      <p className="text-xs text-slate-400 truncate">{isMentor ? (c.track || "Student") : "Mentor"}</p>
+                      <p className={`text-xs truncate mt-0.5 ${isUnread ? "font-semibold text-slate-600" : "text-slate-400"}`}>
                         {c.lastMessage}
                       </p>
                     </div>
@@ -209,14 +285,18 @@ export default function MentorMessages() {
             <>
               <div className="flex items-center gap-4 border-b-2 border-slate-100 px-6 py-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-teal-400 to-emerald-300 text-base font-extrabold text-white">
-                  {activeConv.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "S"}
+                  {(currentUser?.id === activeConv.mentorId ? activeConv.studentName : activeConv.mentorName)?.split(" ").map(n => n[0]).join("").toUpperCase() || "S"}
                 </div>
                 <div>
-                  <div className="text-base font-extrabold text-slate-800">{activeConv.name}</div>
-                  <div className="text-xs text-slate-500">{activeConv.track || "Student"}</div>
+                  <div className="text-base font-extrabold text-slate-800">
+                    {currentUser?.id === activeConv.mentorId ? activeConv.studentName : activeConv.mentorName}
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    {currentUser?.id === activeConv.mentorId ? (activeConv.track || "Student") : "Mentor"}
+                  </div>
                 </div>
                 <div className="ml-auto flex gap-2">
-                  <Link to={`/mentor/student-details/${activeConv.studentId}`}
+                  <Link to={currentUser?.id === activeConv.mentorId ? `/mentor/student-details/${activeConv.studentId}` : `/student/mentor-profile/${activeConv.mentorId}`}
                     className="rounded-xl border-2 border-teal-400 bg-white px-4 py-2 text-xs font-bold text-teal-500 transition hover:bg-teal-400 hover:text-white">
                     View Profile
                   </Link>
@@ -230,26 +310,26 @@ export default function MentorMessages() {
                   <div className="flex flex-1 items-center justify-center text-sm text-slate-400">No messages yet. Say hello!</div>
                 ) : (
                   messages.map((m) => {
-                    const isMentor = m.senderRole === "mentor";
-                    const initials = activeConv.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "S";
+                    const isMe = m.senderId === currentUser?.id;
+                    const otherName = currentUser?.id === activeConv.mentorId ? activeConv.studentName : activeConv.mentorName;
+                    const initials = otherName?.split(" ").map(n => n[0]).join("").toUpperCase() || "S";
                     return (
-                      <div key={m._id} className={`flex ${isMentor ? "justify-end" : "justify-start"}`}>
-                        {!isMentor && (
+                      <div key={m._id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                        {!isMe && (
                           <div className="mr-2 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-teal-400 to-emerald-300 text-xs font-extrabold text-white">
                             {initials}
                           </div>
                         )}
-                        <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm ${
-                          isMentor
-                            ? "bg-teal-400 text-white rounded-br-sm shadow-md shadow-teal-100"
-                            : "bg-white text-slate-800 rounded-bl-sm shadow-sm border border-slate-100"
-                        }`}>
+                        <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm ${isMe
+                          ? "bg-teal-400 text-white rounded-br-sm shadow-md shadow-teal-100"
+                          : "bg-white text-slate-800 rounded-bl-sm shadow-sm border border-slate-100"
+                          }`}>
                           <p className="leading-relaxed whitespace-pre-wrap">{m.text}</p>
-                          <p className={`mt-1 text-[10px] text-right ${isMentor ? "text-teal-100" : "text-slate-400"}`}>
+                          <p className={`mt-1 text-[10px] text-right ${isMe ? "text-teal-100" : "text-slate-400"}`}>
                             {formatTime(m.createdAt)}
                           </p>
                         </div>
-                        {isMentor && (
+                        {isMe && (
                           <div className="ml-2 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-extrabold text-slate-600">
                             Me
                           </div>
@@ -268,7 +348,7 @@ export default function MentorMessages() {
                     onChange={(e) => setNewMsg(e.target.value)}
                     onKeyDown={handleKeyDown}
                     rows={1}
-                    placeholder={`Message ${activeConv.name}...`}
+                    placeholder={`Message ${currentUser?.id === activeConv.mentorId ? activeConv.studentName : activeConv.mentorName}...`}
                     className="flex-1 resize-none rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition focus:border-teal-400 focus:bg-white"
                     style={{ maxHeight: "120px" }}
                   />

@@ -14,7 +14,7 @@ const SignupStudent = () => {
   // Grabbed currentUser from context to auto-fill the form
   const { signupStudent, currentUser } = useApp();
   const navigate = useNavigate();
-  
+
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -25,7 +25,7 @@ const SignupStudent = () => {
     confirm: "",
     contact: "",
   });
-  
+
   const [error, setError] = useState("");
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -225,8 +225,8 @@ const SignupStudent = () => {
           )}
 
           <div className="md:col-span-2 mt-2">
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={isLoading}
               className="btn-primary w-full rounded-full py-3 shadow-lg shadow-emerald-200 disabled:opacity-70"
             >

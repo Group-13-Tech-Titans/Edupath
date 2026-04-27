@@ -3,7 +3,7 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useApp } from "../../context/AppProvider.jsx";
 
 const MentorNavbar = () => {
-  const { logout } = useApp();
+  const { logout, unreadMessagesCount } = useApp();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -37,7 +37,14 @@ const MentorNavbar = () => {
           Resources
         </NavLink>
         <NavLink to="/mentor/messages" className={navLinkClass}>
-          Messages
+          <span className="relative inline-flex items-center">
+            Messages
+            {unreadMessagesCount > 0 && (
+              <span className="absolute -right-5 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
+                {unreadMessagesCount > 9 ? "9+" : unreadMessagesCount}
+              </span>
+            )}
+          </span>
         </NavLink>
         <NavLink to="/mentor/profile" className={navLinkClass}>
           Profile

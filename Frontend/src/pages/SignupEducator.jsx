@@ -105,8 +105,8 @@ const SignupEducator = () => {
       return;
     }
 
-    // Replace the history stack so they can't hit "Back" to resubmit
-    navigate("/verification-pending", { replace: true });
+    // Redirect to profile so they can see their details immediately
+    navigate("/educator/profile", { replace: true });
   };
 
   return (
@@ -203,7 +203,7 @@ const SignupEducator = () => {
             >
               <option value="">Select a specialization...</option>
               {specializationList.map((spec) => (
-                <option key={spec._id} value={spec.slug}>
+                <option key={spec._id} value={spec.name}>
                   {spec.name}
                 </option>
               ))}

@@ -90,7 +90,9 @@ const getMyResources = async (req, res) => {
     // The logged-in user is the student — find resources where studentId = their ID
     const resources = await Resource.find({
       studentId: req.user._id,
-    }).sort({ createdAt: -1 });
+    })
+    .populate("mentorId", "name")
+    .sort({ createdAt: -1 });
 
     res.json(resources);
   } catch (error) {

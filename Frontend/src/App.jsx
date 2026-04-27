@@ -1,6 +1,7 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
+import { Toaster } from "react-hot-toast";
 
 // Layouts
 import PublicLayout from "./components/layouts/PublicLayout.jsx";
@@ -15,6 +16,7 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 // Pages
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
+import Signup from "./pages/Signup.jsx";
 import SignupRole from "./pages/SignupRole.jsx";
 import SignupStudent from "./pages/SignupStudent.jsx";
 import SignupEducator from "./pages/SignupEducator.jsx";
@@ -32,7 +34,9 @@ import StudentMentor from "./pages/student/StudentMentor.jsx";
 import StudentProfile from "./pages/student/StudentProfile.jsx";
 import StudentPathway from "./pages/student/StudentPathway.jsx";
 import StudentStepDetail from "./pages/student/StudentStepDetail.jsx";
+import StudentMessages from "./pages/student/StudentMessages.jsx";
 import PathFinder from "./pages/student/PathFinder.jsx";
+import StudentResources from "./pages/student/StudentResources.jsx";
 
 // Educator Pages
 import EducatorDashboard from "./pages/educator/EducatorDashboard.jsx";
@@ -44,6 +48,7 @@ import EducatorCourseDetail from "./pages/educator/EducatorCourseDetail.jsx";
 import EducatorPayouts from "./pages/educator/EducatorPayouts.jsx";
 import EducatorProfile from "./pages/educator/EducatorProfile.jsx";
 import EducatorVerificationPendingPage from "./pages/educator/EducatorVerificationPendingPage.jsx";
+import MentorTerms from "./pages/educator/MentorTerms.jsx";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
@@ -72,7 +77,6 @@ import MentorProfile from "./pages/mentor/MentorProfile.jsx";
 import MentorSessions from "./pages/mentor/MentorSessions.jsx";
 import MentorStudents from "./pages/mentor/MentorStudents.jsx";
 import MentorSettings from "./pages/mentor/MentorSettings.jsx";
-import MentorShareProfile from "./pages/mentor/MentorShareProfile.jsx";
 import MentorResources from "./pages/mentor/MentorResources.jsx";
 import MentorMessages from "./pages/mentor/MentorMessages.jsx";
 import MentorStudentDetails from "./pages/mentor/MentorStudentDetails.jsx";
@@ -81,6 +85,7 @@ import MentorAnalytics from "./pages/mentor/MentorAnalytics.jsx";
 const App = () => {
   return (
     <AnimatePresence mode="wait">
+      <Toaster position="top-right" reverseOrder={false} />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<PublicLayout />}>
@@ -92,7 +97,8 @@ const App = () => {
           <Route path="login" element={<Login />} />
           <Route path="forgot-password" element={<ForgotPassword />} />
           <Route path="reset-password/:token" element={<ResetPassword />} />
-          <Route path="signup" element={<SignupRole />} />
+          <Route path="signup" element={<Signup />} />
+          <Route path="signup/role" element={<SignupRole />} />
           <Route path="signup/student" element={<SignupStudent />} />
           <Route path="signup/educator" element={<SignupEducator />} />
         </Route>
@@ -108,6 +114,8 @@ const App = () => {
             <Route path="path-finder" element={<PathFinder />} />
             <Route path="journey" element={<StudentPathway />} />
             <Route path="journey/step/:stepOrder" element={<StudentStepDetail />} />
+            <Route path="messages" element={<StudentMessages />} />
+            <Route path="resources" element={<StudentResources />} />
           </Route>
         </Route>
 
@@ -123,6 +131,7 @@ const App = () => {
             <Route path="add-content/:id" element={<EducatorAddContent />} />
             <Route path="payouts" element={<EducatorPayouts />} />
             <Route path="profile" element={<EducatorProfile />} />
+            <Route path="mentor" element={<MentorTerms />} />
           </Route>
         </Route>
 
@@ -164,7 +173,6 @@ const App = () => {
             <Route path="students" element={<MentorStudents />} />
             <Route path="profile" element={<MentorProfile />} />
             <Route path="settings" element={<MentorSettings />} />
-            <Route path="share-profile" element={<MentorShareProfile />} />
             <Route path="resources" element={<MentorResources />} />
             <Route path="messages" element={<MentorMessages />} />
             <Route path="student-details/:id" element={<MentorStudentDetails />} />

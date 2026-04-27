@@ -96,7 +96,16 @@ const EducatorDashboard = () => {
             <p className="mt-1 text-xs text-muted">Track your courses, earnings and performance.</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <button className="btn-soft px-6 py-2 text-sm">Register as Mentor</button>
+            {/* 🟢 CONDITIONAL MENTOR BUTTON */}
+            {currentUser?.isMentor ? (
+              <Link to="/mentor" className="rounded-full border-2 border-teal-500 bg-white px-6 py-2 text-sm text-center font-bold text-teal-600 hover:bg-teal-50 transition">
+                Switch to Mentor
+              </Link>
+            ) : (
+              <Link to="/educator/mentor" className="btn-primary bg-teal-400 hover:bg-teal-500 shadow-teal-200 px-6 py-2 text-sm text-center">
+                Register as Mentor
+              </Link>
+            )}
             <Link to="/educator/publish" className="btn-primary px-6 py-2 text-sm text-center">
               Publish New Course
             </Link>

@@ -427,9 +427,20 @@ const EducatorProfile = () => {
               Update your educator profile, payout details, password, and notification preferences.
             </p>
           </div>
-          <button className="btn-primary px-6 py-2 text-sm self-start sm:self-auto">
-            Apply for Mentorship
-          </button>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            {currentUser?.status === "PENDING_VERIFICATION" && (
+              <div className="flex items-center gap-2 rounded-full bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-700 border border-amber-200">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />
+                Verification in progress
+              </div>
+            )}
+            <button 
+              onClick={() => navigate("/educator/mentor")}
+              className="btn-primary px-6 py-2 text-sm"
+            >
+              Apply for Mentorship
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

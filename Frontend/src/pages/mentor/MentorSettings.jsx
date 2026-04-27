@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { getMentorProfile, updateMentorProfile } from "../../api/mentorApi.js";
 
 // ── Reusable sub-components ─────────────────────────────────────
@@ -78,7 +78,7 @@ function PasswordModal({ onClose, showToast }) {
   );
 }
 
-export default function MentorSettingsInlineLikeDashboard() {
+export default function MentorSettings() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -90,30 +90,21 @@ export default function MentorSettingsInlineLikeDashboard() {
   const [photo, setPhoto] = useState(null);
   const fileInputRef = useRef(null);
 
-  const [socialLinks, setSocialLinks] = useState({ linkedin: "", github: "", twitter: "", website: "" });
-  const [certifications, setCertifications] = useState([]);
-  const [mentoringFocus, setMentoringFocus] = useState([]);
-  const [newFocusItem, setNewFocusItem] = useState("");
-  const [expertiseTags, setExpertiseTags] = useState([]);
-  const [newExpertiseItem, setNewExpertiseItem] = useState("");
-
-  const [experiences, setExperiences] = useState([]);
-  const [educations, setEducations] = useState([]);
+  const [socialLinks, setSocialLinks] = useState({ linkedin: "", github: "", twitter: "" });
 
   const firstNameRef = useRef(null);
   const lastNameRef = useRef(null);
   const emailRef = useRef(null);
-  const locationRef = useRef(null);
   const titleRef = useRef(null);
   const subjectRef = useRef(null);
   const bioRef = useRef(null);
-  const expertiseRef = useRef(null);
 
   const [toggles, setToggles] = useState({
     sessionRequests: true, messages: true, resourceUpdates: false, weeklySummary: true, twoFA: false,
   });
   const [modal, setModal] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [specializations, setSpecializations] = useState([]);
   const [toastState, setToastState] = useState({ open: false, title: "", msg: "" });
   const toastTimer = useRef(null);
 
@@ -126,17 +117,11 @@ export default function MentorSettingsInlineLikeDashboard() {
       const data = await getMentorProfile();
       setProfile(data);
       setPhoto(data.avatar);
-      setSocialLinks(data.socialLinks || { linkedin: "", github: "", twitter: "", website: "" });
-      setCertifications(data.certifications || []);
-      setMentoringFocus(data.mentoringFocus || []);
-      setExpertiseTags(data.expertise || []);
-      setExperiences(data.experience || []);
-      setEducations(data.education || []);
+      setSocialLinks(data.socialLinks || { linkedin: "", github: "", twitter: "" });
 
       if (firstNameRef.current) firstNameRef.current.value = data.name?.split(" ")[0] || "";
       if (lastNameRef.current) lastNameRef.current.value = data.name?.split(" ").slice(1).join(" ") || "";
       if (emailRef.current) emailRef.current.value = data.email || "";
-      if (locationRef.current) locationRef.current.value = data.location || "";
       if (titleRef.current) titleRef.current.value = data.title || "";
       if (subjectRef.current) subjectRef.current.value = data.subjectField || "";
       if (bioRef.current) bioRef.current.value = data.bio || "";
@@ -191,19 +176,14 @@ export default function MentorSettingsInlineLikeDashboard() {
         { ref: firstNameRef, label: "First Name" },
         { ref: lastNameRef, label: "Last Name" },
         { ref: emailRef, label: "Email Address" },
-        { ref: locationRef, label: "Location" },
         { ref: titleRef, label: "Professional Title" },
         { ref: subjectRef, label: "Subject / Field" },
         { ref: bioRef, label: "Short Bio" },
-        { ref: expertiseRef, label: "Skills / Expertise", customCheck: () => expertiseTags.length === 0 },
       ];
-      for (const { ref, label, customCheck } of checks) {
-        const isEmpty = customCheck ? customCheck() : (ref.current && !ref.current.value.trim());
-        if (isEmpty) {
-          if (ref.current) {
-            ref.current.focus({ preventScroll: true });
-            ref.current.style.borderColor = "#f87171";
-          }
+      for (const { ref, label } of checks) {
+        if (ref.current && !ref.current.value.trim()) {
+          ref.current.focus({ preventScroll: true });
+          ref.current.style.borderColor = "#f87171";
           showToast("Field required", `"${label}" cannot be empty. Please fill it in.`);
           return;
         }
@@ -215,16 +195,12 @@ export default function MentorSettingsInlineLikeDashboard() {
       const payload = {
         name: `${firstNameRef.current.value} ${lastNameRef.current.value}`,
         email: emailRef.current.value,
-        location: locationRef.current.value,
         title: titleRef.current.value,
         subjectField: subjectRef.current.value,
         bio: bioRef.current.value,
-        expertise: expertiseTags,
         socialLinks: socialLinks,
-        certifications: certifications,
-        mentoringFocus: mentoringFocus,
-        experience: experiences,
-        education: educations,
+        avatar: photo,
+        expertise: [subjectRef.current.value] // Maintain expertise array
       };
 
       await updateMentorProfile(payload);
@@ -296,7 +272,7 @@ export default function MentorSettingsInlineLikeDashboard() {
               </div>
               <div>
                 <div className="text-base font-extrabold text-slate-800">{profile?.name || "Mentor"}</div>
-                <div className="text-xs text-slate-500">Verified Mentor • {profile?.subjectField || "Technical"}</div>
+                <div className="text-xs text-slate-500">{profile?.subjectField || "Technical"}</div>
                 <button type="button" onClick={() => fileInputRef.current.click()} className="mt-1 text-xs font-semibold text-teal-500 hover:text-teal-600 underline">
                   Change photo
                 </button>
@@ -385,34 +361,19 @@ export default function MentorSettingsInlineLikeDashboard() {
                   <Field label="Email Address *">
                     <input ref={emailRef} type="email" onBlur={markDirty} className={inputCls} />
                   </Field>
-                  <Field label="Location *">
-                    <input ref={locationRef} onBlur={markDirty} className={inputCls} />
-                  </Field>
                   <Field label="Professional Title *">
                     <input ref={titleRef} onBlur={markDirty} className={inputCls} />
                   </Field>
-                  <Field label="Subject / Field *">
-                    <input ref={subjectRef} onBlur={markDirty} className={inputCls} />
+                   <Field label="Subject / Field * (Locked)">
+                    <input 
+                      ref={subjectRef} 
+                      readOnly 
+                      className={`${inputCls} bg-slate-100 text-slate-500 cursor-not-allowed`} 
+                    />
                   </Field>
                   <div className="md:col-span-2">
                     <Field label="Short Bio *">
                       <textarea ref={bioRef} onBlur={markDirty} className="min-h-[100px] w-full resize-y rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100" />
-                    </Field>
-                  </div>
-                  <div className="md:col-span-2">
-                    <Field label="Skills / Expertise *" hint="Add your skills as tags.">
-                      <div className="flex flex-wrap gap-2 mb-3 min-h-[40px] rounded-xl border-2 border-slate-200 bg-white p-3">
-                        {expertiseTags.map((tag, i) => (
-                          <span key={i} className="flex items-center gap-1.5 rounded-full bg-teal-50 border border-teal-200 px-3 py-1 text-sm font-semibold text-teal-600">
-                            {tag}
-                            <button type="button" onClick={() => { setExpertiseTags((p) => p.filter((_, j) => j !== i)); markDirty(); }} className="text-teal-400 hover:text-red-400 font-bold leading-none">×</button>
-                          </span>
-                        ))}
-                      </div>
-                      <div className="flex gap-3">
-                        <input ref={expertiseRef} value={newExpertiseItem} onChange={(e) => setNewExpertiseItem(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && newExpertiseItem.trim()) { e.preventDefault(); setExpertiseTags((p) => [...p, newExpertiseItem.trim()]); setNewExpertiseItem(""); markDirty(); } }} placeholder="Type a skill and press Enter..." className={`${inputCls} flex-1`} />
-                        <button type="button" onClick={() => { if (newExpertiseItem.trim()) { setExpertiseTags((p) => [...p, newExpertiseItem.trim()]); setNewExpertiseItem(""); markDirty(); } }} className="rounded-xl bg-teal-400 px-5 py-2 text-sm font-semibold text-white transition hover:bg-teal-500">Add</button>
-                      </div>
                     </Field>
                   </div>
                 </div>
@@ -422,63 +383,11 @@ export default function MentorSettingsInlineLikeDashboard() {
               </Card>
 
               <Card>
-                <SectionTitle icon={<SettingsCalendarIcon />} title="Work Experience" />
-                <div className="space-y-4">
-                  {experiences.map((exp, i) => (
-                    <div key={i} className="rounded-xl border-2 border-slate-100 bg-slate-50 p-4 space-y-3">
-                      <div className="grid gap-3 md:grid-cols-2">
-                        <Field label="Job Title"><input value={exp.role} onChange={(e) => { const ex = [...experiences]; ex[i].role = e.target.value; setExperiences(ex); markDirty(); }} className={inputCls} /></Field>
-                        <Field label="Company"><input value={exp.company} onChange={(e) => { const ex = [...experiences]; ex[i].company = e.target.value; setExperiences(ex); markDirty(); }} className={inputCls} /></Field>
-                        <Field label="Duration"><input value={exp.duration} onChange={(e) => { const ex = [...experiences]; ex[i].duration = e.target.value; setExperiences(ex); markDirty(); }} className={inputCls} /></Field>
-                      </div>
-                      <Field label="Description"><textarea value={exp.description} onChange={(e) => { const ex = [...experiences]; ex[i].description = e.target.value; setExperiences(ex); markDirty(); }} rows={2} className="w-full resize-y rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-teal-400" /></Field>
-                      <button type="button" onClick={() => { setExperiences((p) => p.filter((_, j) => j !== i)); markDirty(); }} className="text-xs font-semibold text-red-400 hover:text-red-500">Remove</button>
-                    </div>
-                  ))}
-                  <button type="button" onClick={() => { setExperiences((p) => [...p, { role: "", company: "", duration: "", description: "" }]); markDirty(); }} className="w-full rounded-xl border-2 border-dashed border-teal-300 py-3 text-sm font-semibold text-teal-500 transition hover:bg-teal-50">+ Add Experience</button>
-                </div>
-              </Card>
-
-              <Card>
-                <SectionTitle icon={<SettingsUserOutlineIcon />} title="Education" />
-                <div className="space-y-4">
-                  {educations.map((edu, i) => (
-                    <div key={i} className="rounded-xl border-2 border-slate-100 bg-slate-50 p-4 space-y-3">
-                      <div className="grid gap-3 md:grid-cols-2">
-                        <Field label="Degree"><input value={edu.degree} onChange={(e) => { const ed = [...educations]; ed[i].degree = e.target.value; setEducations(ed); markDirty(); }} className={inputCls} /></Field>
-                        <Field label="Institution"><input value={edu.institution} onChange={(e) => { const ed = [...educations]; ed[i].institution = e.target.value; setEducations(ed); markDirty(); }} className={inputCls} /></Field>
-                        <Field label="Year"><input value={edu.year} onChange={(e) => { const ed = [...educations]; ed[i].year = e.target.value; setEducations(ed); markDirty(); }} className={inputCls} /></Field>
-                      </div>
-                      <button type="button" onClick={() => { setEducations((p) => p.filter((_, j) => j !== i)); markDirty(); }} className="text-xs font-semibold text-red-400 hover:text-red-500">Remove</button>
-                    </div>
-                  ))}
-                  <button type="button" onClick={() => { setEducations((p) => [...p, { degree: "", institution: "", year: "" }]); markDirty(); }} className="w-full rounded-xl border-2 border-dashed border-teal-300 py-3 text-sm font-semibold text-teal-500 transition hover:bg-teal-50">+ Add Education</button>
-                </div>
-              </Card>
-
-              <Card>
                 <SectionTitle icon={<SettingsEyeIcon />} title="Social Links" />
                 <div className="grid gap-4 md:grid-cols-2">
                   <Field label="LinkedIn"><input value={socialLinks.linkedin} onChange={(e) => { setSocialLinks({ ...socialLinks, linkedin: e.target.value }); markDirty(); }} className={inputCls} /></Field>
                   <Field label="GitHub"><input value={socialLinks.github} onChange={(e) => { setSocialLinks({ ...socialLinks, github: e.target.value }); markDirty(); }} className={inputCls} /></Field>
                   <Field label="Twitter"><input value={socialLinks.twitter} onChange={(e) => { setSocialLinks({ ...socialLinks, twitter: e.target.value }); markDirty(); }} className={inputCls} /></Field>
-                  <Field label="Website"><input value={socialLinks.website} onChange={(e) => { setSocialLinks({ ...socialLinks, website: e.target.value }); markDirty(); }} className={inputCls} /></Field>
-                </div>
-              </Card>
-
-              <Card>
-                <SectionTitle icon={<SettingsBellIcon />} title="Mentoring Focus" />
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {mentoringFocus.map((item, i) => (
-                    <span key={i} className="flex items-center gap-2 rounded-full bg-teal-50 border border-teal-200 px-3 py-1.5 text-sm font-semibold text-teal-600">
-                      {item}
-                      <button type="button" onClick={() => { setMentoringFocus((p) => p.filter((_, j) => j !== i)); markDirty(); }} className="text-teal-400 hover:text-red-400 font-bold leading-none">×</button>
-                    </span>
-                  ))}
-                </div>
-                <div className="flex gap-3">
-                  <input value={newFocusItem} onChange={(e) => setNewFocusItem(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && newFocusItem.trim()) { e.preventDefault(); setMentoringFocus((p) => [...p, newFocusItem.trim()]); setNewFocusItem(""); markDirty(); } }} placeholder="Type a focus area..." className={`${inputCls} flex-1`} />
-                  <button type="button" onClick={() => { if (newFocusItem.trim()) { setMentoringFocus((p) => [...p, newFocusItem.trim()]); setNewFocusItem(""); markDirty(); } }} className="rounded-xl bg-teal-400 px-5 py-2 text-sm font-semibold text-white transition hover:bg-teal-500">Add</button>
                 </div>
               </Card>
             </>
@@ -503,7 +412,6 @@ export default function MentorSettingsInlineLikeDashboard() {
                   </Field>
                 </div>
               </div>
-              <DangerBox>Availability is used to show students your likely response and active hours.</DangerBox>
             </Card>
           )}
 
@@ -531,7 +439,6 @@ export default function MentorSettingsInlineLikeDashboard() {
                 <Field label="Show Email"><Select defaultValue="Yes"><option>Yes</option><option>No</option></Select></Field>
                 <Field label="Show Phone"><Select defaultValue="No"><option>No</option><option>Yes</option></Select></Field>
               </div>
-              <DangerBox>Keep personal contact details limited. Use in-app messaging when possible.</DangerBox>
             </Card>
           )}
 

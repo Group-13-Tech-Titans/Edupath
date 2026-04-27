@@ -21,6 +21,7 @@ const conversationSchema = new mongoose.Schema(
 
     // Cached info for the UI
     studentName: { type: String },
+    mentorName: { type: String },
     track: { type: String }, // e.g. "Web Development"
     
     lastMessage: { type: String },
@@ -28,6 +29,11 @@ const conversationSchema = new mongoose.Schema(
 
     // How many messages are unread by the MENTOR specifically
     unreadCount: {
+      type: Number,
+      default: 0,
+    },
+    // How many messages are unread by the STUDENT specifically
+    studentUnreadCount: {
       type: Number,
       default: 0,
     },

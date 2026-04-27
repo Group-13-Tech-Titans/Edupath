@@ -1,182 +1,92 @@
 import React, { useMemo, useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useApp } from "../../context/AppProvider.jsx";
 
 export default function MentorSessions() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { state, acceptMentorRequest, rejectMentorRequest, completeMentorSession } = useApp();
   const queryParams = new URLSearchParams(location.search);
   const initialTab = queryParams.get("tab");
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/login");
-  };
-
-  // Session data
-  const initialData = useMemo(
-    () => ({
-      requests: [
-        {
-          id: "REQ-101",
-          student: "Priya S.",
-          topic: "Career Guidance - Web Development Path",
-          type: "1-on-1",
-          time: "Feb 15, 2026 • 3:00 PM - 4:00 PM",
-          duration: "1 hour",
-          note: "Student needs guidance on choosing between frontend and full-stack development career paths.",
-          status: "pending",
-        },
-        {
-          id: "REQ-102",
-          student: "Rahul M.",
-          topic: "Project Review - Machine Learning Model",
-          type: "1-on-1",
-          time: "Feb 16, 2026 • 2:00 PM - 3:30 PM",
-          duration: "1.5 hours",
-          note: "Student wants feedback on predictive model accuracy and feature engineering approach.",
-          status: "pending",
-        },
-        {
-          id: "REQ-103",
-          student: "Anjali K.",
-          topic: "Advanced React Best Practices",
-          type: "Group",
-          time: "Feb 17, 2026 • 5:00 PM - 6:00 PM",
-          duration: "1 hour",
-          note: "Discussion about state management patterns and custom hooks implementation.",
-          status: "pending",
-        },
-      ],
-      upcoming: [
-        {
-          id: "SESS-201",
-          student: "Anjali K.",
-          topic: "Portfolio Review & Job Application Strategy",
-          type: "1-on-1",
-          time: "Today • 3:00 PM - 4:00 PM",
-          duration: "1 hour",
-          note: "Topics: Project showcase, GitHub profile optimization, job application strategy",
-          status: "scheduled",
-        },
-        {
-          id: "SESS-202",
-          student: "6 students",
-          topic: "Group Session: Advanced React Patterns",
-          type: "Group",
-          time: "Tomorrow • 5:00 PM - 6:30 PM",
-          duration: "1.5 hours",
-          note: "Topics: Custom hooks, Context API optimization, Performance tuning",
-          status: "scheduled",
-        },
-      ],
-      past: [
-        {
-          id: "SESS-301",
-          student: "Priya S.",
-          topic: "Resume Review & Internship Plan",
-          type: "1-on-1",
-          time: "Feb 10, 2026 • 4:00 PM - 4:30 PM",
-          duration: "30 mins",
-          note: "Reviewed CV structure and internship application strategy.",
-          status: "completed",
-        },
-        {
-          id: "SESS-302",
-          student: "Rahul M.",
-          topic: "Intro to ML Roadmap",
-          type: "1-on-1",
-          time: "Feb 8, 2026 • 6:00 PM - 6:45 PM",
-          duration: "45 mins",
-          note: "Discussed learning roadmap and project idea selection.",
-          status: "completed",
-        },
-      ],
-    }),
-    []
-  );
-
-  const [data, setData] = useState(initialData);
   const [activeTab, setActiveTab] = useState(
     initialTab === "requests" || initialTab === "upcoming" || initialTab === "past"
       ? initialTab
       : "requests"
   );
+  
   const [selectedSession, setSelectedSession] = useState(null);
+  const [showAcceptModal, setShowAcceptModal] = useState(false);
+  const [acceptForm, setAcceptForm] = useState({
+    date: "",
+    time: "",
+    meetingLink: ""
+  });
+
+  const mentorRequests = state.mentorRequests || [];
+
+  const buckets = useMemo(() => {
+    return {
+      requests: mentorRequests.filter(r => r.status === "pending"),
+      upcoming: mentorRequests.filter(r => r.status === "scheduled"),
+      past: mentorRequests.filter(r => r.status === "completed" || r.status === "declined"),
+    };
+  }, [mentorRequests]);
 
   const counts = useMemo(() => {
-    const pending = data.requests.filter((x) => x.status === "pending").length;
-    const upcoming = data.upcoming.filter((x) => x.status === "scheduled").length;
-    const completed = data.past.filter((x) => x.status === "completed").length;
-    return { pending, upcoming, completed };
-  }, [data]);
+    return {
+      pending: buckets.requests.length,
+      upcoming: buckets.upcoming.length,
+      completed: buckets.past.filter(r => r.status === "completed").length,
+    };
+  }, [buckets]);
 
   const currentItems = useMemo(() => {
-    return data[activeTab] || [];
-  }, [data, activeTab]);
+    return buckets[activeTab] || [];
+  }, [buckets, activeTab]);
 
-  const acceptRequest = (id) => {
-    const idx = data.requests.findIndex((x) => x.id === id);
-    if (idx < 0) return;
-
-    const req = data.requests[idx];
-    const newSession = {
-      ...req,
-      id: "SESS-" + Math.floor(1000 + Math.random() * 9000),
-      status: "scheduled",
-    };
-
-    setData((prev) => ({
-      ...prev,
-      requests: prev.requests.filter((x) => x.id !== id),
-      upcoming: [newSession, ...prev.upcoming],
-    }));
-
-    alert("Request accepted. It is now in Upcoming.");
-    if (selectedSession?.id === id) setSelectedSession(null);
+  const handleAcceptClick = (session) => {
+    setSelectedSession(session);
+    setShowAcceptModal(true);
   };
 
-  const declineRequest = (id) => {
-    setData((prev) => ({
-      ...prev,
-      requests: prev.requests.filter((x) => x.id !== id),
-    }));
-    alert("Request declined.");
-    if (selectedSession?.id === id) setSelectedSession(null);
-  };
-
-  const joinSession = (id) => {
-    alert("Joining session... (connect to your video/meeting link in backend)");
-  };
-
-  const markCompleted = (id) => {
-    const idx = data.upcoming.findIndex((x) => x.id === id);
-    if (idx < 0) return;
-
-    const sess = { ...data.upcoming[idx], status: "completed" };
-
-    setData((prev) => ({
-      ...prev,
-      upcoming: prev.upcoming.filter((x) => x.id !== id),
-      past: [sess, ...prev.past],
-    }));
-
-    alert("Session marked as completed.");
-    if (selectedSession?.id === id) setSelectedSession(null);
-  };
-
-  const findById = (id) => {
-    for (const key of ["requests", "upcoming", "past"]) {
-      const found = (data[key] || []).find((x) => x.id === id);
-      if (found) return { item: found, bucket: key };
+  const handleConfirmAccept = (e) => {
+    e.preventDefault();
+    if (!acceptForm.date || !acceptForm.time || !acceptForm.meetingLink) {
+      alert("Please fill in all details.");
+      return;
     }
-    return null;
+    acceptMentorRequest(selectedSession.id, {
+      scheduledDate: acceptForm.date,
+      scheduledTime: acceptForm.time,
+      meetingLink: acceptForm.meetingLink
+    });
+    setShowAcceptModal(false);
+    setAcceptForm({ date: "", time: "", meetingLink: "" });
+    setSelectedSession(null);
+    alert("Session accepted and scheduled!");
   };
 
-  const openDetails = (id) => {
-    const res = findById(id);
-    if (!res) return;
-    setSelectedSession({ ...res.item, bucket: res.bucket });
+  const handleReject = (id) => {
+    if (window.confirm("Are you sure you want to reject this request?")) {
+      rejectMentorRequest(id);
+      alert("Request rejected. Student will be notified.");
+    }
+  };
+
+  const handleComplete = (id) => {
+    if (window.confirm("Mark this session as completed?")) {
+      completeMentorSession(id);
+      alert("Session completed! Moving to history.");
+    }
+  };
+
+  const joinSession = (link) => {
+    if (link) {
+      window.open(link, "_blank");
+    } else {
+      alert("Meeting link not found.");
+    }
   };
 
   return (
@@ -185,7 +95,7 @@ export default function MentorSessions() {
       <section className="mb-5 flex flex-col justify-between gap-4 rounded-2xl bg-white p-7 shadow-[0_4px_20px_rgba(0,0,0,0.08)] md:flex-row md:items-center">
         <div>
           <h1 className="text-3xl font-extrabold">My Sessions</h1>
-          <p className="mt-1 text-sm text-slate-500">Manage session requests, view upcoming sessions, and track session history.</p>
+          <p className="mt-1 text-sm text-slate-500">Manage session requests, schedule meetings, and track your mentoring history.</p>
         </div>
       </section>
 
@@ -200,13 +110,13 @@ export default function MentorSessions() {
           {/* Tabs */}
           <div className="mb-5 flex gap-2.5 flex-wrap border-b-2 border-slate-200 pb-2.5">
             <Tab active={activeTab === "requests"} onClick={() => setActiveTab("requests")}>
-              Session Requests
+              Session Requests ({counts.pending})
             </Tab>
             <Tab active={activeTab === "upcoming"} onClick={() => setActiveTab("upcoming")}>
-              Upcoming Sessions
+              Upcoming Sessions ({counts.upcoming})
             </Tab>
             <Tab active={activeTab === "past"} onClick={() => setActiveTab("past")}>
-              Past Sessions
+              Past & Rejected
             </Tab>
           </div>
 
@@ -218,20 +128,16 @@ export default function MentorSessions() {
                   key={s.id}
                   session={s}
                   bucket={activeTab}
-                  onAccept={acceptRequest}
-                  onDecline={declineRequest}
-                  onJoin={joinSession}
-                  onMarkCompleted={markCompleted}
-                  onViewDetails={openDetails}
+                  onAccept={() => handleAcceptClick(s)}
+                  onDecline={() => handleReject(s.id)}
+                  onJoin={() => joinSession(s.meetingLink)}
+                  onComplete={() => handleComplete(s.id)}
+                  onViewDetails={() => setSelectedSession(s)}
                 />
               ))
             ) : (
               <div className="text-sm text-slate-500">No sessions here yet.</div>
             )}
-          </div>
-
-          <div className="mt-4 text-sm text-slate-500">
-            Showing <span className="font-bold">{currentItems.length}</span> item(s)
           </div>
         </section>
 
@@ -245,97 +151,107 @@ export default function MentorSessions() {
             <MiniStat label="Completed Sessions" value={counts.completed} accent="border-green-500" />
 
             <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-slate-700">
-              <strong>Tip:</strong> Accept or decline session requests promptly. You can mark sessions as completed after they're done.
+              <strong>Tip:</strong> When you accept a request, you can set the specific date, time, and meeting link for the student.
             </div>
           </section>
         </aside>
       </div>
 
-      {/* Details Modal */}
-      {selectedSession && (
-        <div
-          className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50 p-4"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setSelectedSession(null);
-          }}
-        >
-          <div className="w-full max-w-3xl rounded-2xl bg-white p-6 shadow-xl max-h-[90vh] overflow-auto">
-            <div className="mb-4 flex items-center justify-between border-b-2 border-slate-200 pb-3">
-              <h2 className="text-xl font-extrabold">Session Details • {selectedSession.id}</h2>
-              <button
-                type="button"
-                onClick={() => setSelectedSession(null)}
-                className="grid h-9 w-9 place-items-center rounded-full bg-slate-100 transition hover:bg-slate-200"
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="rounded-xl border border-black/5 bg-slate-50 p-4">
-              <h3 className="mb-3 text-sm font-extrabold">Session Information</h3>
-
-              <KV k="Student" v={selectedSession.student} />
-              <KV k="Topic" v={selectedSession.topic} />
-              <KV k="Type" v={selectedSession.type} />
-              <KV k="Time" v={selectedSession.time} />
-              <KV k="Duration" v={selectedSession.duration} />
-              <KV k="Status" v={capitalize(selectedSession.status)} />
-              <KV k="Note" v={selectedSession.note} />
-
-              <div className="mt-4 flex flex-wrap gap-3">
-                {selectedSession.bucket === "requests" && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        acceptRequest(selectedSession.id);
-                      }}
-                      className="rounded-xl bg-teal-400 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-teal-500"
-                    >
-                      Accept
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        declineRequest(selectedSession.id);
-                      }}
-                      className="rounded-xl border-2 border-teal-400 bg-white px-5 py-2.5 text-sm font-bold text-teal-600 transition hover:bg-teal-400 hover:text-white"
-                    >
-                      Decline
-                    </button>
-                  </>
-                )}
-
-                {selectedSession.bucket === "upcoming" && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => joinSession(selectedSession.id)}
-                      className="rounded-xl bg-slate-800 px-5 py-2.5 text-sm font-bold text-white transition hover:opacity-90"
-                    >
-                      Join Session
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        markCompleted(selectedSession.id);
-                      }}
-                      className="rounded-xl bg-teal-400 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-teal-500"
-                    >
-                      Mark Completed
-                    </button>
-                  </>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedSession(null)}
-                  className="rounded-xl border-2 border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-100"
+      {/* Accept & Schedule Modal */}
+      {showAcceptModal && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <h2 className="text-xl font-extrabold mb-4 border-b pb-3">Schedule Session</h2>
+            <p className="text-xs text-muted mb-4">Accept request from <b>{selectedSession?.fullName}</b> for <b>{selectedSession?.topic || selectedSession?.field}</b></p>
+            
+            <form onSubmit={handleConfirmAccept} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700">Date</label>
+                <input 
+                  type="date" 
+                  required
+                  className="w-full mt-1 rounded-xl border border-slate-200 p-2.5 text-sm outline-none focus:border-teal-400"
+                  value={acceptForm.date}
+                  onChange={e => setAcceptForm(f => ({ ...f, date: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700">Time</label>
+                <input 
+                  type="time" 
+                  required
+                  className="w-full mt-1 rounded-xl border border-slate-200 p-2.5 text-sm outline-none focus:border-teal-400"
+                  value={acceptForm.time}
+                  onChange={e => setAcceptForm(f => ({ ...f, time: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700">Meeting Link (Zoom/Google Meet)</label>
+                <input 
+                  type="url" 
+                  required
+                  placeholder="https://meet.google.com/..."
+                  className="w-full mt-1 rounded-xl border border-slate-200 p-2.5 text-sm outline-none focus:border-teal-400"
+                  value={acceptForm.meetingLink}
+                  onChange={e => setAcceptForm(f => ({ ...f, meetingLink: e.target.value }))}
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="submit" className="flex-1 rounded-xl bg-teal-400 py-3 text-sm font-bold text-white hover:bg-teal-500">
+                  Confirm & Schedule
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => setShowAcceptModal(false)}
+                  className="flex-1 rounded-xl border-2 border-slate-300 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50"
                 >
-                  Close
+                  Cancel
                 </button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Details Modal */}
+      {selectedSession && !showAcceptModal && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50 p-4" onClick={() => setSelectedSession(null)}>
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4 border-b pb-3">
+              <h2 className="text-xl font-extrabold">Session Details</h2>
+              <button onClick={() => setSelectedSession(null)} className="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            
+            <div className="space-y-3">
+              <KV k="Student" v={selectedSession.fullName} />
+              <KV k="Field" v={selectedSession.field} />
+              <KV k="Type" v={selectedSession.sessionType} />
+              <KV k="Duration" v={selectedSession.duration} />
+              <KV k="Status" v={capitalize(selectedSession.status)} />
+              {selectedSession.status === "scheduled" && (
+                <>
+                  <KV k="Scheduled Date" v={selectedSession.scheduledDate} />
+                  <KV k="Scheduled Time" v={selectedSession.scheduledTime} />
+                  <KV k="Meeting Link" v={<a href={selectedSession.meetingLink} target="_blank" rel="noreferrer" className="text-teal-600 underline">{selectedSession.meetingLink}</a>} />
+                </>
+              )}
+              <div className="pt-2">
+                <label className="text-xs text-slate-500 block mb-1">Student Notes:</label>
+                <div className="text-sm bg-slate-50 p-3 rounded-xl border">{selectedSession.notes || "No notes provided."}</div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              {selectedSession.status === "pending" && (
+                <button onClick={() => handleAcceptClick(selectedSession)} className="flex-1 bg-teal-400 text-white font-bold py-3 rounded-xl hover:bg-teal-500">Accept</button>
+              )}
+              {selectedSession.status === "scheduled" && (
+                <>
+                  <button onClick={() => joinSession(selectedSession.meetingLink)} className="flex-1 bg-slate-800 text-white font-bold py-3 rounded-xl hover:opacity-90">Join Meeting</button>
+                  <button onClick={() => { handleComplete(selectedSession.id); setSelectedSession(null); }} className="flex-1 bg-green-500 text-white font-bold py-3 rounded-xl hover:bg-green-600">Complete</button>
+                </>
+              )}
+              <button onClick={() => setSelectedSession(null)} className="flex-1 border-2 border-slate-300 font-bold py-3 rounded-xl hover:bg-slate-50">Close</button>
             </div>
           </div>
         </div>
@@ -344,8 +260,6 @@ export default function MentorSessions() {
   );
 }
 
-/* ----------------- Small UI Components ----------------- */
-
 function Tab({ active, children, onClick }) {
   return (
     <button
@@ -353,8 +267,8 @@ function Tab({ active, children, onClick }) {
       onClick={onClick}
       className={
         active
-          ? "rounded-full border border-teal-400 bg-teal-400 px-3.5 py-2.5 text-xs font-extrabold text-white transition"
-          : "rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-xs font-extrabold text-teal-600 transition hover:-translate-y-[1px]"
+          ? "rounded-full border border-teal-400 bg-teal-400 px-4 py-2 text-xs font-extrabold text-white"
+          : "rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-extrabold text-teal-600 hover:bg-emerald-100"
       }
     >
       {children}
@@ -362,99 +276,47 @@ function Tab({ active, children, onClick }) {
   );
 }
 
-function SessionCard({ session, bucket, onAccept, onDecline, onJoin, onMarkCompleted, onViewDetails }) {
+function SessionCard({ session, bucket, onAccept, onDecline, onJoin, onComplete, onViewDetails }) {
   const badgeClass =
-    session.status === "pending"
-      ? "bg-amber-100 text-amber-800"
-      : session.status === "scheduled"
-        ? "bg-sky-100 text-sky-800"
-        : session.status === "completed"
-          ? "bg-green-100 text-green-800"
-          : "bg-red-100 text-red-800";
-
-  const badgeEmoji = "";
+    session.status === "pending" ? "bg-amber-100 text-amber-800" :
+    session.status === "scheduled" ? "bg-sky-100 text-sky-800" :
+    session.status === "completed" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800";
 
   return (
-    <div className="rounded-xl border border-black/5 bg-slate-50 p-4 transition hover:translate-x-1 hover:bg-emerald-50 border-l-4 border-l-teal-400">
-      <div className="mb-2.5 flex items-start justify-between gap-3 flex-wrap">
+    <div className="rounded-xl border border-black/5 bg-slate-50 p-4 border-l-4 border-l-teal-400 hover:bg-emerald-50 transition-all">
+      <div className="flex justify-between items-start mb-3">
         <div>
-          <div className="mb-1 text-base font-extrabold">{session.topic}</div>
-          <div className="text-sm text-slate-500">
-            {session.type} • {session.student}
-            <br />
-            {session.time} • {session.duration}
-          </div>
+          <div className="font-extrabold text-base">{session.topic || session.field}</div>
+          <div className="text-xs text-slate-500 mt-0.5">{session.fullName} • {session.sessionType}</div>
         </div>
-
-        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-extrabold inline-flex items-center gap-1.5 ${badgeClass}`}>
-          {capitalize(session.status)}
+        <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${badgeClass}`}>
+          {session.status}
         </span>
       </div>
 
-      <div className="text-sm text-slate-500">{session.note}</div>
+      {session.status === "scheduled" && (
+        <div className="mb-3 text-xs bg-white/60 p-2 rounded-lg border border-teal-100">
+          <div className="flex gap-4">
+            <span>📅 <b>{session.scheduledDate}</b></span>
+            <span>⏰ <b>{session.scheduledTime}</b></span>
+          </div>
+        </div>
+      )}
 
-      <div className="mt-3 flex flex-wrap gap-2.5">
+      <div className="flex gap-2">
         {bucket === "requests" && (
           <>
-            <button
-              type="button"
-              onClick={() => onAccept(session.id)}
-              className="rounded-lg bg-teal-400 px-3 py-2 text-[13px] font-extrabold text-white transition hover:bg-teal-500"
-            >
-              Accept
-            </button>
-            <button
-              type="button"
-              onClick={() => onDecline(session.id)}
-              className="rounded-lg border-2 border-teal-400 bg-white px-3 py-2 text-[13px] font-extrabold text-teal-600 transition hover:bg-teal-400 hover:text-white"
-            >
-              Decline
-            </button>
-            <button
-              type="button"
-              onClick={() => onViewDetails(session.id)}
-              className="rounded-lg bg-emerald-100 px-3 py-2 text-[13px] font-extrabold text-teal-600 transition hover:bg-emerald-200"
-            >
-              View Details
-            </button>
+            <button onClick={onAccept} className="bg-teal-400 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-teal-500">Accept</button>
+            <button onClick={onDecline} className="border border-teal-400 text-teal-600 text-xs font-bold px-4 py-2 rounded-lg hover:bg-teal-50">Decline</button>
           </>
         )}
-
         {bucket === "upcoming" && (
           <>
-            <button
-              type="button"
-              onClick={() => onJoin(session.id)}
-              className="rounded-lg bg-slate-800 px-3 py-2 text-[13px] font-extrabold text-white transition hover:opacity-90 hover:-translate-y-[1px]"
-            >
-              Join Session
-            </button>
-            <button
-              type="button"
-              onClick={() => onViewDetails(session.id)}
-              className="rounded-lg bg-emerald-100 px-3 py-2 text-[13px] font-extrabold text-teal-600 transition hover:bg-emerald-200"
-            >
-              View Details
-            </button>
-            <button
-              type="button"
-              onClick={() => onMarkCompleted(session.id)}
-              className="rounded-lg bg-teal-400 px-3 py-2 text-[13px] font-extrabold text-white transition hover:bg-teal-500"
-            >
-              Mark Completed
-            </button>
+            <button onClick={onJoin} className="bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-lg hover:opacity-90">Join Session</button>
+            <button onClick={onComplete} className="bg-green-500 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-green-600">Complete</button>
           </>
         )}
-
-        {bucket === "past" && (
-          <button
-            type="button"
-            onClick={() => onViewDetails(session.id)}
-            className="rounded-lg bg-emerald-100 px-3 py-2 text-[13px] font-extrabold text-teal-600 transition hover:bg-emerald-200"
-          >
-            View Details
-          </button>
-        )}
+        <button onClick={onViewDetails} className="bg-white border border-slate-200 text-slate-600 text-xs font-bold px-4 py-2 rounded-lg hover:bg-slate-50">Details</button>
       </div>
     </div>
   );
@@ -464,7 +326,7 @@ function MiniStat({ label, value, accent }) {
   return (
     <div className={`mb-3 flex items-center justify-between rounded-xl border-l-4 ${accent} bg-slate-50 p-4`}>
       <div>
-        <div className="text-sm text-slate-500">{label}</div>
+        <div className="text-xs text-slate-500">{label}</div>
         <div className="text-lg font-extrabold">{value}</div>
       </div>
     </div>
@@ -473,92 +335,10 @@ function MiniStat({ label, value, accent }) {
 
 function KV({ k, v }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-slate-200 py-2 last:border-b-0">
-      <span className="text-sm text-slate-500">{k}</span>
-      <span className="text-sm font-extrabold text-slate-800 text-right">{v}</span>
+    <div className="flex items-center justify-between gap-3 border-b border-slate-100 py-2 last:border-b-0">
+      <span className="text-xs text-slate-500">{k}</span>
+      <span className="text-xs font-bold text-slate-800">{v}</span>
     </div>
-  );
-}
-
-function FooterCol({ title, links }) {
-  return (
-    <div>
-      <h4 className="mb-3 text-sm font-semibold text-slate-800">{title}</h4>
-      <div className="flex flex-col gap-2">
-        {links.map((l) => (
-          <a key={l.label} href={l.href} className="text-sm text-slate-500 hover:text-teal-500">
-            {l.label}
-          </a>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function SocialIcon({ children }) {
-  return (
-    <button
-      type="button"
-      className="grid h-12 w-12 place-items-center rounded-full bg-[#D9F3EC] text-[#5DD9C1] transition hover:bg-[#5DD9C1] hover:text-white"
-    >
-      {children}
-    </button>
-  );
-}
-
-function EduPathLogo() {
-  return (
-    <svg viewBox="0 0 40 40" className="h-8 w-8" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="20" cy="20" r="18" fill="#5DD9C1" opacity="0.2" />
-      <path d="M20 8L12 12L20 16L28 12L20 8Z" fill="#5DD9C1" />
-      <path d="M12 20L20 24L28 20" stroke="#5DD9C1" strokeWidth="2" strokeLinecap="round" />
-      <path d="M12 26L20 30L28 26" stroke="#5DD9C1" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="20" cy="20" r="2" fill="#5DD9C1" />
-    </svg>
-  );
-}
-
-function LogoutIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
-      <path d="M16 17l5-5-5-5" />
-      <path d="M21 12H9" />
-    </svg>
-  );
-}
-
-/* -------- Social Media Icons -------- */
-
-function FacebookIcon() {
-  return (
-    <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
-      <path d="M22 12.073C22 6.504 17.523 2 12 2S2 6.504 2 12.073c0 5.016 3.657 9.175 8.438 9.927v-7.025H7.898v-2.902h2.54V9.845c0-2.507 1.492-3.89 3.777-3.89 1.095 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.772-1.63 1.562v1.874h2.773l-.443 2.902h-2.33V22C18.343 21.248 22 17.089 22 12.073z" />
-    </svg>
-  );
-}
-
-function TwitterIcon() {
-  return (
-    <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
-      <path d="M23 3a10.9 10.9 0 01-3.14 1.53A4.48 4.48 0 0012 8.09V9a10.66 10.66 0 01-9-4.5s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z" />
-    </svg>
-  );
-}
-
-function LinkedInIcon() {
-  return (
-    <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
-      <path d="M20.447 20.452H17.21v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.984V9h3.108v1.561h.046c.433-.82 1.494-1.684 3.074-1.684 3.287 0 3.894 2.164 3.894 4.977v6.598zM5.337 7.433a1.96 1.96 0 110-3.92 1.96 1.96 0 010 3.92zM6.919 20.452H3.756V9h3.163v11.452z" />
-    </svg>
-  );
-}
-
-function InstagramIcon() {
-  return (
-    <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
-      <path d="M7 2C4.8 2 3 3.8 3 6v12c0 2.2 1.8 4 4 4h10c2.2 0 4-1.8 4-4V6c0-2.2-1.8-4-4-4H7zm5 5a5 5 0 110 10 5 5 0 010-10zm6.5-.75a1.25 1.25 0 11-2.5 0 1.25 1.25 0 012.5 0zM12 9a3 3 0 100 6 3 3 0 000-6z" />
-    </svg>
   );
 }
 

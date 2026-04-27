@@ -40,12 +40,27 @@ const getSessions = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/mentor/sessions/student
+ * Returns sessions requested by the logged-in student.
+ */
+const getStudentSessions = async (req, res) => {
+  try {
+    const sessions = await Session.find({ studentId: req.user._id }).sort({ createdAt: -1 });
+    res.json(sessions);
+  } catch (error) {
+    console.error("getStudentSessions error:", error.message);
+    res.status(500).json({ message: "Server error", detail: error.message });
+  }
+};
+
 const requestSession = async (req, res) => {
   try {
-    const { mentorId, topic, type, proposedTime, duration, note } = req.body;
+    const { mentorId, mentorName, topic, type, proposedTime, duration, note } = req.body;
 
     const session = await Session.create({
       mentorId,
+      mentorName,
       studentId: req.user._id,
       studentName: req.user.name,
       topic,
@@ -58,29 +73,18 @@ const requestSession = async (req, res) => {
 
     res.status(201).json({ message: "Session requested!", session });
   } catch (error) {
-    console.error("requestSession error:", error.message);
-    res.status(500).json({ message: "Server error", detail: error.message });
+    console.error("requestSession error:", error);
+    res.status(500).json({ message: "Server error", detail: error.message, error: error });
   }
 };
 
 const acceptSession = async (req, res) => {
   try {
-    console.log("acceptSession called");
-    console.log("Session ID from URL:", req.params.id);
-    console.log("Logged in user ID:", req.user._id);
-
-    // Search only by session ID first — no mentorId filter
     const session = await Session.findById(req.params.id);
 
-    console.log("Session found:", session);
-
     if (!session) {
-      return res.status(404).json({ message: "Session not found — check the ID is correct" });
+      return res.status(404).json({ message: "Session not found" });
     }
-
-    console.log("Session mentorId:", session.mentorId);
-    console.log("Logged in user _id:", req.user._id);
-    console.log("Do they match?", session.mentorId.toString() === req.user._id.toString());
 
     if (session.mentorId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "You are not the mentor for this session" });
@@ -92,7 +96,27 @@ const acceptSession = async (req, res) => {
 
     session.status = "scheduled";
     if (req.body && req.body.meetingLink) session.meetingLink = req.body.meetingLink;
+    if (req.body && req.body.scheduledDate) session.scheduledDate = req.body.scheduledDate;
+    if (req.body && req.body.scheduledTime) session.scheduledTime = req.body.scheduledTime;
+    
     await session.save();
+
+    // Establish mentor-student relationship if it doesn't exist
+    const MentorStudent = require("../models/MentorStudent");
+    const existingRelation = await MentorStudent.findOne({
+      mentorId: req.user._id,
+      studentId: session.studentId
+    });
+
+    if (!existingRelation) {
+      await MentorStudent.create({
+        mentorId: req.user._id,
+        studentId: session.studentId,
+        studentName: session.studentName,
+        status: "active",
+        enrolledAt: new Date()
+      });
+    }
 
     res.json({ message: "Session accepted!", session });
   } catch (error) {
@@ -175,6 +199,7 @@ const getStats = async (req, res) => {
 
 module.exports = {
   getSessions,
+  getStudentSessions,
   requestSession,
   acceptSession,
   declineSession,

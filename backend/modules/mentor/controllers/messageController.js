@@ -1,47 +1,66 @@
+const mongoose = require("mongoose");
 const Message = require("../models/Message");
 const Conversation = require("../models/Conversation");
-const MentorStudent = require("../models/MentorStudent");
+const Session = require("../models/Session");
+const User = require("../../auth/models/User");
 const { getIO } = require("../../../utils/socketManager");
 
 /**
  * 1. GET /api/mentor/messages/conversations
- * Returns all chat threads for the logged-in mentor.
+ * Returns all chat threads for the logged-in user (mentor or student).
  */
 const getConversations = async (req, res) => {
   try {
-    const mentorId = req.user._id;
+    const userId = req.user._id;
+    const userObjectId = new mongoose.Types.ObjectId(userId);
 
-    // Find all conversations where this mentor is involved
-    // Sort by the most recent message time
-    const conversations = await Conversation.find({ mentorId }).sort({
-      lastMessageTime: -1,
-    });
+    console.log(`[getConversations] User: ${userId}`);
 
-    res.json(conversations);
+    const query = {
+      $or: [{ mentorId: userObjectId }, { studentId: userObjectId }]
+    };
+
+    const conversationDocs = await Conversation.find(query).sort({ lastMessageTime: -1 });
+    console.log(`[getConversations] Found ${conversationDocs.length} conversations.`);
+
+    const sanitized = conversationDocs.map(c => ({
+      ...c.toObject(),
+      mentorId: c.mentorId.toString(),
+      studentId: c.studentId.toString(),
+      id: c._id.toString()
+    }));
+
+    res.json(sanitized);
   } catch (error) {
-    console.error("getConversations error:", error.message);
+    console.error("getConversations error:", error.stack || error.message);
     res.status(500).json({ message: "Server error", detail: error.message });
   }
 };
 
 /**
- * 2. GET /api/mentor/messages/conversations/:studentId
+ * 2. GET /api/mentor/messages/conversations/:targetId
  * Returns all messages in a specific chat thread.
  */
 const getMessages = async (req, res) => {
   try {
-    const mentorId = req.user._id;
-    const { studentId } = req.params;
+    const userId = req.user._id;
+    const effectiveRole = (req.user.role === "mentor" || req.user.isMentor) ? "mentor" : "student";
+    const { targetId } = req.params;
+
+    let query = {};
+    if (effectiveRole === "mentor") {
+      query = { mentorId: userId, studentId: targetId };
+    } else {
+      query = { studentId: userId, mentorId: targetId };
+    }
 
     // Find the conversation first
-    const convo = await Conversation.findOne({ mentorId, studentId });
+    const convo = await Conversation.findOne(query);
 
     if (!convo) {
-      // If no conversation exists yet, return an empty list (it's not an error)
       return res.json([]);
     }
 
-    // Find all messages belonging to this conversation, oldest first
     const messages = await Message.find({ conversationId: convo._id }).sort({
       createdAt: 1,
     });
@@ -55,50 +74,74 @@ const getMessages = async (req, res) => {
 
 /**
  * 3. POST /api/mentor/messages/send
- * Mentor sends a message to a student.
+ * User sends a message to another user.
  */
 const sendMessage = async (req, res) => {
   try {
-    const mentorId = req.user._id;
-    const { studentId, text } = req.body;
+    const senderId = req.user._id;
+    const senderRole = (req.user.role === "mentor" || req.user.isMentor) ? "mentor" : "student";
+    const { receiverId, text } = req.body;
 
     if (!text) {
       return res.status(400).json({ message: "Message text is required" });
+    }
+
+    let mentorId, studentId;
+    if (senderRole === "mentor") {
+      mentorId = senderId;
+      studentId = receiverId;
+    } else {
+      mentorId = receiverId;
+      studentId = senderId;
     }
 
     // 1. Find or Create the Conversation
     let convo = await Conversation.findOne({ mentorId, studentId });
 
     if (!convo) {
-      // Look up student details to initialize the conversation
-      const student = await MentorStudent.findOne({ mentorId, studentId });
-      
+      // Look up names to initialize the conversation
+      const mentor = await User.findById(mentorId);
+      const student = await User.findById(studentId);
+
       convo = await Conversation.create({
         mentorId,
         studentId,
-        studentName: student ? student.studentName : "Unknown Student",
-        track: student ? student.track : "General",
+        studentName: student ? student.name : "Student",
+        mentorName: mentor ? mentor.name : "Mentor",
+        track: "General",
       });
     }
 
     // 2. Create the Message
     const newMessage = await Message.create({
       conversationId: convo._id,
-      senderId: mentorId,
-      senderRole: "mentor",
+      senderId: senderId,
+      senderRole: senderRole,
       text,
-      isRead: true, // mentor sent it, so they have "read" their own message
+      isRead: false,
     });
 
-    // 3. Update Conversation "Last Message" cached data
+    // 3. Update Conversation cached data
     convo.lastMessage = text;
     convo.lastMessageTime = Date.now();
-    // We don't increment unreadCount here because the mentor is the sender
+
+    // Increment unread count for the RECEIVER
+    if (senderRole === "mentor") {
+      convo.studentUnreadCount = (convo.studentUnreadCount || 0) + 1;
+    } else {
+      convo.unreadCount = (convo.unreadCount || 0) + 1;
+    }
+
     await convo.save();
 
-    // 4. Emit Real-time event via Socket.io
+    // 4. Emit Real-time event
     const io = getIO();
-    io.to(studentId).emit("receive_message", newMessage);
+    const sender = await User.findById(senderId);
+    const messageWithSender = {
+      ...newMessage.toObject(),
+      senderName: sender ? sender.name : "Someone"
+    };
+    io.to(receiverId.toString()).emit("receive_message", messageWithSender);
 
     res.status(201).json(newMessage);
   } catch (error) {
@@ -108,28 +151,47 @@ const sendMessage = async (req, res) => {
 };
 
 /**
- * 4. PUT /api/mentor/messages/conversations/:studentId/read
- * Marks all messages in a conversation as read by the mentor.
+ * 4. PUT /api/mentor/messages/conversations/:targetId/read
  */
 const markAsRead = async (req, res) => {
   try {
-    const mentorId = req.user._id;
-    const { studentId } = req.params;
+    const userId = req.user._id;
+    const { targetId } = req.params;
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const targetObjectId = new mongoose.Types.ObjectId(targetId);
 
-    const convo = await Conversation.findOne({ mentorId, studentId });
+    // Find the conversation where the user is a participant
+    const convo = await Conversation.findOne({
+      $or: [
+        { mentorId: userObjectId, studentId: targetObjectId },
+        { studentId: userObjectId, mentorId: targetObjectId }
+      ]
+    });
 
     if (!convo) {
-      return res.status(404).json({ message: "Conversation not found" });
+      return res.json({ message: "No conversation found" });
     }
 
-    // Update all unread messages from the student in this conversation
-    await Message.updateMany(
-      { conversationId: convo._id, senderRole: "student", isRead: false },
+    // Determine the user's role in THIS conversation
+    const isMentorInThisChat = convo.mentorId.toString() === userId.toString();
+
+    console.log(`[markAsRead] User: ${userId}, Chat: ${convo._id}, IsMentorHere: ${isMentorInThisChat}`);
+
+    // Mark messages sent by the OTHER person as read
+    const otherRole = isMentorInThisChat ? "student" : "mentor";
+    const updateResult = await Message.updateMany(
+      { conversationId: convo._id, senderRole: otherRole, isRead: false },
       { $set: { isRead: true } }
     );
 
-    // Reset the unread count badge for this conversation
-    convo.unreadCount = 0;
+    console.log(`[markAsRead] Updated ${updateResult.modifiedCount} messages.`);
+
+    // Reset the unread count for the CURRENT user
+    if (isMentorInThisChat) {
+      convo.unreadCount = 0;
+    } else {
+      convo.studentUnreadCount = 0;
+    }
     await convo.save();
 
     res.json({ message: "Conversation marked as read" });
@@ -139,26 +201,74 @@ const markAsRead = async (req, res) => {
   }
 };
 
+
 /**
  * 5. GET /api/mentor/messages/unread-count
- * Returns the total unread count for the mentor's notification badge.
  */
 const getUnreadCount = async (req, res) => {
   try {
-    const mentorId = req.user._id;
+    const userId = req.user._id;
+    const userObjectId = new mongoose.Types.ObjectId(userId);
 
-    // Sum up the unreadCount from all conversations for this mentor
+    console.log(`[getUnreadCount] User: ${userId}`);
+
+    // Sum unread messages from all conversations where user is a participant
+    // If user is the mentor, count 'unreadCount'. If user is the student, count 'studentUnreadCount'.
     const results = await Conversation.aggregate([
-      { $match: { mentorId } },
-      { $group: { _id: null, total: { $sum: "$unreadCount" } } },
+      {
+        $match: {
+          $or: [{ mentorId: userObjectId }, { studentId: userObjectId }]
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: {
+            $sum: {
+              $cond: [
+                { $eq: ["$mentorId", userObjectId] },
+                { $ifNull: ["$unreadCount", 0] },
+                { $ifNull: ["$studentUnreadCount", 0] }
+              ]
+            }
+          }
+        }
+      },
     ]);
 
-    const total = results.length > 0 ? results[0].total : 0;
+    console.log(`[getUnreadCount] Aggregation results:`, JSON.stringify(results));
 
+    const total = results.length > 0 ? results[0].total : 0;
     res.json({ unreadCount: total });
   } catch (error) {
     console.error("getUnreadCount error:", error.message);
     res.status(500).json({ message: "Server error", detail: error.message });
+  }
+};
+
+/**
+ * 6. GET /api/student/messages/mentors
+ * Returns a list of mentors the student can start a chat with.
+ */
+const getEligibleMentors = async (req, res) => {
+  try {
+    const studentId = req.user._id;
+
+    // Find all sessions this student has with any mentor
+    const sessions = await Session.find({ studentId }).select("mentorId mentorName");
+
+    // Get unique mentors
+    const uniqueMentorsMap = new Map();
+    sessions.forEach(s => {
+      uniqueMentorsMap.set(s.mentorId.toString(), s.mentorName);
+    });
+
+    const mentors = Array.from(uniqueMentorsMap).map(([id, name]) => ({ id, name }));
+
+    res.json(mentors);
+  } catch (error) {
+    console.error("getEligibleMentors error:", error.message);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -168,4 +278,5 @@ module.exports = {
   sendMessage,
   markAsRead,
   getUnreadCount,
+  getEligibleMentors,
 };

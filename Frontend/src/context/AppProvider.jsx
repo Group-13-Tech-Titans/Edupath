@@ -12,6 +12,9 @@ import * as authApi from "../api/authApi.js";
 import { getToken, setToken } from "../api/client.js";
 import { googleLogout } from "@react-oauth/google";
 import * as courseApi from '../api/courseApi';
+import * as mentorApi from "../api/mentorApi.js";
+import toast from "react-hot-toast";
+import { initiateSocketConnection, disconnectSocket, subscribeToMessages } from "../socket.js";
 
 
 
@@ -36,6 +39,7 @@ const defaultState = {
   payouts: {},
   reviewHistory: [],
   reviewerAccounts: [],
+  unreadMessagesCount: 0,
 };
 
 function loadState() {
@@ -51,7 +55,8 @@ function loadState() {
       currentUser: null,
       authLoading: true,
       users: parsed.users || [],
-      courses: parsed.courses || mockCourses,
+      courses: mockCourses, // Always reset to mockCourses (or empty) until fetched
+      mentorRequests: [], // Always start empty
     };
   } catch (e) {
     console.error("Failed to load state", e);
@@ -61,7 +66,10 @@ function loadState() {
 
 function persistState(state) {
   try {
-    globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const toPersist = { ...state };
+    delete toPersist.mentorRequests;
+    delete toPersist.courses;
+    globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(toPersist));
   } catch (e) {
     console.error("Failed to persist state", e);
   }
@@ -103,6 +111,80 @@ export const AppProvider = ({ children }) => {
         }));
       });
   }, []);
+
+  const fetchMentorRequests = useCallback(async () => {
+    if (!state.currentUser) return;
+    try {
+      let sessions = [];
+      const isMentor = state.currentUser.role === "mentor" || state.currentUser.isMentor === true;
+      if (isMentor) {
+        sessions = await mentorApi.getMentorSessions();
+      } else {
+        sessions = await mentorApi.getStudentSessions();
+      }
+      
+      const normalized = sessions.map(s => ({
+        id: s._id,
+        fullName: s.studentName,
+        mentorName: s.mentorName || "Mentor",
+        field: s.topic,
+        sessionType: s.type,
+        notes: s.note,
+        status: s.status,
+        scheduledDate: s.scheduledDate,
+        scheduledTime: s.scheduledTime,
+        meetingLink: s.meetingLink,
+        mentorId: s.mentorId,
+        createdAt: s.createdAt
+      }));
+
+      setState(prev => ({ ...prev, mentorRequests: normalized }));
+    } catch (error) {
+      console.error("fetchMentorRequests failed:", error);
+    }
+  }, [state.currentUser]);
+
+  const fetchUnreadCount = useCallback(async () => {
+    if (!state.currentUser) return;
+    try {
+      const res = await mentorApi.getUnreadCount();
+      setState(prev => ({ ...prev, unreadMessagesCount: res.unreadCount || 0 }));
+    } catch (err) {
+      console.error("fetchUnreadCount failed:", err);
+    }
+  }, [state.currentUser]);
+
+  useEffect(() => {
+    if (state.currentUser) {
+      fetchMentorRequests();
+      fetchUnreadCount();
+      
+      // Real-time Chat setup
+      initiateSocketConnection(state.currentUser.id);
+      subscribeToMessages((msg) => {
+        // Increment unread count locally
+        setState(prev => ({ ...prev, unreadMessagesCount: prev.unreadMessagesCount + 1 }));
+        
+        // Show notification toast
+        const senderName = msg.senderName || "New message";
+        toast.success(`New message from ${senderName}`, {
+          duration: 4000,
+          position: "top-right",
+          style: {
+            borderRadius: '10px',
+            background: '#333',
+            color: '#fff',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          },
+        });
+      });
+    } else {
+      disconnectSocket();
+    }
+    
+    return () => disconnectSocket();
+  }, [state.currentUser, fetchMentorRequests, fetchUnreadCount]);
 
   const setSession = useCallback((token, user) => {
     setToken(token); // ✅ saves to edupath_token
@@ -451,17 +533,60 @@ export const AppProvider = ({ children }) => {
     });
   }, []);
 
-  const saveMentorRequest = useCallback((payload) => {
-    setState((prev) => ({
-      ...prev,
-      mentorRequests: [
-        {
-          id: `mr-${Date.now()}`,
-          ...payload,
-        },
-        ...prev.mentorRequests,
-      ],
-    }));
+  const saveMentorRequest = useCallback(async (payload) => {
+    try {
+      const res = await mentorApi.requestSession(payload);
+      if (res.session) {
+        fetchMentorRequests();
+        return { success: true };
+      }
+    } catch (err) {
+      console.error("saveMentorRequest failed:", err);
+      return { success: false, message: err.message };
+    }
+  }, [fetchMentorRequests]);
+
+  const acceptMentorRequest = useCallback(async (requestId, details) => {
+    try {
+      await mentorApi.acceptSession(requestId, details);
+      fetchMentorRequests();
+      return { success: true };
+    } catch (err) {
+      console.error("acceptMentorRequest failed:", err);
+      return { success: false, message: err.message };
+    }
+  }, [fetchMentorRequests]);
+
+  const rejectMentorRequest = useCallback(async (requestId) => {
+    try {
+      await mentorApi.declineSession(requestId);
+      fetchMentorRequests();
+      return { success: true };
+    } catch (err) {
+      console.error("rejectMentorRequest failed:", err);
+      return { success: false, message: err.message };
+    }
+  }, [fetchMentorRequests]);
+  
+  const completeMentorSession = useCallback(async (requestId, notes = {}) => {
+    try {
+      await mentorApi.completeSession(requestId, notes);
+      fetchMentorRequests();
+      return { success: true };
+    } catch (err) {
+      console.error("completeMentorSession failed:", err);
+      return { success: false, message: err.message };
+    }
+  }, [fetchMentorRequests]);
+
+  const getMentorsByField = useCallback(async (field) => {
+    if (!field) return [];
+    try {
+      return await mentorApi.getMentorsByField(field);
+    } catch (err) {
+      console.error("getMentorsByField failed:", err);
+      return [];
+    }
   }, []);
 
   const markLessonCompleted = useCallback((userEmail, courseId, lessonId) => {
@@ -508,6 +633,7 @@ export const AppProvider = ({ children }) => {
       payouts: state.payouts,
       reviewHistory: state.reviewHistory,
       reviewerAccounts: state.reviewerAccounts,
+      unreadMessagesCount: state.unreadMessagesCount,
       login,
       logout,
       setSession,
@@ -528,8 +654,13 @@ export const AppProvider = ({ children }) => {
       approveCourse,
       rejectCourse,
       saveMentorRequest,
+      acceptMentorRequest,
+      rejectMentorRequest,
+      getMentorsByField,
+      completeMentorSession,
       markLessonCompleted,
-      updateUserProfile
+      updateUserProfile,
+      fetchUnreadCount
     }),
     [
       // This dependency array tells React: "Only recreate this object if one of these specific things changes"
@@ -554,8 +685,13 @@ export const AppProvider = ({ children }) => {
       approveCourse,
       rejectCourse,
       saveMentorRequest,
+      acceptMentorRequest,
+      rejectMentorRequest,
+      getMentorsByField,
+      completeMentorSession,
       markLessonCompleted,
-      updateUserProfile
+      updateUserProfile,
+      fetchUnreadCount
     ],
   );
 
