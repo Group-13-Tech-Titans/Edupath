@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
-import AdminFooter from "../General Pages/AdminFooter.jsx";
+import AdminFooter from "../../../components/layouts/admin-layouts/AdminFooter.jsx";
 import { useApp } from "../../../context/AppProvider.jsx";
 
 // API Endpoints
@@ -296,7 +296,6 @@ export default function AdminReviewers() {
             )}
 
             {filteredReviewers.map((r) => {
-              // 🟢 FIXED: Safely handle legacy single string tag vs new array of tags
               let tagsArray = [];
               if (Array.isArray(r.specializationTags) && r.specializationTags.length > 0) {
                 tagsArray = r.specializationTags;

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import AdminFooter from "../General Pages/AdminFooter.jsx";
+import AdminFooter from "../../../components/layouts/admin-layouts/AdminFooter.jsx";
 import PageShell from "../../../components/PageShell.jsx"; 
 
 // API Endpoints

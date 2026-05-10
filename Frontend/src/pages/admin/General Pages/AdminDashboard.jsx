@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom"; // Imported for navigation
+import { useNavigate } from "react-router-dom"; 
 import PageShell from "../../../components/PageShell.jsx";
 import { useApp } from "../../../context/AppProvider.jsx";
-import AdminFooter from "./AdminFooter.jsx";
+import AdminFooter from "../../../components/layouts/admin-layouts/AdminFooter.jsx";
 import ComingSoon from "../../ComingSoon.jsx";
 import StudentGrowthChart from "../chart/StudentGrowthChart.jsx";
 

@@ -1,7 +1,7 @@
 import React from "react";
 import PageShell from "../../../components/PageShell.jsx";
 import { useApp } from "../../../context/AppProvider.jsx";
-import AdminFooter from "../General Pages/AdminFooter.jsx";
+import AdminFooter from "../../../components/layouts/admin-layouts/AdminFooter.jsx";
 
 const AdminReviewDashboard = () => {
   const { courses, reviewHistory } = useApp();

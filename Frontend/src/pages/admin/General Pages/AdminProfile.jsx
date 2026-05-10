@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import PageShell from "../../../components/PageShell.jsx";
-import AdminFooter from "./AdminFooter.jsx";
+import AdminFooter from "../../../components/layouts/admin-layouts/AdminFooter.jsx";
 
 const LS_KEY = "edupath_admin_profile_v1";
 
@@ -9,7 +9,7 @@ const LS_KEY = "edupath_admin_profile_v1";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const GET_ME_API = `${API_URL}/api/auth/me`;
 const UPDATE_PROFILE_API = `${API_URL}/api/auth/profile`;
-const CREATE_ADMIN_API = `${API_URL}/api/auth/admin/create-user`;
+const CREATE_ADMIN_API = `${API_URL}/api/admin/create-user`;
 // Added endpoint for password change
 const CHANGE_PASSWORD_API = `${API_URL}/api/auth/change-password`; 
 

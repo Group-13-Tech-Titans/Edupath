@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import PageShell from "../../../components/PageShell.jsx";
-import AdminFooter from "../General Pages/AdminFooter.jsx";
+import AdminFooter from "../../../components/layouts/admin-layouts/AdminFooter.jsx";
 
 // API Endpoint - Make sure this matches the route defined in your server.js
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";

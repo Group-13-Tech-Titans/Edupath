@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
 import PageShell from "../../../components/PageShell.jsx";
-import AdminFooter from "../General Pages/AdminFooter.jsx";
+import AdminFooter from "../../../components/layouts/admin-layouts/AdminFooter.jsx";
 
 // API Endpoints
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
