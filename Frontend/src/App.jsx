@@ -37,10 +37,9 @@ import EducatorProfile from "./pages/educator/EducatorProfile.jsx";
 import EducatorVerificationPendingPage from "./pages/educator/EducatorVerificationPendingPage.jsx";
 
 import AdminDashboard from "./pages/admin/General Pages/AdminDashboard/AdminDashboard.jsx";
-import AdminReviewers from "./pages/admin/Reviewers Management/AdminReviewers.jsx";
+import AdminReviewers from "./pages/admin/Reviewers Management/createReviewer/AdminReviewers.jsx";
 import AdminViewCourses from "./pages/admin/Course Management/AdminPendingCourseView.jsx";
 import AdminVerifyEducators from "./pages/admin/Educator Management/AdminVerifyEducators.jsx";
-import AdminReviewDashboard from "./pages/admin/Reviewers Management/AdminReviewDashboard.jsx";
 import AdminProfile from "./pages/admin/General Pages/AdminProfile/AdminProfile.jsx";
 import AdminPathwayBuilder from "./pages/admin/Pathway Management/AdminPathwayBuilder.jsx";
 import AdminPathwayList from "./pages/admin/Pathway Management/AdminPathwayList.jsx";
@@ -121,7 +120,6 @@ const App = () => {
             <Route path="approvals" element={<AdminViewCourses />} />
             {/* <Route path="approvals/:id" element={<AdminCourseReview />} /> */}
             <Route path="verify-educators" element={<AdminVerifyEducators />} />
-            <Route path="review-dashboard" element={<AdminReviewDashboard />} />
             <Route path="queue" element={<ReviewerQueue />} />
             <Route path="queue/:id" element={<ReviewerCourseReview />} />
             <Route path="profile" element={<AdminProfile />} />
