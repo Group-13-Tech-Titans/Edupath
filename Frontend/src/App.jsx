@@ -40,7 +40,7 @@ import EducatorVerificationPendingPage from "./pages/educator/EducatorVerificati
 // Admin Pages
 import AdminDashboard from "./pages/admin/General Pages/AdminDashboard/AdminDashboard.jsx"; //admin dashboard page
 import AdminReviewers from "./pages/admin/Reviewers Management/createReviewer/AdminReviewers.jsx";
-import AdminViewCourses from "./pages/admin/Course Management/AdminPendingCourseView.jsx";
+import AdminViewCourses from "./pages/admin/Course Management/AdminViewPendingCourses/AdminViewCourses.jsx"; //admin pending courses list page
 import AdminVerifyEducators from "./pages/admin/Educator Management/educatorVerify/AdminVerifyEducators.jsx"; 
 import AdminProfile from "./pages/admin/General Pages/AdminProfile/AdminProfile.jsx"; //admin profile page
 import AdminPathwayBuilder from "./pages/admin/Pathway Management/AdminPathwayBuilder.jsx";
@@ -48,7 +48,7 @@ import AdminPathwayList from "./pages/admin/Pathway Management/AdminPathwayList.
 import AdminPathwayEdit from "./pages/admin/Pathway Management/AdminPathwayEdit.jsx";
 import AdminEducatorReview from './pages/admin/Educator Management/educatorViewDetails/AdminEducatorReview.jsx';
 import AdminSpecializations from './pages/admin/Reviewers Management/AdminSpecializations.jsx';
-import AdminCourseReview from './pages/admin/Course Management/AdminPendingCourseReview.jsx';
+import AdminCourseReview from './pages/admin/Course Management/AdminCourseReview/AdminCourseReview.jsx';// Admin course review page
 
 import ReviewerDashboard from "./pages/reviewer/ReviewerDashboard.jsx";
 import ReviewerQueue from "./pages/reviewer/ReviewerQueue.jsx";

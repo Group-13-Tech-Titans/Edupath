@@ -18,6 +18,7 @@ app.use(express.json());
 
 
 app.use("/api/auth", require("./modules/auth/routes/authRoutes"));
+
 app.use("/api/admin", require("./modules/admin/routes/adminRoutes"));
 
 app.use("/api/pathway", require("./modules/pathway/routes/pathwayRoutes"));
