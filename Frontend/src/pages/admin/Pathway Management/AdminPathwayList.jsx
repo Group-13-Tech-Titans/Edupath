@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import PageShell from "../../../components/PageShell.jsx";
+import AdminFooter from "../../../components/layouts/admin-layouts/AdminFooter.jsx";
 
 const AdminPathwayList = () => {
   const [templates, setTemplates] = useState([]);
@@ -177,6 +178,7 @@ const AdminPathwayList = () => {
             ))}
         </div>
       </div>
+      <AdminFooter/>
     </PageShell>
   );
 };
