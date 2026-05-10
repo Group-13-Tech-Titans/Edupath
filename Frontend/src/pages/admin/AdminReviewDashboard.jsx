@@ -1,10 +1,14 @@
-import React from "react";
+import React, { useEffect } from "react";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 import AdminFooter from "./AdminFooter.jsx";
 
 const AdminReviewDashboard = () => {
-  const { courses, reviewHistory } = useApp();
+  const { courses, reviewHistory, fetchAllCoursesAdmin } = useApp();
+
+  useEffect(() => {
+    fetchAllCoursesAdmin();
+  }, [fetchAllCoursesAdmin]);
   const pending = courses.filter((c) => c.status === "pending");
   const approved = courses.filter((c) => c.status === "approved");
   const rejected = courses.filter((c) => c.status === "rejected");

@@ -7,46 +7,14 @@ import ComingSoon from "../ComingSoon.jsx";
 
 
 
-const LS_KEY = "edupath_courses_v1";
-
-
-
 const AdminCourseReview = () => {
-  const app = useApp();
-  const coursesFromApp = app.courses || [];
-  const setCourses = app.setCourses; // optional if your provider supports it
-
-  const [courses, setLocalCourses] = useState(coursesFromApp);
+  const { courses, fetchAllCoursesAdmin, submitReviewDecision } = useApp();
 
   useEffect(() => {
-    if (coursesFromApp?.length) {
-      setLocalCourses(coursesFromApp);
-      return;
-    }
+    fetchAllCoursesAdmin();
+  }, [fetchAllCoursesAdmin]);
 
-    const raw = localStorage.getItem(LS_KEY);
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length) {
-          setLocalCourses(parsed);
-          return;
-        }
-      } catch {
-      }
-    }
-
-    setLocalCourses(mockCourses);
-    localStorage.setItem(LS_KEY, JSON.stringify(mockCourses));
-  }, [coursesFromApp]);
-
-  // Keep context updated if supported
-  useEffect(() => {
-    if (typeof setCourses === "function" && courses?.length) setCourses(courses);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [courses]);
-
-  const [tab, setTab] = useState("pending"); // pending | approved | rejected
+  const [tab, setTab] = useState("pending");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(null);
   const [toast, setToast] = useState(null);
@@ -54,11 +22,6 @@ const AdminCourseReview = () => {
   const showToast = (type, text) => {
     setToast({ type, text });
     setTimeout(() => setToast(null), 2200);
-  };
-
-  const persist = (next) => {
-    setLocalCourses(next);
-    localStorage.setItem(LS_KEY, JSON.stringify(next));
   };
 
   const counts = useMemo(() => {
@@ -80,25 +43,22 @@ const AdminCourseReview = () => {
       .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
   }, [courses, tab, query]);
 
-  const setStatus = (courseId, status, reason = "") => {
-    const next = courses.map((c) =>
-      c.id === courseId
-        ? {
-            ...c,
-            status,
-            decisionReason: reason,
-            reviewedAt: new Date().toISOString(),
-          }
-        : c
-    );
-    persist(next);
+  const setStatus = async (courseId, status, reason = "") => {
+    const result = await submitReviewDecision({
+      itemId: courseId,
+      decision: status,
+      notes: reason,
+    });
 
-    if (selected?.id === courseId) {
-      const updated = next.find((c) => c.id === courseId);
-      setSelected(updated || null);
+    if (result.success) {
+      // Update the selected panel to reflect the new status
+      if (selected?.id === courseId || selected?._id === courseId) {
+        setSelected((prev) => prev ? { ...prev, status } : null);
+      }
+      showToast("success", status === "approved" ? "Course approved ✅" : "Course rejected ❌");
+    } else {
+      showToast("error", result.message || "Action failed");
     }
-
-    showToast("success", status === "approved" ? "Course approved ✅" : "Course rejected ❌");
   };
 
 
@@ -130,7 +90,7 @@ const AdminCourseReview = () => {
             </div>
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={() => window.location.href = "/coming-soon"}
+                onClick={() => window.location.href = "/admin/view-courses"}
                 className="rounded-full bg-primary/15 px-5 py-2.5 text-sm font-semibold text-primary shadow-sm hover:bg-primary/20"
               >
                 view All Courses

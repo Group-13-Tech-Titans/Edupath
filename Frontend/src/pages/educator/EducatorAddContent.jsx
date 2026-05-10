@@ -1,8 +1,9 @@
 import React, { useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
-import { uploadContentFile, deleteContentFile } from "../../api/uploadApi.js";
+import { uploadContentFile, deleteContentFile, buildDownloadUrl } from "../../api/uploadApi.js";
+import * as courseApi from "../../api/courseApi.js";
 
 // ── Content type definitions ─────────────────────────────────────────────────
 const CONTENT_TYPES = [
@@ -102,8 +103,14 @@ const ContentRow = ({ item, index, total, onMoveUp, onMoveDown, onDelete, deleti
           {item.bytes ? ` · ${formatBytes(item.bytes)}` : ""}
           {item.duration ? ` · ${Math.round(item.duration)}s` : ""}
           {item.url ? (
-            <a href={item.url} target="_blank" rel="noreferrer" className="ml-2 text-primary hover:underline">
-              View ↗
+            <a
+              href={buildDownloadUrl(item.url, item.name, item.format)}
+              target="_blank"
+              rel="noreferrer"
+              download={item.format ? `${item.name}.${item.format}` : undefined}
+              className="ml-2 text-primary hover:underline"
+            >
+              Download ↓
             </a>
           ) : null}
         </p>
@@ -125,30 +132,75 @@ const ContentRow = ({ item, index, total, onMoveUp, onMoveDown, onDelete, deleti
 
 // ── Main component ────────────────────────────────────────────────────────────
 const EducatorAddContent = () => {
-  const { currentUser } = useApp();
+  const { currentUser, courses, fetchMyCourses } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
+  const { id: courseId } = useParams();
   const fileInputRef = useRef(null);
 
-  const backTo = location.state?.backTo || "/educator/publish";
+  // "new" = creating a brand new course via the Publish flow
+  // anything else = editing an existing course
+  const isNew = !courseId || courseId === "new";
 
+  const backTo = location.state?.backTo || (isNew ? "/educator/publish" : "/educator/courses");
+
+  // For new courses: share storage with the Publish page via email-based key
+  // For existing courses: use a course-specific key so items don't leak between courses
   const storageKey = useMemo(() => {
-    const email = currentUser?.email || "unknown";
-    return `edupath_publish_content_${email}`;
-  }, [currentUser?.email]);
+    if (isNew) {
+      const email = currentUser?.email || "unknown";
+      return `edupath_publish_content_${email}`;
+    }
+    return `edupath_content_${courseId}`;
+  }, [isNew, courseId, currentUser?.email]);
 
-  // ── Existing content list from localStorage ──────────────────────────────
+  // ── Existing content list ────────────────────────────────────────────────
+  // For existing courses: seed from localStorage first, then fall back to the
+  // course object from app state (so items added in a previous session show up)
   const [items, setItems] = useState(() => {
     try {
       const raw = localStorage.getItem(storageKey);
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch { return []; }
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch { /* ignore */ }
+
+    if (!isNew) {
+      const course = courses.find((c) => c.id === courseId || c._id === courseId);
+      return course?.content?.items || [];
+    }
+    return [];
   });
+
+  const [saving, setSaving] = useState(false);
 
   const saveItems = (updated) => {
     setItems(updated);
-    localStorage.setItem(storageKey, JSON.stringify(updated));
+    try { localStorage.setItem(storageKey, JSON.stringify(updated)); } catch { /* ignore */ }
+  };
+
+  // For existing courses: persist content to the database and navigate back
+  const handleDone = async () => {
+    if (isNew) { navigate(backTo); return; }
+    setSaving(true);
+    try {
+      const course = courses.find((c) => c.id === courseId || c._id === courseId);
+      if (course) {
+        await courseApi.updateCourseData(courseId, {
+          ...course,
+          content: { modules: course.content?.modules || [], items }
+        });
+        await fetchMyCourses();
+      }
+      // Clear the temporary localStorage key now that it's in the DB
+      try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
+      navigate(backTo);
+    } catch (err) {
+      setError(err.message || "Failed to save content. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   // ── Form state ────────────────────────────────────────────────────────────
@@ -248,7 +300,8 @@ const EducatorAddContent = () => {
           <div>
             <h1 className="text-lg font-semibold text-text-dark">Course Content</h1>
             <p className="mt-1 text-xs text-muted">
-              Add videos, documents, presentations, certificates and quizzes. Files are stored on Cloudinary.
+              Add videos, documents, presentations, certificates and quizzes.
+              {!isNew && " Changes are saved to the course when you click Save & Back."}
             </p>
           </div>
           <span className="self-start rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-xs font-semibold text-primary sm:self-auto">
@@ -360,15 +413,16 @@ const EducatorAddContent = () => {
           <div className="flex justify-end gap-3">
             <button
               type="button"
-              onClick={() => navigate(backTo)}
-              className="btn-outline px-6 py-2 text-sm"
+              onClick={handleDone}
+              disabled={saving}
+              className="btn-outline px-6 py-2 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              ← Back
+              {saving ? "Saving…" : isNew ? "← Back" : "← Save & Back"}
             </button>
             <button
               type="button"
               onClick={handleAdd}
-              disabled={uploading || !selectedType}
+              disabled={uploading || !selectedType || saving}
               className="btn-primary px-7 py-2 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {uploading ? "Uploading…" : "Add Item"}

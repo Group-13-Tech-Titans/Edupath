@@ -754,49 +754,7 @@ const EducatorProfile = () => {
                 </div>
               </div>
             </section>
-
-            {/* ACCOUNT DEACTIVATION */}
-            <section ref={deactivateRef} className="glass-card p-6 space-y-4">
-              <div>
-                <h2 className="font-semibold text-text-dark">Account Deactivation</h2>
-                <p className="text-xs text-muted mt-1">
-                  Caution. These actions may affect your account access and courses.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-primary/25 bg-white/70 overflow-hidden divide-y divide-black/5">
-                <div className="flex items-center justify-between px-4 py-4">
-                  <div>
-                    <p className="text-sm font-semibold text-text-dark">Log Out of All Devices</p>
-                    <p className="text-xs text-muted">Signs you out from every browser and device.</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleLogoutAllDevices}
-                    disabled={loggingOutAll}
-                    className="btn-soft px-5 py-2 text-xs disabled:opacity-60"
-                  >
-                    {loggingOutAll ? "Logging out…" : "Log Out All"}
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between px-4 py-4">
-                  <div>
-                    <p className="text-sm font-semibold text-rose-600">Deactivate Account</p>
-                    <p className="text-xs text-muted">
-                      Permanently disables your account. Contact support to reactivate.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    className="rounded-full border border-rose-300 bg-white px-5 py-2 text-xs font-semibold text-rose-500 hover:bg-rose-50 transition"
-                  >
-                    Deactivate
-                  </button>
-                </div>
-              </div>
-            </section>
-
+            
           </div>
         </div>
       </div>

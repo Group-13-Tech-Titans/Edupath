@@ -3,6 +3,27 @@ import { Link } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 
+const CourseThumbnail = ({ course }) => {
+  if (course.thumbnailUrl) {
+    return (
+      <img
+        src={course.thumbnailUrl}
+        alt={course.title || "Course thumbnail"}
+        className="h-40 w-full rounded-2xl object-cover border border-black/5"
+      />
+    );
+  }
+
+  return (
+    <div className="flex h-40 w-full items-center justify-center rounded-2xl border border-dashed border-black/10 bg-white/60 text-center">
+      <div>
+        <p className="text-2xl">ðŸ“˜</p>
+        <p className="mt-2 text-[11px] font-semibold text-muted">No course image</p>
+      </div>
+    </div>
+  );
+};
+
 const ReviewerQueue = () => {
   const { currentUser, courses, fetchReviewerQueue } = useApp();
   const [error, setError] = useState("");
@@ -147,8 +168,10 @@ const ReviewerQueue = () => {
                 key={course.id}
                 className="glass-card flex flex-col p-5 transition hover:-translate-y-1 hover:shadow-2xl"
               >
+                <CourseThumbnail course={course} />
+
                 {/* Category pill */}
-                <span className="self-start rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-[10px] font-semibold text-primary">
+                <span className="mt-4 self-start rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-[10px] font-semibold text-primary">
                   {course.category || "General"}
                 </span>
 

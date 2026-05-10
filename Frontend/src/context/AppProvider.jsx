@@ -1,7 +1,19 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+} from "react";
+import PropTypes from "prop-types";
+import { mockCourses } from "../data/mockCourses.js";
 import * as authApi from "../api/authApi.js";
-import * as courseApi from "../api/courseApi.js";
 import { getToken, setToken } from "../api/client.js";
+import { googleLogout } from "@react-oauth/google";
+import * as courseApi from '../api/courseApi';
+
+
 
 const STORAGE_KEY = "edupath_app_state_v1";
 
@@ -23,13 +35,15 @@ const defaultState = {
   lessonProgress: {},
   payouts: {},
   reviewHistory: [],
-  reviewerAccounts: []
+  reviewerAccounts: [],
 };
 
 function loadState() {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { ...defaultState };
+    const raw = globalThis.localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return { ...defaultState };
+    }
     const parsed = JSON.parse(raw);
     return {
       ...defaultState,
@@ -37,7 +51,7 @@ function loadState() {
       currentUser: null,
       authLoading: true,
       users: parsed.users || [],
-      courses: parsed.courses || []
+      courses: parsed.courses || [],
     };
   } catch (e) {
     console.error("Failed to load state", e);
@@ -47,7 +61,7 @@ function loadState() {
 
 function persistState(state) {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {
     console.error("Failed to persist state", e);
   }
@@ -61,6 +75,11 @@ export const AppProvider = ({ children }) => {
   }, [state]);
 
   useEffect(() => {
+    // run once only (cleanup legacy keys)
+    if (localStorage.getItem("token")) localStorage.removeItem("token");
+  }, []);
+
+  useEffect(() => {
     const token = getToken();
     if (!token) {
       setState((prev) => ({ ...prev, authLoading: false }));
@@ -69,153 +88,163 @@ export const AppProvider = ({ children }) => {
     authApi
       .getMe()
       .then((user) => {
-        setState((prev) => ({ ...prev, currentUser: normalizeUser(user), authLoading: false }));
+        setState((prev) => ({
+          ...prev,
+          currentUser: normalizeUser(user),
+          authLoading: false,
+        }));
       })
       .catch(() => {
         setToken(null);
-        setState((prev) => ({ ...prev, currentUser: null, authLoading: false }));
+        setState((prev) => ({
+          ...prev,
+          currentUser: null,
+          authLoading: false,
+        }));
       });
   }, []);
 
-  const validateSession = useCallback(async () => {
-    if (!getToken()) return;
-    try {
-      const user = await authApi.getMe();
-      setState((prev) => ({ ...prev, currentUser: normalizeUser(user), authLoading: false }));
-    } catch (err) {
-      if (err.status === 401 || err.status === 403) {
-        setToken(null);
-        setState((prev) => ({ ...prev, currentUser: null, authLoading: false }));
-      } else {
-        console.warn("Session check failed without logging out:", err.message);
+  const setSession = useCallback((token, user) => {
+    setToken(token); // ✅ saves to edupath_token
+    setState((prev) => ({
+      ...prev,
+      currentUser: normalizeUser(user),
+      authLoading: false,
+    }));
+  }, []);
+
+  const login = useCallback(
+    async (email, password) => {
+      try {
+        const result = await authApi.login(email.trim(), password);
+        setSession(result.token, result.user); // ✅ needs authApi.login to return token too
+        return { success: true, user: result.user };
+      } catch (err) {
+        return {
+          success: false,
+          message: err.message || "Invalid credentials",
+        };
       }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!state.currentUser) return;
-
-    const interval = window.setInterval(validateSession, 10000);
-    const handleFocus = () => validateSession();
-    const handleVisibilityChange = () => {
-      if (!document.hidden) validateSession();
-    };
-
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      window.clearInterval(interval);
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [state.currentUser?.id, validateSession]);
-
-  const login = useCallback(async (email, password) => {
-    try {
-      const result = await authApi.login(email.trim(), password);
-      if (result.requiresTwoFactor) return result;
-      setState((prev) => ({ ...prev, currentUser: normalizeUser(result.user) }));
-      return { success: true, user: result.user };
-    } catch (err) {
-      return { success: false, message: err.message || "Invalid credentials" };
-    }
-  }, []);
-
-  const verifyLoginOtp = useCallback(async (email, otp) => {
-    try {
-      const result = await authApi.verifyLoginOtp(email.trim(), otp);
-      setState((prev) => ({ ...prev, currentUser: normalizeUser(result.user) }));
-      return { success: true, user: result.user };
-    } catch (err) {
-      return { success: false, message: err.message || "Invalid verification code" };
-    }
-  }, []);
+    },
+    [setSession],
+  );
 
   const logout = useCallback(() => {
-    setToken(null);
+    googleLogout();
+    setToken(null); // removes edupath_token
+    localStorage.removeItem("edupath_user");
+    localStorage.removeItem("user"); // optional if you used it before
     setState((prev) => ({ ...prev, currentUser: null }));
-  }, []);
-
-  const logoutAllDevices = useCallback(async () => {
-    try {
-      await authApi.logoutAllDevices();
-      setToken(null);
-      setState((prev) => ({ ...prev, currentUser: null }));
-      return { success: true };
-    } catch (err) {
-      return { success: false, message: err.message || "Failed to log out from all devices" };
-    }
   }, []);
 
   const signupAccount = useCallback(async (payload) => {
     try {
+      // 1) Register (creates user with pending role)
       await authApi.register({
         email: payload.email,
         password: payload.password,
-        role: "pending"
+        role: "pending",
       });
-      return { success: true };
+
+      // 2) Immediately login to get token + user
+      const loginRes = await authApi.login(payload.email, payload.password);
+
+      // 3) Save currentUser in state
+      setState((prev) => ({
+        ...prev,
+        currentUser: normalizeUser(loginRes.user),
+      }));
+
+      return { success: true, user: loginRes.user };
     } catch (err) {
-      return { success: false, message: err.message || "Unable to create account" };
+      return {
+        success: false,
+        message: err.message || "Unable to create account",
+      };
     }
   }, []);
 
   const signupStudent = useCallback(async (formData) => {
     try {
+      // Extract password & confirm. Keep everything else in 'safeProfileData'
+      const { password, confirm, ...safeProfileData } = formData;
+
       const result = await authApi.updateProfile({
         name: `${formData.firstName} ${formData.lastName}`,
         role: "student",
-        password: formData.password,
-        profile: formData
+        password: password,
+        profile: safeProfileData,
+        status: "active",
       });
-      setState((prev) => ({ ...prev, currentUser: normalizeUser(result.user) }));
+      setState((prev) => ({
+        ...prev,
+        currentUser: normalizeUser(result.user),
+      }));
       return { success: true };
     } catch (err) {
-      return { success: false, message: err.message || "Unable to complete registration" };
+      return {
+        success: false,
+        message: err.message || "Unable to complete registration",
+      };
     }
   }, []);
 
   const signupEducator = useCallback(async (formData) => {
     try {
-      const result = await authApi.registerEducator({
-        fullName: formData.fullName,
-        email: formData.email,
-        password: formData.password,
-        contact: formData.contact,
+      // Extract password & confirm. Keep everything else in 'safeProfileData'
+      const { password, confirm, ...safeProfileData } = formData;
+
+      const result = await authApi.updateProfile({
+        name: formData.fullName,
+        role: "educator",
+        password: password,
+        status: "PENDING_VERIFICATION",
         specializationTag: formData.specializationTag,
-        credentialsLink: formData.credentialsLink
+        profile: safeProfileData,
       });
-      setState((prev) => ({ ...prev, currentUser: normalizeUser(result.user) }));
+      setState((prev) => ({
+        ...prev,
+        currentUser: normalizeUser(result.user),
+      }));
       return { success: true };
     } catch (err) {
-      return { success: false, message: err.message || "Unable to complete registration" };
+      return {
+        success: false,
+        message: err.message || "Unable to complete registration",
+      };
     }
   }, []);
 
-  const createReviewer = useCallback((payload) => {
-    const exists = state.users.find((u) => u.email === payload.email);
-    if (exists) return { success: false, message: "Email already in use" };
-    const reviewer = {
-      id: `u-${Date.now()}`,
-      name: payload.name,
-      role: "reviewer",
-      email: payload.email,
-      password: payload.password,
-      specializationTag: payload.specializationTag
-    };
-    setState((prev) => ({
-      ...prev,
-      users: [...prev.users, reviewer],
-      reviewerAccounts: [...prev.reviewerAccounts, reviewer]
-    }));
-    return { success: true };
-  }, [state.users, state.reviewerAccounts]);
+  const createReviewer = useCallback(
+    (payload) => {
+      const exists = state.users.find((u) => u.email === payload.email);
+      if (exists) {
+        return { success: false, message: "Email already in use" };
+      }
+      const reviewer = {
+        id: `u-${Date.now()}`,
+        name: payload.name,
+        role: "reviewer",
+        email: payload.email,
+        password: payload.password,
+        specializationTag: payload.specializationTag,
+      };
+      setState((prev) => ({
+        ...prev,
+        users: [...prev.users, reviewer],
+        reviewerAccounts: [...prev.reviewerAccounts, reviewer],
+      }));
+      return { success: true };
+    },
+    [state.users, state.reviewerAccounts],
+  );
 
   const verifyEducator = useCallback((educatorEmail, status) => {
     setState((prev) => {
       const users = prev.users.map((u) =>
-        u.email === educatorEmail && u.role === "educator" ? { ...u, status } : u
+        u.email === educatorEmail && u.role === "educator"
+          ? { ...u, status }
+          : u,
       );
       return { ...prev, users };
     });
@@ -228,7 +257,10 @@ export const AppProvider = ({ children }) => {
       setState((prev) => ({ ...prev, courses: [newCourse, ...prev.courses] }));
       return { success: true, course: newCourse };
     } catch (err) {
-      return { success: false, message: err.message || "Failed to create course" };
+      return {
+        success: false,
+        message: err.message || "Failed to create course",
+      };
     }
   }, []);
 
@@ -242,6 +274,29 @@ export const AppProvider = ({ children }) => {
     }
   }, []);
 
+  // Fetches only APPROVED courses — safe for students and the public page.
+  // Pending, rejected, and draft courses are never included.
+  const fetchAllCourses = useCallback(async () => {
+    try {
+      const courses = await courseApi.getAllCourses();
+      const normalized = courses.map((c) => ({ ...c, id: c._id }));
+      setState((prev) => ({ ...prev, courses: normalized }));
+    } catch (err) {
+      console.error("Failed to fetch approved courses", err);
+    }
+  }, []);
+
+  // Fetches ALL courses regardless of status — for admin use only.
+  const fetchAllCoursesAdmin = useCallback(async () => {
+    try {
+      const courses = await courseApi.getAllCoursesAdmin();
+      const normalized = courses.map((c) => ({ ...c, id: c._id }));
+      setState((prev) => ({ ...prev, courses: normalized }));
+    } catch (err) {
+      console.error("Failed to fetch all courses (admin)", err);
+    }
+  }, []);
+
   const fetchReviewerQueue = useCallback(async () => {
     try {
       const courses = await courseApi.getReviewerQueue();
@@ -250,31 +305,49 @@ export const AppProvider = ({ children }) => {
       return { success: true, courses: normalized };
     } catch (err) {
       console.error("Failed to fetch reviewer queue", err);
-      return { success: false, message: err.message || "Failed to fetch reviewer queue" };
+      return {
+        success: false,
+        message: err.message || "Failed to fetch reviewer queue",
+      };
     }
   }, []);
 
-  const submitReviewDecision = useCallback(async ({ itemId, decision, rating, notes }) => {
-    const status = decision === "approved" ? "approved" : "rejected";
-    try {
-      const result = await courseApi.updateCourseStatus(itemId, { status, decision, rating, notes });
-      const updatedCourse = { ...result.course, id: result.course._id };
-      setState((prev) => ({
-        ...prev,
-        courses: prev.courses.map((c) =>
-          c.id === itemId || c._id === itemId ? { ...c, ...updatedCourse } : c
-        )
-      }));
-      return { success: true };
-    } catch (err) {
-      return { success: false, message: err.message || "Failed to submit review" };
-    }
-  }, []);
+  const submitReviewDecision = useCallback(
+    async ({ itemId, decision, rating, notes }) => {
+      const status = decision === "approved" ? "approved" : "rejected";
+      try {
+        const result = await courseApi.updateCourseStatus(itemId, {
+          status,
+          decision,
+          rating,
+          notes,
+        });
+        const updatedCourse = { ...result.course, id: result.course._id };
+        setState((prev) => ({
+          ...prev,
+          courses: prev.courses.map((c) =>
+            c.id === itemId || c._id === itemId
+              ? { ...c, ...updatedCourse }
+              : c,
+          ),
+        }));
+        return { success: true };
+      } catch (err) {
+        return {
+          success: false,
+          message: err.message || "Failed to submit review",
+        };
+      }
+    },
+    [],
+  );
 
   const updateCourse = useCallback((courseId, updatedData) => {
     setState((prev) => ({
       ...prev,
-      courses: prev.courses.map((c) => c.id === courseId ? { ...c, ...updatedData } : c)
+      courses: prev.courses.map((c) =>
+        c.id === courseId ? { ...c, ...updatedData } : c,
+      ),
     }));
   }, []);
 
@@ -285,12 +358,17 @@ export const AppProvider = ({ children }) => {
       setState((prev) => ({
         ...prev,
         courses: prev.courses.map((c) =>
-          c.id === courseId || c._id === courseId ? { ...c, ...trashedCourse } : c
-        )
+          c.id === courseId || c._id === courseId
+            ? { ...c, ...trashedCourse }
+            : c,
+        ),
       }));
       return { success: true, course: trashedCourse };
     } catch (err) {
-      return { success: false, message: err.message || "Failed to move course to trash" };
+      return {
+        success: false,
+        message: err.message || "Failed to move course to trash",
+      };
     }
   }, []);
 
@@ -301,12 +379,17 @@ export const AppProvider = ({ children }) => {
       setState((prev) => ({
         ...prev,
         courses: prev.courses.map((c) =>
-          c.id === courseId || c._id === courseId ? { ...c, ...restoredCourse } : c
-        )
+          c.id === courseId || c._id === courseId
+            ? { ...c, ...restoredCourse }
+            : c,
+        ),
       }));
       return { success: true, course: restoredCourse };
     } catch (err) {
-      return { success: false, message: err.message || "Failed to restore course" };
+      return {
+        success: false,
+        message: err.message || "Failed to restore course",
+      };
     }
   }, []);
 
@@ -315,11 +398,16 @@ export const AppProvider = ({ children }) => {
       await courseApi.permanentlyDeleteCourse(courseId);
       setState((prev) => ({
         ...prev,
-        courses: prev.courses.filter((c) => c.id !== courseId && c._id !== courseId)
+        courses: prev.courses.filter(
+          (c) => c.id !== courseId && c._id !== courseId,
+        ),
       }));
       return { success: true };
     } catch (err) {
-      return { success: false, message: err.message || "Failed to permanently delete course" };
+      return {
+        success: false,
+        message: err.message || "Failed to permanently delete course",
+      };
     }
   }, []);
 
@@ -329,35 +417,46 @@ export const AppProvider = ({ children }) => {
       setState((prev) => ({
         ...prev,
         courses: prev.courses.filter(
-          (c) => !(c.trashedAt && c.createdByEducatorEmail === prev.currentUser?.email)
-        )
+          (c) =>
+            !(
+              c.trashedAt &&
+              c.createdByEducatorEmail === prev.currentUser?.email
+            ),
+        ),
       }));
       return { success: true, deletedCount: result.deletedCount || 0 };
     } catch (err) {
-      return { success: false, message: err.message || "Failed to empty trash" };
+      return {
+        success: false,
+        message: err.message || "Failed to empty trash",
+      };
     }
   }, []);
 
   const approveCourse = useCallback((courseId, reviewer) => {
     setState((prev) => {
       const courses = prev.courses.map((c) =>
-        c.id === courseId ? { ...c, status: "approved" } : c
+        c.id === courseId ? { ...c, status: "approved" } : c,
       );
       const historyItem = {
         id: `rh-${Date.now()}`,
         courseId,
         decision: "approved",
         reviewerEmail: reviewer?.email,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
-      return { ...prev, courses, reviewHistory: [historyItem, ...prev.reviewHistory] };
+      return {
+        ...prev,
+        courses,
+        reviewHistory: [historyItem, ...prev.reviewHistory],
+      };
     });
   }, []);
 
   const rejectCourse = useCallback((courseId, reviewer, notes) => {
     setState((prev) => {
       const courses = prev.courses.map((c) =>
-        c.id === courseId ? { ...c, status: "rejected" } : c
+        c.id === courseId ? { ...c, status: "rejected" } : c,
       );
       const historyItem = {
         id: `rh-${Date.now()}`,
@@ -365,16 +464,26 @@ export const AppProvider = ({ children }) => {
         decision: "rejected",
         reviewerEmail: reviewer?.email,
         notes: notes || "",
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
-      return { ...prev, courses, reviewHistory: [historyItem, ...prev.reviewHistory] };
+      return {
+        ...prev,
+        courses,
+        reviewHistory: [historyItem, ...prev.reviewHistory],
+      };
     });
   }, []);
 
   const saveMentorRequest = useCallback((payload) => {
     setState((prev) => ({
       ...prev,
-      mentorRequests: [{ id: `mr-${Date.now()}`, ...payload }, ...prev.mentorRequests]
+      mentorRequests: [
+        {
+          id: `mr-${Date.now()}`,
+          ...payload,
+        },
+        ...prev.mentorRequests,
+      ],
     }));
   }, []);
 
@@ -387,8 +496,11 @@ export const AppProvider = ({ children }) => {
         ...prev,
         lessonProgress: {
           ...prev.lessonProgress,
-          [userEmail]: { ...userProgress, [courseId]: Array.from(courseProgress) }
-        }
+          [userEmail]: {
+            ...userProgress,
+            [courseId]: Array.from(courseProgress),
+          },
+        },
       };
     });
   }, []);
@@ -396,50 +508,89 @@ export const AppProvider = ({ children }) => {
   const updateUserProfile = useCallback(async (body) => {
     try {
       const result = await authApi.updateProfile(body);
-      setState((prev) => ({ ...prev, currentUser: normalizeUser(result.user) }));
+      setState((prev) => ({
+        ...prev,
+        currentUser: normalizeUser(result.user),
+      }));
       return { success: true, user: result.user };
     } catch (err) {
       return { success: false, message: err.message || "Update failed" };
     }
   }, []);
 
-  const value = {
-    state,
-    authLoading: state.authLoading,
-    currentUser: state.currentUser,
-    users: state.users,
-    courses: state.courses,
-    mentorRequests: state.mentorRequests,
-    lessonProgress: state.lessonProgress,
-    payouts: state.payouts,
-    reviewHistory: state.reviewHistory,
-    reviewerAccounts: state.reviewerAccounts,
-    login,
-    logout,
-    logoutAllDevices,
-    verifyLoginOtp,
-    signupAccount,
-    signupStudent,
-    signupEducator,
-    createReviewer,
-    verifyEducator,
-    createCourse,
-    fetchMyCourses,
-    fetchReviewerQueue,
-    submitReviewDecision,
-    updateCourse,
-    moveCourseToTrash,
-    restoreCourseFromTrash,
-    permanentlyDeleteCourse,
-    emptyCourseTrash,
-    approveCourse,
-    rejectCourse,
-    saveMentorRequest,
-    markLessonCompleted,
-    updateUserProfile
-  };
+  // Wrapped the value object in useMemo to prevent massive re-renders
+  const value = useMemo(
+    () => ({
+      state,
+      authLoading: state.authLoading,
+      currentUser: state.currentUser,
+      users: state.users,
+      courses: state.courses,
+      mentorRequests: state.mentorRequests,
+      lessonProgress: state.lessonProgress,
+      payouts: state.payouts,
+      reviewHistory: state.reviewHistory,
+      reviewerAccounts: state.reviewerAccounts,
+      login,
+      logout,
+      setSession,
+      signupAccount,
+      signupStudent,
+      signupEducator,
+      createReviewer,
+      verifyEducator,
+      createCourse,
+      fetchMyCourses,
+      fetchAllCourses,
+      fetchAllCoursesAdmin,
+      fetchReviewerQueue,
+      submitReviewDecision,
+      updateCourse,
+      moveCourseToTrash,
+      restoreCourseFromTrash,
+      permanentlyDeleteCourse,
+      emptyCourseTrash,
+      approveCourse,
+      rejectCourse,
+      saveMentorRequest,
+      markLessonCompleted,
+      updateUserProfile
+    }),
+    [
+      // This dependency array tells React: "Only recreate this object if one of these specific things changes"
+      state,
+      login,
+      logout,
+      setSession,
+      signupAccount,
+      signupStudent,
+      signupEducator,
+      createReviewer,
+      verifyEducator,
+      createCourse,
+      fetchMyCourses,
+      fetchAllCourses,
+      fetchAllCoursesAdmin,
+      fetchReviewerQueue,
+      submitReviewDecision,
+      updateCourse,
+      moveCourseToTrash,
+      restoreCourseFromTrash,
+      permanentlyDeleteCourse,
+      emptyCourseTrash,
+      approveCourse,
+      rejectCourse,
+      saveMentorRequest,
+      markLessonCompleted,
+      updateUserProfile
+    ],
+  );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+};
+// Added Prop Validation for 'children'
+AppProvider.propTypes = {
+  children: PropTypes.node.isRequired,
 };
 
 export const useApp = () => useContext(AppContext);

@@ -5,23 +5,8 @@ export async function login(email, password) {
     method: "POST",
     body: JSON.stringify({ email, password })
   });
-  if (data.requiresTwoFactor) {
-    return {
-      requiresTwoFactor: true,
-      message: data.message || "Verification code sent to your email"
-    };
-  }
   setToken(data.token);
-  return { success: true, user: data.user };
-}
-
-export async function verifyLoginOtp(email, otp) {
-  const data = await apiRequest("/api/auth/verify-login-otp", {
-    method: "POST",
-    body: JSON.stringify({ email, otp })
-  });
-  setToken(data.token);
-  return { success: true, user: data.user };
+  return { success: true, user: data.user, token: data.token };
 }
 
 export async function register(payload) {
@@ -37,15 +22,6 @@ export async function register(payload) {
   return { success: true };
 }
 
-export async function registerEducator(payload) {
-  const data = await apiRequest("/api/auth/register-educator", {
-    method: "POST",
-    body: JSON.stringify(payload)
-  });
-  setToken(data.token);
-  return { success: true, user: data.user };
-}
-
 export async function getMe() {
   const data = await apiRequest("/api/auth/me");
   return data.user;
@@ -59,7 +35,10 @@ export async function updateProfile(body) {
   return { success: true, user: data.user };
 }
 
-export async function logoutAllDevices() {
-  await apiRequest("/api/auth/logout-all", { method: "POST" });
-  return { success: true };
+export async function changePassword(currentPassword, newPassword) {
+  const data = await apiRequest("/api/auth/change-password", {
+    method: "PATCH",
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+  return data;
 }

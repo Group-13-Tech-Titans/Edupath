@@ -1,12 +1,16 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import PageShell from "../components/PageShell.jsx";
 import { useApp } from "../context/AppProvider.jsx";
 
 const PublicCourses = () => {
-  const { courses } = useApp();
+  const { courses, fetchAllCourses } = useApp();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
+
+  useEffect(() => {
+    fetchAllCourses();
+  }, [fetchAllCourses]);
 
   const approvedCourses = useMemo(
     () => courses.filter((c) => c.status === "approved"),

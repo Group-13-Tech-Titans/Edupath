@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 import AdminFooter from "./AdminFooter.jsx";
@@ -6,7 +6,11 @@ import ComingSoon from "../ComingSoon.jsx";
 
 
 const AdminDashboard = () => {
-  const { users, courses } = useApp();
+  const { users, courses, fetchAllCoursesAdmin } = useApp();
+
+  useEffect(() => {
+    fetchAllCoursesAdmin();
+  }, [fetchAllCoursesAdmin]);
 
 
   const totalUsers = users?.length || 0;

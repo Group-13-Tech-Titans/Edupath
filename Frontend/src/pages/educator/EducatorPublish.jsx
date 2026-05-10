@@ -1,8 +1,15 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useRef, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 import { getSpecializations } from "../../api/specializationApi.js";
+import { deleteContentFile, uploadThumbnailFile } from "../../api/uploadApi.js";
+
+const removeContentItem = (items, id, storageKey) => {
+  const updated = items.filter((i) => i.id !== id);
+  try { localStorage.setItem(storageKey, JSON.stringify(updated)); } catch { /* ignore */ }
+  return updated;
+};
 
 const EducatorPublish = () => {
   const { currentUser, createCourse } = useApp();
@@ -40,7 +47,9 @@ const EducatorPublish = () => {
     specializationTags: [],
     thumbnailFile: null,
     thumbnailUrl: "",
-    thumbnailName: ""
+    thumbnailName: "",
+    thumbnailPublicId: "",
+    thumbnailResourceType: "image"
   });
 
   // Restore saved form data on mount (survives navigating to Add Content and back)
@@ -60,6 +69,8 @@ const EducatorPublish = () => {
         specializationTags: Array.isArray(saved.specializationTags) ? saved.specializationTags : [],
         thumbnailUrl: saved.thumbnailUrl || "",
         thumbnailName: saved.thumbnailName || "",
+        thumbnailPublicId: saved.thumbnailPublicId || "",
+        thumbnailResourceType: saved.thumbnailResourceType || "image",
         thumbnailFile: null // File objects can't be serialised; user re-selects only if they want to change it
       }));
     } catch {
@@ -78,8 +89,10 @@ const EducatorPublish = () => {
         price: form.price,
         duration: form.duration,
         specializationTags: form.specializationTags,
-        thumbnailUrl: form.thumbnailUrl,
-        thumbnailName: form.thumbnailFile?.name || form.thumbnailName || ""
+        thumbnailUrl: form.thumbnailFile ? "" : form.thumbnailUrl,
+        thumbnailName: form.thumbnailFile ? "" : (form.thumbnailName || ""),
+        thumbnailPublicId: form.thumbnailPublicId || "",
+        thumbnailResourceType: form.thumbnailResourceType || "image"
       };
       localStorage.setItem(formStorageKey, JSON.stringify(toSave));
     } catch {
@@ -126,11 +139,8 @@ const EducatorPublish = () => {
   const handleThumbnail = (e) => {
     const file = e.target.files?.[0] || null;
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      setForm((p) => ({ ...p, thumbnailFile: file, thumbnailUrl: evt.target.result }));
-    };
-    reader.readAsDataURL(file);
+    const previewUrl = URL.createObjectURL(file);
+    setForm((p) => ({ ...p, thumbnailFile: file, thumbnailName: file.name, thumbnailUrl: previewUrl }));
   };
 
   const toggleTag = (tag) => {
@@ -185,6 +195,8 @@ const EducatorPublish = () => {
     specializationTag: selectedSpecialization?.slug || form.category.trim(),
     thumbnailName: form.thumbnailFile?.name || form.thumbnailName || "",
     thumbnailUrl: form.thumbnailUrl || "",
+    thumbnailPublicId: form.thumbnailPublicId || "",
+    thumbnailResourceType: form.thumbnailResourceType || "image",
     rating: 0,
     educatorName: currentUser?.name || "Educator",
     createdByEducatorEmail: currentUser?.email,
@@ -195,9 +207,50 @@ const EducatorPublish = () => {
     }
   });
 
-  const goAddContent = () => {
-    navigate("/educator/add-content", { state: { backTo: "/educator/publish" } });
+  const ensureUploadedThumbnail = async () => {
+    if (!form.thumbnailFile) {
+      return {
+        thumbnailUrl: form.thumbnailUrl || "",
+        thumbnailName: form.thumbnailName || "",
+        thumbnailPublicId: form.thumbnailPublicId || "",
+        thumbnailResourceType: form.thumbnailResourceType || "image"
+      };
+    }
+
+    const uploaded = await uploadThumbnailFile(form.thumbnailFile);
+    setForm((prev) => ({
+      ...prev,
+      thumbnailFile: null,
+      thumbnailName: uploaded.thumbnail.name,
+      thumbnailUrl: uploaded.thumbnail.url,
+      thumbnailPublicId: uploaded.thumbnail.publicId,
+      thumbnailResourceType: uploaded.thumbnail.resourceType
+    }));
+    return {
+      thumbnailUrl: uploaded.thumbnail.url,
+      thumbnailName: uploaded.thumbnail.name,
+      thumbnailPublicId: uploaded.thumbnail.publicId,
+      thumbnailResourceType: uploaded.thumbnail.resourceType
+    };
   };
+
+  const goAddContent = () => {
+    navigate("/educator/add-content/new", { state: { backTo: "/educator/publish" } });
+  };
+
+  // Warn the user if they try to close/refresh the tab with unsaved form data
+  const formIsDirty = form.title.trim().length > 0 || contentItems.length > 0;
+  const formIsDirtyRef = useRef(formIsDirty);
+  useEffect(() => { formIsDirtyRef.current = formIsDirty; }, [formIsDirty]);
+  useEffect(() => {
+    const handler = (e) => {
+      if (!formIsDirtyRef.current) return;
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, []);
 
   // Draft - only needs title, saves with status "draft"
   const handleSaveDraft = async (e) => {
@@ -214,7 +267,8 @@ const EducatorPublish = () => {
     }
     setSubmitting(true);
     try {
-      const res = await createCourse(buildCoursePayload("draft"));
+      const thumbnail = await ensureUploadedThumbnail();
+      const res = await createCourse({ ...buildCoursePayload("draft"), ...thumbnail });
       if (!res.success) {
         setError(res.message || "Failed to save draft.");
         return;
@@ -246,7 +300,8 @@ const EducatorPublish = () => {
     }
     setSubmitting(true);
     try {
-      const res = await createCourse(buildCoursePayload("pending"));
+      const thumbnail = await ensureUploadedThumbnail();
+      const res = await createCourse({ ...buildCoursePayload("pending"), ...thumbnail });
       if (!res.success) {
         setError(res.message || "Failed to publish course.");
         return;
@@ -339,12 +394,28 @@ const EducatorPublish = () => {
                       {contentItems.map((item) => (
                         <li
                           key={item.id}
-                          className="flex items-center justify-between rounded-xl bg-white/80 border border-black/5 px-3 py-2"
+                          className="flex items-center justify-between gap-2 rounded-xl bg-white/80 border border-black/5 px-3 py-2"
                         >
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <p className="text-[12px] font-semibold text-text-dark truncate">{item.name}</p>
                             <p className="text-[11px] text-muted">{item.type}</p>
                           </div>
+                          <button
+                            type="button"
+                            title="Remove item"
+                            onClick={() => {
+                              // Delete the file from Cloudinary if it has a publicId
+                              if (item.publicId) {
+                                deleteContentFile(item.publicId, item.resourceType || "raw").catch(() => {});
+                              }
+                              setContentItems((prev) =>
+                                removeContentItem(prev, item.id, storageKey)
+                              );
+                            }}
+                            className="shrink-0 grid h-6 w-6 place-items-center rounded-full border border-rose-200 bg-white text-rose-400 hover:bg-rose-50 transition text-sm"
+                          >
+                            ×
+                          </button>
                         </li>
                       ))}
                     </ul>
@@ -520,6 +591,9 @@ const EducatorPublish = () => {
                 <button
                   type="button"
                   onClick={() => {
+                    if (form.thumbnailPublicId) {
+                      deleteContentFile(form.thumbnailPublicId, form.thumbnailResourceType || "image").catch(() => {});
+                    }
                     localStorage.removeItem(storageKey);
                     localStorage.removeItem(formStorageKey);
                     navigate("/educator");

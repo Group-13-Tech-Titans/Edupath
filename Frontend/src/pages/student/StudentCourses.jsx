@@ -1,10 +1,16 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 
 const StudentCourses = () => {
-  const { courses } = useApp();
+  const { courses, fetchAllCourses } = useApp();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchAllCourses().finally(() => setLoading(false));
+  }, [fetchAllCourses]);
+
   const approved = courses.filter((c) => c.status === "approved");
 
   return (
@@ -37,7 +43,10 @@ const StudentCourses = () => {
               </Link>
             </div>
           ))}
-          {approved.length === 0 && (
+          {loading && (
+            <p className="text-sm text-muted">Loading courses…</p>
+          )}
+          {!loading && approved.length === 0 && (
             <p className="text-sm text-muted">
               No approved courses yet. Check back soon.
             </p>

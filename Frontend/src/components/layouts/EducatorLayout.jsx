@@ -20,12 +20,11 @@ const EducatorLayout = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Updated header to match PublicHeader styles */}
       <header className="border-b border-black/5 bg-white/40 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <Link to="/" className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow">
-              🎓
+              ðŸŽ“
             </div>
             <span className="text-lg font-semibold text-text-dark">EduPath</span>
           </Link>
@@ -64,10 +63,9 @@ const EducatorLayout = () => {
         </div>
       </main>
 
-      {/* Simplified footer imported from PublicFooter with unified styles */}
       <footer className="mt-10 border-t border-black/5 bg-white/40 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-6 text-xs text-muted sm:flex-row">
-          <p>© 2026 EduPath. All rights reserved.</p>
+          <p>Â© 2026 EduPath. All rights reserved.</p>
           <div className="flex gap-4">
             <button className="hover:text-text-dark transition">Support</button>
             <button className="hover:text-text-dark transition">Terms</button>

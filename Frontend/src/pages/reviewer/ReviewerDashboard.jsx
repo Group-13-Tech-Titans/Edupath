@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 import * as authApi from "../../api/authApi.js";
+import { uploadAvatarFile } from "../../api/uploadApi.js";
 
 const TYPES = [
   { value: "all", label: "All Types" },
@@ -86,14 +87,17 @@ const ReviewerDashboard = () => {
   const fileInputRef = useRef(null);
 
   const initialPhoto =
-    currentUser?.photoUrl ||
+    currentUser?.profile?.photoUrl ||
+    currentUser?.avatar ||
     "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=60";
 
   const [profileSaved, setProfileSaved] = useState({
     fullName: currentUser?.name || "Reviewer",
     email: currentUser?.email || "",
     photoUrl: initialPhoto,
-    domains: Array.isArray(currentUser?.domains || currentUser?.subjects)
+    domains: Array.isArray(currentUser?.profile?.domains)
+      ? currentUser.profile.domains
+      : Array.isArray(currentUser?.domains || currentUser?.subjects)
       ? currentUser?.domains || currentUser?.subjects
       : ["General"],
   });
@@ -101,6 +105,7 @@ const ReviewerDashboard = () => {
   const [isReviewerActive, setIsReviewerActive] = useState(true);
   const [saveError, setSaveError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [profileDraft, setProfileDraft] = useState({
     fullName: profileSaved.fullName,
@@ -137,12 +142,30 @@ const ReviewerDashboard = () => {
   }, [searchParams]);
 
   const onPickAvatar = () => fileInputRef.current?.click();
-  const onAvatarSelected = (e) => {
+  const onAvatarSelected = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    setProfileDraft((p) => ({ ...p, photoUrl: url }));
     e.target.value = "";
+
+    // Show a local preview immediately while the upload runs in the background
+    const previewUrl = URL.createObjectURL(file);
+    setProfileDraft((p) => ({ ...p, photoUrl: previewUrl }));
+    setAvatarUploading(true);
+    setSaveError("");
+
+    try {
+      const result = await uploadAvatarFile(file);
+      if (!result?.success || !result.url) throw new Error("Upload returned no URL.");
+      // Replace the temporary blob URL with the permanent Cloudinary URL
+      setProfileDraft((p) => ({ ...p, photoUrl: result.url }));
+    } catch (err) {
+      setSaveError("Photo upload failed: " + (err.message || "Unknown error."));
+      // Revert preview to the previously saved photo on failure
+      setProfileDraft((p) => ({ ...p, photoUrl: profileSaved.photoUrl }));
+    } finally {
+      URL.revokeObjectURL(previewUrl);
+      setAvatarUploading(false);
+    }
   };
 
   const removeDomain = (d) =>
@@ -436,13 +459,28 @@ const ReviewerDashboard = () => {
         <div className="space-y-4">
           {/* Avatar */}
           <div className="flex items-center gap-4">
-            <img src={profileDraft.photoUrl} alt="Draft" className="h-16 w-16 rounded-full object-cover ring-2 ring-primary/20" />
+            <div className="relative">
+              <img src={profileDraft.photoUrl} alt="Draft" className="h-16 w-16 rounded-full object-cover ring-2 ring-primary/20" />
+              {avatarUploading && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
+                  <svg className="h-5 w-5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                </div>
+              )}
+            </div>
             <div>
-              <button type="button" onClick={onPickAvatar} className="btn-soft px-4 py-2 text-xs">
-                Upload Photo
+              <button
+                type="button"
+                onClick={onPickAvatar}
+                disabled={avatarUploading}
+                className="btn-soft px-4 py-2 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {avatarUploading ? "Uploading..." : "Upload Photo"}
               </button>
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={onAvatarSelected} className="hidden" />
-              <p className="mt-1 text-[11px] text-muted">Choose an image from your device.</p>
+              <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={onAvatarSelected} className="hidden" />
+              <p className="mt-1 text-[11px] text-muted">PNG, JPEG, or WebP. Saved to cloud.</p>
             </div>
           </div>
 
@@ -517,7 +555,7 @@ const ReviewerDashboard = () => {
             <button
               type="button"
               onClick={updateChanges}
-              disabled={!isDirty.changed || !isDirty.passwordValid || saving}
+              disabled={!isDirty.changed || !isDirty.passwordValid || saving || avatarUploading}
               className="btn-primary px-5 py-2 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? "Saving..." : "Save Changes"}

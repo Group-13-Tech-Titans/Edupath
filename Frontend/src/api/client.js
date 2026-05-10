@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL ?? "";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 function getToken() {
   return window.localStorage.getItem("edupath_token");
@@ -25,10 +25,7 @@ export async function apiRequest(path, options = {}) {
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const error = new Error(data.message || res.statusText || "Request failed");
-    error.status = res.status;
-    error.data = data;
-    throw error;
+    throw new Error(data.message || res.statusText || "Request failed");
   }
   return data;
 }

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 import * as courseApi from "../../api/courseApi.js";
+import { deleteContentFile, uploadThumbnailFile } from "../../api/uploadApi.js";
 
 const ALL_TAGS = [
   "web-dev", "data-science", "ai-ml", "cyber-security",
@@ -19,12 +20,16 @@ const EducatorEditCourse = () => {
 
   const course = courses.find((c) => c.id === id || c._id === id);
 
+  // Ownership guard — only the educator who created this course can edit it
+  const isOwner = !course || course.createdByEducatorEmail === currentUser?.email;
+
   // Pre-fill form from existing course data
   const [form, setForm] = useState(() => {
     if (!course) return {
       title: "", description: "", category: "", level: "",
       price: "", duration: "", specializationTags: [],
-      thumbnailFile: null, thumbnailUrl: ""
+      thumbnailFile: null, thumbnailUrl: "", thumbnailName: "",
+      thumbnailPublicId: "", thumbnailResourceType: "image"
     };
 
     // Parse specializationTag - could be comma-separated
@@ -41,15 +46,33 @@ const EducatorEditCourse = () => {
       duration: String(course.duration || ""),
       specializationTags: existingTags,
       thumbnailFile: null,
-      thumbnailUrl: course.thumbnailUrl || ""
+      thumbnailUrl: course.thumbnailUrl || "",
+      thumbnailName: course.thumbnailName || "",
+      thumbnailPublicId: course.thumbnailPublicId || "",
+      thumbnailResourceType: course.thumbnailResourceType || "image"
     };
   });
 
-  // Pre-fill content items from existing course
+  // Content items: prefer the course-specific localStorage key (populated by
+  // EducatorAddContent when the educator adds/removes items), falling back to
+  // whatever is already saved in the database.
+  const contentStorageKey = `edupath_content_${id}`;
   const [contentItems, setContentItems] = useState(() => {
-    if (!course) return [];
-    return course.content?.items || [];
+    try {
+      const raw = localStorage.getItem(contentStorageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch { /* ignore */ }
+    return course?.content?.items || [];
   });
+
+  const removeContentItem = (itemId) => {
+    const updated = contentItems.filter((i) => i.id !== itemId);
+    setContentItems(updated);
+    try { localStorage.setItem(contentStorageKey, JSON.stringify(updated)); } catch { /* ignore */ }
+  };
 
   const [tagSearch, setTagSearch] = useState("");
   const [error, setError] = useState("");
@@ -69,11 +92,13 @@ const EducatorEditCourse = () => {
   const handleThumbnail = (e) => {
     const file = e.target.files?.[0] || null;
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      setForm((p) => ({ ...p, thumbnailFile: file, thumbnailUrl: evt.target.result }));
-    };
-    reader.readAsDataURL(file);
+    const previewUrl = URL.createObjectURL(file);
+    setForm((p) => ({
+      ...p,
+      thumbnailFile: file,
+      thumbnailName: file.name,
+      thumbnailUrl: previewUrl
+    }));
   };
 
   const toggleTag = (tag) => {
@@ -121,12 +146,48 @@ const EducatorEditCourse = () => {
     specializationTag: form.specializationTags.join(","),
     thumbnailName: form.thumbnailFile?.name || course?.thumbnailName || "",
     thumbnailUrl: form.thumbnailUrl || "",
+    thumbnailPublicId: form.thumbnailPublicId || "",
+    thumbnailResourceType: form.thumbnailResourceType || "image",
     rating: course?.rating || 0,
     educatorName: currentUser?.name || "Educator",
     createdByEducatorEmail: currentUser?.email,
     status,
     content: { modules: [], items: contentItems }
   });
+
+  const ensureUploadedThumbnail = async () => {
+    if (!form.thumbnailFile) {
+      return {
+        thumbnailUrl: form.thumbnailUrl || "",
+        thumbnailName: form.thumbnailName || "",
+        thumbnailPublicId: form.thumbnailPublicId || "",
+        thumbnailResourceType: form.thumbnailResourceType || "image"
+      };
+    }
+
+    const previousPublicId = form.thumbnailPublicId || "";
+    const previousResourceType = form.thumbnailResourceType || "image";
+    const uploaded = await uploadThumbnailFile(form.thumbnailFile);
+    setForm((prev) => ({
+      ...prev,
+      thumbnailFile: null,
+      thumbnailName: uploaded.thumbnail.name,
+      thumbnailUrl: uploaded.thumbnail.url,
+      thumbnailPublicId: uploaded.thumbnail.publicId,
+      thumbnailResourceType: uploaded.thumbnail.resourceType
+    }));
+
+    if (previousPublicId && previousPublicId !== uploaded.thumbnail.publicId) {
+      deleteContentFile(previousPublicId, previousResourceType).catch(() => {});
+    }
+
+    return {
+      thumbnailUrl: uploaded.thumbnail.url,
+      thumbnailName: uploaded.thumbnail.name,
+      thumbnailPublicId: uploaded.thumbnail.publicId,
+      thumbnailResourceType: uploaded.thumbnail.resourceType
+    };
+  };
 
   const handleSaveDraft = async () => {
     setError("");
@@ -136,7 +197,9 @@ const EducatorEditCourse = () => {
     }
     setSaving(true);
     try {
-      await courseApi.updateCourseData(id, buildPayload("draft"));
+      const thumbnail = await ensureUploadedThumbnail();
+      await courseApi.updateCourseData(id, { ...buildPayload("draft"), ...thumbnail });
+      try { localStorage.removeItem(contentStorageKey); } catch { /* ignore */ }
       await fetchMyCourses();
       navigate("/educator/courses");
     } catch (err) {
@@ -154,7 +217,9 @@ const EducatorEditCourse = () => {
     if (!hasContent) { setError("Please add at least one content item."); return; }
     setSaving(true);
     try {
-      await courseApi.updateCourseData(id, buildPayload("pending"));
+      const thumbnail = await ensureUploadedThumbnail();
+      await courseApi.updateCourseData(id, { ...buildPayload("pending"), ...thumbnail });
+      try { localStorage.removeItem(contentStorageKey); } catch { /* ignore */ }
       await fetchMyCourses();
       navigate("/educator/courses");
     } catch (err) {
@@ -168,6 +233,18 @@ const EducatorEditCourse = () => {
     return (
       <PageShell>
         <p className="text-sm text-muted">Course not found.</p>
+      </PageShell>
+    );
+  }
+
+  if (!isOwner) {
+    return (
+      <PageShell>
+        <div className="glass-card px-6 py-10 text-center">
+          <p className="text-sm font-semibold text-rose-600">You don't have permission to edit this course.</p>
+          <button type="button" onClick={() => navigate("/educator/courses")}
+            className="btn-soft mt-4 px-5 py-2 text-xs">← Back to courses</button>
+        </div>
       </PageShell>
     );
   }
@@ -215,22 +292,47 @@ const EducatorEditCourse = () => {
 
               {/* Content items */}
               <div>
-                <p className="font-semibold text-text-dark">Course Content</p>
-                <p className="text-[11px] text-muted">Add lessons, resources, and quizzes.</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-text-dark">Course Content</p>
+                    <p className="text-[11px] text-muted">Add lessons, resources, and quizzes.</p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!isVerified}
+                    onClick={() => navigate(`/educator/add-content/${id}`, { state: { backTo: `/educator/edit/${id}` } })}
+                    className="btn-primary px-4 py-2 text-[11px] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    + Add Content
+                  </button>
+                </div>
                 {contentItems.length === 0 ? (
                   <div className="mt-3 rounded-2xl border border-black/10 bg-white/70 px-4 py-4 text-[11px] text-muted text-center">
-                    No content added yet.
+                    No content added yet. Click Add Content to begin.
                   </div>
                 ) : (
                   <div className="mt-3 rounded-2xl border border-black/10 bg-white/70 px-4 py-3">
                     <ul className="space-y-2">
                       {contentItems.map((item) => (
                         <li key={item.id}
-                          className="flex items-center justify-between rounded-xl bg-white/80 border border-black/5 px-3 py-2">
-                          <div>
-                            <p className="text-[12px] font-semibold text-text-dark">{item.name}</p>
+                          className="flex items-center justify-between gap-2 rounded-xl bg-white/80 border border-black/5 px-3 py-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[12px] font-semibold text-text-dark truncate">{item.name}</p>
                             <p className="text-[11px] text-muted">{item.type}</p>
                           </div>
+                          <button
+                            type="button"
+                            title="Remove item"
+                            onClick={() => {
+                              if (item.publicId) {
+                                deleteContentFile(item.publicId, item.resourceType || "raw").catch(() => {});
+                              }
+                              removeContentItem(item.id);
+                            }}
+                            className="shrink-0 grid h-6 w-6 place-items-center rounded-full border border-rose-200 bg-white text-rose-400 hover:bg-rose-50 transition text-sm"
+                          >
+                            ×
+                          </button>
                         </li>
                       ))}
                     </ul>

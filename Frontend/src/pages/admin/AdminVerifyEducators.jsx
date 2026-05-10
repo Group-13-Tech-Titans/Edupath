@@ -6,13 +6,13 @@ import AdminFooter from "./AdminFooter.jsx";
 const mockRecentRequests = [
   {
     id: "req-1001",
-    fullName: "Amal Perera",
-    email: "amal.perera@edupath.com",
+    fullName: "Yasindu Gunasekara",
+    email: "yasindu.gunasekara@edupath.com",
     field: "Software Engineering",
     educationLevel: "BSc",
     courseCount: 4,
     submittedAt: "2026-02-10T10:30:00.000Z",
-    docs: { nic: true, certificate: true, portfolio: "https://portfolio.example/john" },
+    docs: { nic: true, certificate: true, portfolio: "https://www.linkedin.com/in/yasindu-gunasekara-5a247a27b/" },
   },
   {
     id: "req-1002",
@@ -58,12 +58,12 @@ const AdminVerifyEducators = () => {
                 Recent educator verification requests submitted to the platform.
               </p>
             </div>
-            <a
+            {/* <a
               href="/coming-soon"
               className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary/90"
             >
               View All Requests
-            </a>
+            </a> */}
           </div>
         </div>
 
@@ -72,12 +72,12 @@ const AdminVerifyEducators = () => {
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-text-dark">Requests</h2>
             <span className="text-xs text-muted">
-              <a
+              {/* <a
               href="/coming-soon"
               className=" px-4 py-2 text-xs font-semibold text-black hover:bg-primary/90 hover:text-white rounded-full"
             >
               View All
-            </a>
+            </a> */}
             </span>
           </div>
 
