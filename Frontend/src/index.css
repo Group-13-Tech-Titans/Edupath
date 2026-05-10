@@ -7,6 +7,15 @@
     @apply font-sans text-text-dark bg-gradient-to-b from-bg-mint to-bg-mint-light;
   }
 
+  * {
+    -ms-overflow-style: none;  
+    scrollbar-width: none;    
+  }
+  
+  *::-webkit-scrollbar {
+    display: none;             
+  }
+
   ::selection {
     @apply bg-primary/20;
   }
@@ -25,4 +34,3 @@
     @apply inline-flex items-center justify-center rounded-full border border-primary text-primary px-6 py-2 font-medium hover:bg-primary/5 transition;
   }
 }
-
