@@ -1,22 +1,82 @@
 const Pathway = require("../models/Pathway");
-const { generatePathway } = require("../../../services/aiService");
+const Specialization = require("../../specializations/models/specialization");
 
-// ==========================================
-//          STUDENT LOGIC (EXISTING)
-// ==========================================
+const MAX_ACTIVE_PATHWAYS = 3;
+const MIN_FUZZY_LENGTH = 4;
+const STATUS = {
+  IN_PROGRESS: "in-progress",
+  COMPLETED: "completed",
+  DRAFT: "draft",
+  PUBLISHED: "published",
+};
 
-// ✅ CREATE / LOAD PATHWAY
+/**
+ * SMART FUZZY MATCH ENGINE
+ * Normalizes strings to match specialized tags (e.g., "ui-ux" equals "UI/UX Design").
+ * Prevents global duplicate creations.
+ *
+ * @param {string} name1
+ * @param {string} name2
+ * @returns {boolean} True if matched
+ */
+
+const fuzzyMatch = (name1, name2) => {
+  // Edge case handling: Ensure inputs exist and are strictly strings
+  if (!name1 || !name2 || typeof name1 !== "string" || typeof name2 !== "string") return false;
+  
+  // Strip spaces, dashes, slashes, and make lowercase
+  const n1 = name1.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const n2 = name2.toLowerCase().replace(/[^a-z0-9]/g, "");
+  
+  if (!n1 || !n2) return false;
+  if (n1 === n2) return true; // Direct match
+  
+  // Domain-specific rule mapping
+  if (n1.startsWith('uiux') && n2.startsWith('uiux')) return true;
+  if (n1.startsWith('fullstack') && n2.startsWith('fullstack')) return true;
+
+  // General substring match (avoids matching tiny strings by using MIN_FUZZY_LENGTH)
+  if (n1.length > MIN_FUZZY_LENGTH && n2.includes(n1)) return true;
+  if (n2.length > MIN_FUZZY_LENGTH && n1.includes(n2)) return true;
+
+  return false;
+};
+
+// STUDENT LOGIC (MULTI-PATHWAY)
 exports.createPathway = async (req, res) => {
   try {
     const user = req.user;
 
-    // ❌ Quiz not completed
+    // Validate user state
     if (!user.quizCompleted) {
-      return res.status(400).json({ message: "Complete quiz first" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Complete quiz first" });
     }
 
-    // ✅ Check existing pathway
-    let existingPathway = await Pathway.findOne({ userId: user._id });
+    // Ensure Student can only create maximum 3 PathWays
+    const activeCount = await Pathway.countDocuments({
+      userId: user._id,
+      isTemplate: false,
+    });
+
+    if (activeCount >= MAX_ACTIVE_PATHWAYS) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message:
+            `You can only have up to ${MAX_ACTIVE_PATHWAYS} active pathways. Please delete one to start a new journey.`,
+        });
+    }
+
+    // Prevent duplicate pathway creation on double-clicks
+    let existingPathway = await Pathway.findOne({
+      userId: user._id,
+      pathName: user.learningPath,
+      level: user.level,
+      isTemplate: false,
+    });
 
     if (existingPathway) {
       return res.json({
@@ -25,143 +85,227 @@ exports.createPathway = async (req, res) => {
       });
     }
 
-    // 🔥 Generate new pathway (AI or static)
-    const steps = await generatePathway({
-      path: user.learningPath,
+    // Try to find the exact matching published template
+    let template = await Pathway.findOne({
+      isTemplate: true,
+      status: STATUS.PUBLISHED,
+      pathName: user.learningPath,
       level: user.level,
     });
 
-    // ✅ Format steps
-    const formattedSteps = steps.map((step, index) => ({
-      ...step,
-      order: index + 1,
-      isUnlocked: index === 0,
+    // Fallback: Find ANY level for that specific path
+    if (!template) {
+      template = await Pathway.findOne({
+        isTemplate: true,
+        status: STATUS.PUBLISHED,
+        pathName: user.learningPath,
+      });
+    }
+
+    // Last Resort Fallback: Find ANY published template to prevent app crash
+    if (!template) {
+      template = await Pathway.findOne({
+        isTemplate: true,
+        status: STATUS.PUBLISHED,
+      });
+    }
+
+    // If the database is completely empty of templates
+    if (!template) {
+      return res.status(404).json({
+        success: false,
+        message: "No curriculum templates are currently available. Please contact an admin."
+      });
+    }
+
+    // Map over the DB template to format it for the specific student
+    const formattedSteps = template.steps.map((step, index) => ({
+      title: step.title,
+      description: step.description,
+      type: step.type,
+      resources: step.resources || [],
+      linkedCourses: step.linkedCourses || [],
+      quiz: step.quiz || [],
+      order: step.order || index + 1,
+      isUnlocked: index === 0, // Unlock only the first step
       isCompleted: false,
     }));
 
-    // ✅ Save pathway (Note: isTemplate defaults to false)
     const pathway = await Pathway.create({
       userId: user._id,
-      pathName: user.learningPath,
-      level: user.level,
-      status: "in-progress",
+      originalTemplateId: template._id, // Track where this curriculum came from
+      pathName: template.pathName,      // Use template's official name
+      level: template.level,
+      status: STATUS.IN_PROGRESS,
       steps: formattedSteps,
     });
 
-    res.json({ message: "New pathway created", pathway });
+    res.status(201).json({ success: true, message: "New pathway created from database template", pathway });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Error in createPathway:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "An internal server error occurred." });
   }
 };
 
-// ✅ COMPLETE STEP + UNLOCK NEXT
 exports.completeStep = async (req, res) => {
   try {
     const { pathwayId, stepOrder } = req.body;
+
+    // Input Validation
+    if (!pathwayId || stepOrder == null) {
+        return res.status(400).json({ success: false, message: "Missing pathwayId or stepOrder" });
+    }
 
     const pathway = await Pathway.findOne({
       _id: pathwayId,
       userId: req.user._id,
     });
 
-    if (!pathway) return res.status(404).json({ message: "Pathway not found" });
+    if (!pathway)
+      return res
+        .status(404)
+        .json({ success: false, message: "Pathway not found" });
 
     const step = pathway.steps.find((s) => s.order === stepOrder);
 
-    if (!step) return res.status(404).json({ message: "Step not found" });
+    if (!step)
+      return res
+        .status(404)
+        .json({ success: false, message: "Step not found" });
     if (!step.isUnlocked)
-      return res.status(400).json({ message: "Step is locked" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Step is locked" });
     if (step.isCompleted)
-      return res.status(400).json({ message: "Step already completed" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Step already completed" });
 
-    // ✅ Mark completed
     step.isCompleted = true;
 
-    // 🔓 Unlock next step
-    const nextStep = pathway.steps.find((s) => s.order === stepOrder + 1);
+    // Auto-unlock next step
+    const nextStep = pathway.steps.find((step) => step.order === stepOrder + 1);
     if (nextStep) nextStep.isUnlocked = true;
 
+    // Check if entire pathway is completed
     const isFullyComplete = pathway.steps.every(
       (step) => step.isCompleted === true,
     );
 
     if (isFullyComplete) {
-      pathway.status = "completed"; // Finished!
+      pathway.status = STATUS.COMPLETED;
     } else {
-      pathway.status = "in-progress"; // Automatically fixes old 'draft' records!
+      pathway.status = STATUS.IN_PROGRESS;
     }
 
     await pathway.save();
 
-    res.json({ message: "Step completed successfully", pathway });
+    res.json({
+      success: true,
+      message: "Step completed successfully",
+      pathway,
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Error in completeStep:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "An internal server error occurred." });
   }
 };
 
-// ✅ GET USER PATHWAY (AUTO LOAD)
+// GET ALL PATHWAYS FOR STUDENT
 exports.getMyPathway = async (req, res) => {
   try {
-    const pathway = await Pathway.findOne({ userId: req.user._id });
+    // Returns an Array of all student's pathways, most recently updated first
+    const pathways = await Pathway.find({
+      userId: req.user._id,
+      isTemplate: false,
+    }).sort({ updatedAt: -1 });
 
-    if (!pathway) {
-      return res.json({ message: "No pathway yet", hasPathway: false });
+    if (!pathways || pathways.length === 0) {
+      return res.json({
+        success: false,
+        message: "No pathways yet",
+        hasPathway: false,
+        pathways: [],
+      });
     }
 
-    res.json({ hasPathway: true, pathway });
+    res.json({ success: true, hasPathway: true, pathways });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Error in getMyPathway:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "An internal server error occurred." });
   }
 };
 
-// ✅ SYNC ALL STEPS (Handles Admin Updates & New Steps Safely)
+// SYNC SPECIFIC PATHWAY (requires pathwayId from frontend)
 exports.syncPathwaySteps = async (req, res) => {
   try {
-    // Notice we are expecting the full 'steps' array now from the frontend
-    const { steps } = req.body;
+    const { pathwayId, steps } = req.body;
 
-    if (!steps || steps.length === 0) {
+    if (!pathwayId)
+      return res
+        .status(400)
+        .json({ success: false, message: "Pathway ID required for syncing." });
+    if (!steps || steps.length === 0)
       return res.json({ success: true, message: "No steps to sync" });
-    }
 
-    // $set completely replaces the student's old steps array with the newly synced one.
-    // This is 100% atomic and permanently prevents duplicate race conditions.
     const pathway = await Pathway.findOneAndUpdate(
-      { userId: req.user._id, isTemplate: false },
+      { _id: pathwayId, userId: req.user._id, isTemplate: false },
       { $set: { steps: steps } },
       { new: true },
     );
 
-    if (!pathway) return res.status(404).json({ message: "Pathway not found" });
+    if (!pathway)
+      return res
+        .status(404)
+        .json({ success: false, message: "Pathway not found" });
 
     res.json({ success: true, message: "Pathway synchronized perfectly" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Error in syncPathwaySteps:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "An internal server error occurred." });
   }
 };
 
-// ==========================================
-//       ADMIN / REVIEWER LOGIC (UPDATED)
-// ==========================================
+// ADMIN / REVIEWER LOGIC
 
-// ✅ CREATE TEMPLATE PATHWAY (Admin & Reviewer)
 exports.createTemplatePathway = async (req, res) => {
   try {
     let { pathName, level } = req.body;
 
-    // 🛡️ SECURITY: Enforce Reviewer Specialization
     if (req.user.role === "reviewer") {
-      // If they didn't provide a pathName, default to their specialization
-      if (!pathName) {
-        pathName = req.user.specializationTag;
+      const spec = await Specialization.findOne({
+        slug: req.user.specializationTag,
+      });
+      if (!spec) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            message: "Reviewer specialization not found in database.",
+          });
       }
-      // If they tried to create a pathway outside their specialization, block it
-      else if (pathName !== req.user.specializationTag) {
-        return res.status(403).json({
-          success: false,
-          message: `Reviewers can only create pathways for their specialization: ${req.user.specializationTag}`,
-        });
-      }
+      pathName = spec.name;
+    }
+
+    const existingPathway = await Pathway.findOne({
+      pathName,
+      level,
+      isTemplate: true,
+    });
+
+    if (existingPathway) {
+      return res.status(400).json({
+        success: false,
+        message: `A ${level} pathway for "${pathName}" already exists. Only 1 pathway per level is allowed.`,
+      });
     }
 
     const template = await Pathway.create({
@@ -169,234 +313,352 @@ exports.createTemplatePathway = async (req, res) => {
       createdBy: req.user._id,
       pathName,
       level,
-      status: "draft",
+      status: STATUS.DRAFT,
       steps: [],
     });
 
     res.status(201).json({ success: true, template });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // 11000 is the MongoDB Duplicate Key Error Code
+    if (err.code === 11000) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message:
+            "This level and specialization combination already exists globally.",
+        });
+    }
+    console.error("Error in createTemplatePathway:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "An internal server error occurred." });
   }
 };
 
-// ✅ GET ALL TEMPLATE PATHWAYS (Admin & Reviewer)
 exports.getTemplatePathways = async (req, res) => {
   try {
     let query = { isTemplate: true };
 
-    // 🛡️ SECURITY: Reviewers only see templates matching their specialization
+    // Filter what a reviewer is allowed to see
     if (req.user.role === "reviewer") {
-      query.pathName = req.user.specializationTag;
+      const spec = await Specialization.findOne({
+        slug: req.user.specializationTag,
+      });
+      const officialName = spec ? spec.name : req.user.specializationTag;
+
+      query.pathName = { $in: [officialName, req.user.specializationTag] };
     }
 
     const templates = await Pathway.find(query);
     res.status(200).json({ success: true, count: templates.length, templates });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Error in getTemplatePathways:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "An internal server error occurred." });
   }
 };
 
-// ✅ ADD STEP TO TEMPLATE PATHWAY (Admin & Reviewer)
+exports.getTemplateById = async (req, res) => {
+  try {
+    const template = await Pathway.findOne({
+      _id: req.params.id,
+      isTemplate: true,
+    });
+
+    if (!template) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Template not found" });
+    }
+
+    // Verify reviewer owns this specific template
+    if (req.user.role === "reviewer") {
+      const spec = await Specialization.findOne({
+        slug: req.user.specializationTag,
+      });
+      const officialName = spec ? spec.name : req.user.specializationTag;
+
+      if (
+        template.pathName !== officialName &&
+        template.pathName !== req.user.specializationTag
+      ) {
+        return res
+          .status(403)
+          .json({ success: false, message: "Unauthorized access" });
+      }
+    }
+
+    res.status(200).json({ success: true, template });
+  } catch (err) {
+    console.error("Error in getTemplateById:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "An internal server error occurred." });
+  }
+};
+
+exports.updateTemplate = async (req, res) => {
+  try {
+    let { pathName, level, steps } = req.body;
+
+    const templateToUpdate = await Pathway.findOne({
+      _id: req.params.id,
+      isTemplate: true,
+    });
+    if (!templateToUpdate) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Template not found." });
+    }
+
+    if (req.user.role === "reviewer") {
+      const spec = await Specialization.findOne({
+        slug: req.user.specializationTag,
+      });
+      const officialName = spec ? spec.name : req.user.specializationTag;
+
+      if (
+        templateToUpdate.pathName !== officialName &&
+        templateToUpdate.pathName !== req.user.specializationTag
+      ) {
+        return res
+          .status(403)
+          .json({ success: false, message: "Unauthorized" });
+      }
+
+      pathName = officialName;
+    }
+
+    // Ensure update doesn't violate unique constraints
+    if (
+      templateToUpdate.level !== level ||
+      templateToUpdate.pathName !== pathName
+    ) {
+      const existingPathway = await Pathway.findOne({
+        pathName,
+        level,
+        isTemplate: true,
+        _id: { $ne: req.params.id },
+      });
+
+      if (existingPathway) {
+        return res.status(400).json({
+          success: false,
+          message: `A ${level} pathway for "${pathName}" already exists.`,
+        });
+      }
+    }
+
+    templateToUpdate.pathName = pathName;
+    templateToUpdate.level = level;
+    templateToUpdate.steps = steps || templateToUpdate.steps;
+
+    await templateToUpdate.save();
+
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: "Template updated",
+        template: templateToUpdate,
+      });
+  } catch (err) {
+    if (err.code === 11000) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message:
+            "This level and specialization combination already exists globally.",
+        });
+    }
+    console.error("Error in updateTemplate:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "An internal server error occurred." });
+  }
+};
+
 exports.addStepToTemplate = async (req, res) => {
   try {
     const { templateId } = req.params;
-    
-    // 🟢 FIXED: We must explicitly extract the new 'resources' and 'quiz' arrays!
     const { title, description, type, resources, quiz, linkedCourses, order } = req.body;
 
-    let query = { _id: templateId, isTemplate: true };
-    // 🛡️ SECURITY: Ensure reviewers only edit their own specializations
-    if (req.user.role === "reviewer") {
-      query.pathName = req.user.specializationTag;
+    const template = await Pathway.findOne({
+      _id: templateId,
+      isTemplate: true,
+    });
+
+    if (
+      !template ||
+      (req.user.role === "reviewer" &&
+        !fuzzyMatch(template.pathName, req.user.specializationTag))
+    ) {
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "Template not found or unauthorized",
+        });
     }
 
-    const template = await Pathway.findOne(query);
-
-    if (!template) {
-      return res.status(404).json({
-        success: false,
-        message: "Template not found or unauthorized",
-      });
-    }
-
-    // 🟢 FIXED: Push the new arrays into the database step
     template.steps.push({
       title,
       description,
       type,
-      resources: resources || [], // Save learning materials
+      resources: resources || [],
       linkedCourses: linkedCourses || [],
-      quiz: quiz || [],           // Save the quizzes
+      quiz: quiz || [],
       order,
       isUnlocked: true,
       isCompleted: false,
     });
 
     await template.save();
-
     res
       .status(200)
       .json({ success: true, message: "Step added to template", template });
   } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// ✅ GET SINGLE TEMPLATE BY ID (Admin & Reviewer)
-exports.getTemplateById = async (req, res) => {
-  try {
-    let query = { _id: req.params.id, isTemplate: true };
-    if (req.user.role === "reviewer")
-      query.pathName = req.user.specializationTag;
-
-    const template = await Pathway.findOne(query);
-    if (!template) {
-      return res.status(404).json({
-        success: false,
-        message: "Template not found or unauthorized",
-      });
-    }
-    res.status(200).json({ success: true, template });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// ✅ UPDATE ENTIRE TEMPLATE & STEPS (Admin & Reviewer)
-exports.updateTemplate = async (req, res) => {
-  try {
-    const { pathName, level, steps } = req.body;
-
-    let query = { _id: req.params.id, isTemplate: true };
-
-    // 🛡️ SECURITY: Reviewer Checks
-    if (req.user.role === "reviewer") {
-      query.pathName = req.user.specializationTag; // Must belong to their specialization
-
-      // Block them from attempting to rename the pathway to a different specialization
-      if (pathName && pathName !== req.user.specializationTag) {
-        return res.status(403).json({
-          success: false,
-          message:
-            "Reviewers cannot change the specialization topic of a pathway.",
-        });
-      }
-    }
-
-    const template = await Pathway.findOneAndUpdate(
-      query,
-      { pathName, level, steps },
-      { returnDocument: "after", runValidators: true },
-    );
-
-    if (!template) {
-      return res.status(404).json({
-        success: false,
-        message: "Template not found or unauthorized",
-      });
-    }
-
+    console.error("Error in addStepToTemplate:", err);
     res
-      .status(200)
-      .json({ success: true, message: "Template updated", template });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+      .status(500)
+      .json({ success: false, message: "An internal server error occurred." });
   }
 };
 
-// ✅ DELETE TEMPLATE PATHWAY (Admin & Reviewer)
 exports.deleteTemplatePathway = async (req, res) => {
   try {
-    let query = { _id: req.params.id, isTemplate: true };
-    if (req.user.role === "reviewer")
-      query.pathName = req.user.specializationTag;
+    const template = await Pathway.findOne({
+      _id: req.params.id,
+      isTemplate: true,
+    });
 
-    const template = await Pathway.findOneAndDelete(query);
-
-    if (!template) {
-      return res.status(404).json({
-        success: false,
-        message: "Template not found or unauthorized",
-      });
+    if (
+      !template ||
+      (req.user.role === "reviewer" &&
+        !fuzzyMatch(template.pathName, req.user.specializationTag))
+    ) {
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "Template not found or unauthorized",
+        });
     }
 
+    await Pathway.deleteOne({ _id: req.params.id });
     res
       .status(200)
       .json({ success: true, message: "Template deleted successfully" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Error in deleteTemplatePathway:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "An internal server error occurred." });
   }
 };
 
-// ✅ UPDATE TEMPLATE STATUS (Admin & Reviewer)
 exports.updateTemplateStatus = async (req, res) => {
   try {
     const { status } = req.body;
 
-    let query = { _id: req.params.id, isTemplate: true };
-    if (req.user.role === "reviewer")
-      query.pathName = req.user.specializationTag;
+    const templateToUpdate = await Pathway.findOne({
+      _id: req.params.id,
+      isTemplate: true,
+    });
 
-    const template = await Pathway.findOneAndUpdate(
-      query,
-      { status },
-      { returnDocument: "after" },
-    );
-
-    if (!template) {
-      return res.status(404).json({
-        success: false,
-        message: "Template not found or unauthorized",
-      });
+    if (
+      !templateToUpdate ||
+      (req.user.role === "reviewer" &&
+        !fuzzyMatch(templateToUpdate.pathName, req.user.specializationTag))
+    ) {
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "Template not found or unauthorized",
+        });
     }
 
-    res.status(200).json({ success: true, template });
+    templateToUpdate.status = status;
+    await templateToUpdate.save();
+
+    res.status(200).json({ success: true, template: templateToUpdate });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Error in updateTemplateStatus:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "An internal server error occurred." });
   }
 };
 
-// ✅ GET PUBLISHED TEMPLATES (For Students to browse)
 exports.getPublishedTemplates = async (req, res) => {
   try {
     const templates = await Pathway.find({
       isTemplate: true,
-      status: "published",
+      status: STATUS.PUBLISHED,
     });
     res.status(200).json({ success: true, templates });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Error in getPublishedTemplates:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "An internal server error occurred." });
   }
 };
 
-// ✅ ENROLL IN A TEMPLATE (Student)
+// ENROLL IN A TEMPLATE (Enforces Max 3 Rule)
 exports.enrollInTemplate = async (req, res) => {
   try {
     const { templateId } = req.params;
 
-    // 1. Find the published template
+    // ENFORCE MAX 3 PATHWAYS RULE
+    const activeCount = await Pathway.countDocuments({
+      userId: req.user._id,
+      isTemplate: false,
+    });
+    if (activeCount >= MAX_ACTIVE_PATHWAYS) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message:
+            `You can only have up to ${MAX_ACTIVE_PATHWAYS} active pathways. Please delete one to enroll in a new journey.`,
+        });
+    }
+
     const template = await Pathway.findOne({
       _id: templateId,
       isTemplate: true,
-      status: "published",
+      status: STATUS.PUBLISHED,
     });
     if (!template) {
       return res
         .status(404)
-        .json({ message: "Template not found or not available" });
+        .json({
+          success: false,
+          message: "Template not found or not available",
+        });
     }
 
-    // 2. Check if student is already enrolled in this specific pathway
     const existing = await Pathway.findOne({
       userId: req.user._id,
-      originalTemplateId: template._id, // <-- Changed this line
+      originalTemplateId: template._id,
       isTemplate: false,
     });
     if (existing) {
-      return res.status(400).json({ message: "You are already enrolled in this specific pathway." });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "You are already enrolled in this specific pathway.",
+        });
     }
 
-    // 3. Copy and format the steps for the student (Unlock only the first one)
+    // Map over the template steps to create a copy for the user.
+    // This ensures that user progress (isCompleted) doesn't affect the master template.
     const formattedSteps = template.steps.map((step, index) => ({
       title: step.title,
       description: step.description,
@@ -409,14 +671,13 @@ exports.enrollInTemplate = async (req, res) => {
       isCompleted: false,
     }));
 
-    // 4. Create the student's personal tracking pathway
     const newPathway = await Pathway.create({
       userId: req.user._id,
       isTemplate: false,
-      originalTemplateId: template._id, // <-- ADD THIS LINE HERE
+      originalTemplateId: template._id,
       pathName: template.pathName,
       level: template.level,
-      status: "in-progress",
+      status: STATUS.IN_PROGRESS,
       steps: formattedSteps,
     });
 
@@ -426,91 +687,103 @@ exports.enrollInTemplate = async (req, res) => {
       pathway: newPathway,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Error in enrollInTemplate:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "An internal server error occurred." });
   }
 };
 
-// ✅ SUBMIT QUIZ & GET RECOMMENDATION (Student)
 exports.recommendPathway = async (req, res) => {
   try {
     const { pathName, level } = req.body;
 
     if (!pathName || !level) {
-      return res.status(400).json({ message: "Missing required path data." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing required path data." });
     }
 
-    // 🟢 FOOLPROOF FIX: No need to require() the User model!
-    // Since authMiddleware already gave us the user document, we just update and save it.
     req.user.quizCompleted = true;
     req.user.learningPath = pathName;
     req.user.level = level;
-    
-    await req.user.save(); // Saves directly to MongoDB!
 
-    // Search for the exact matching published Template
+    await req.user.save();
+
     let matchingTemplate = await Pathway.findOne({
       isTemplate: true,
-      status: "published",
+      status: STATUS.PUBLISHED,
       pathName: pathName,
-      level: level
+      level: level,
     });
 
-    // Fallback 1: If that specific level isn't found, find ANY published template for that path
     if (!matchingTemplate) {
       matchingTemplate = await Pathway.findOne({
         isTemplate: true,
-        status: "published",
-        pathName: pathName
+        status: STATUS.PUBLISHED,
+        pathName: pathName,
       });
     }
 
-    // Final Fallback: Just give them the first published template available
     if (!matchingTemplate) {
       matchingTemplate = await Pathway.findOne({
         isTemplate: true,
-        status: "published"
+        status: STATUS.PUBLISHED,
       });
     }
 
     res.status(200).json({
       success: true,
       message: "Pathway recommended successfully",
-      template: matchingTemplate
+      template: matchingTemplate,
     });
-
   } catch (err) {
-    console.error("RECOMMENDATION ERROR:", err.message); 
-    res.status(500).json({ error: err.message });
+    console.error("Error in recommendPathway:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "An internal server error occurred." });
   }
 };
 
-// ✅ DELETE STUDENT PATHWAY (Restart Journey)
+// DELETE SPECIFIC PATHWAY (requires an ID)
 exports.deleteMyPathway = async (req, res) => {
   try {
-    // 1. Delete the student's active pathway
+    const pathwayId = req.params.id; // Target specific ID
+
     const pathway = await Pathway.findOneAndDelete({
+      _id: pathwayId,
       userId: req.user._id,
-      isTemplate: false
+      isTemplate: false,
     });
 
     if (!pathway) {
-      return res.status(404).json({ success: false, message: "No active pathway found." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Pathway not found." });
     }
 
-    // 2. 🟢 FOOLPROOF FIX: Reset the User's profile using req.user directly!
-    // No need to require() the User model, avoiding the 500 crash.
-    req.user.quizCompleted = false;
-    req.user.learningPath = null;
-    req.user.level = null;
-    
-    await req.user.save(); // Saves directly to MongoDB
+    // Check if they have ANY remaining pathways
+    const remainingCount = await Pathway.countDocuments({
+      userId: req.user._id,
+      isTemplate: false,
+    });
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Pathway deleted successfully. You can now start over." 
+    // Only reset their master profile tags if they deleted their VERY LAST pathway
+    if (remainingCount === 0) {
+      req.user.quizCompleted = false;
+      req.user.learningPath = null;
+      req.user.level = null;
+      await req.user.save();
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Pathway deleted successfully.",
     });
   } catch (err) {
-    console.error("DELETE PATHWAY ERROR:", err.message);
-    res.status(500).json({ error: err.message });
+    console.error("Error in deleteMyPathway:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "An internal server error occurred." });
   }
 };

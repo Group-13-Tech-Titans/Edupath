@@ -1,10 +1,20 @@
+/**
+ * PATH FINDER COMPONENT (STUDENT ONBOARDING WIZARD)
+ * Interactive questionnaire that recommends a curriculum based on user selections.
+ * Design Patterns: Wizard Pattern, Controlled State, Concurrent Data Fetching, Optimistic UI.
+ */
+
 import React, { useState, useEffect } from "react";
+import PropTypes from "prop-types";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import PageShell from "../../components/PageShell.jsx";
 
-// 🟢 NEW: Configuration for the level UI to keep it looking beautiful
+// --- CONFIGURATION CONSTANTS ---
+const API_BASE_URL = "http://localhost:5000/api";
+const MAX_ACTIVE_PATHWAYS = 3;
+
 const LEVEL_UI_CONFIG = {
   "Beginner": {
     title: "Absolute Beginner",
@@ -25,48 +35,83 @@ const LEVEL_UI_CONFIG = {
 
 const PathFinder = () => {
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   
-  // Dynamic Options from Database
-  const [allTemplates, setAllTemplates] = useState([]); // 🟢 NEW: Store all raw templates
+  // UI State
+  const [currentStep, setCurrentStep] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [limitReached, setLimitReached] = useState(false);
+  
+  // Data State
+  const [allTemplates, setAllTemplates] = useState([]); 
   const [availablePaths, setAvailablePaths] = useState([]);
+  const [specializations, setSpecializations] = useState([]);
   const [recommendedTemplate, setRecommendedTemplate] = useState(null);
 
-  // Store student answers
+  // Form State
   const [answers, setAnswers] = useState({
     pathName: "",
     level: "",
   });
 
-  // Fetch available pathways on load
   useEffect(() => {
-    const fetchAvailablePaths = async () => {
+    const initializePathFinder = async () => {
       try {
         const token = localStorage.getItem("edupath_token");
-        const { data } = await axios.get("http://localhost:5000/api/pathway/published", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const config = { headers: { Authorization: `Bearer ${token}` } };
         
-        setAllTemplates(data.templates); // 🟢 Store everything so we can filter levels later
+        // 🟢 OPTIMIZATION: Resolves Network Waterfall by fetching data concurrently
+        const [specRes, myDataRes, publishedRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/specializations`, config).catch(() => ({ data: { specializations: [] } })),
+          axios.get(`${API_BASE_URL}/pathway/my`, config),
+          axios.get(`${API_BASE_URL}/pathway/published`, config)
+        ]);
 
-        // Extract unique pathNames from the published templates
-        const uniquePaths = [...new Set(data.templates.map(t => t.pathName))];
+        // 1. Map Specializations
+        setSpecializations(specRes.data.specializations || []);
+
+        // 2. Enforce Business Logic Limits
+        if (myDataRes.data.hasPathway && myDataRes.data.pathways?.length >= MAX_ACTIVE_PATHWAYS) {
+          setLimitReached(true);
+          setIsLoading(false);
+          return; // Early return to block rendering the wizard
+        }
+
+        // 3. Populate Available Published Paths
+        const templates = publishedRes.data.templates || [];
+        setAllTemplates(templates); 
+        
+        // Extract unique path names dynamically
+        const uniquePaths = [...new Set(templates.map(t => t.pathName))];
         setAvailablePaths(uniquePaths);
-        setLoading(false);
+        
+        setIsLoading(false);
       } catch (err) {
-        console.error(err);
-        setError("Failed to load available pathways.");
-        setLoading(false);
+        console.error("Initialization error:", err);
+        setError("Failed to load available pathways. Please try again.");
+        setIsLoading(false);
       }
     };
-    fetchAvailablePaths();
+    
+    initializePathFinder();
   }, []);
+
+  // --- HELPERS ---
+  
+  const getPathwayName = (val) => {
+    if (!val) return "";
+    const found = specializations.find(s => s.slug === val || s.name === val);
+    if (found) return found.name;
+    
+    if (val.includes(" ")) return val;
+    if (val.toLowerCase() === "ui-ux") return "UI/UX Design";
+    return val.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  };
 
   const handleSelect = (field, value) => {
     setAnswers((prev) => ({ ...prev, [field]: value }));
     
+    // Slight delay for UX so the user sees their selection highlight before transitioning
     setTimeout(() => {
       if (currentStep === 1) setCurrentStep(2);
       if (currentStep === 2) handleSubmitQuiz({ ...answers, [field]: value });
@@ -75,64 +120,85 @@ const PathFinder = () => {
 
   const handleSubmitQuiz = async (finalAnswers) => {
     try {
-      setLoading(true);
+      setIsLoading(true);
       setCurrentStep(3); 
-      
       const token = localStorage.getItem("edupath_token");
       
       const { data } = await axios.post(
-        "http://localhost:5000/api/pathway/recommend",
+        `${API_BASE_URL}/pathway/recommend`,
         finalAnswers,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       setRecommendedTemplate(data.template);
-      setLoading(false);
+      setIsLoading(false);
     } catch (err) {
       console.error(err);
-      alert("Something went wrong while analyzing your profile.");
-      setLoading(false);
+      setError("Something went wrong while analyzing your profile.");
+      setIsLoading(false);
     }
   };
 
   const handleEnrollAndStart = async () => {
     try {
-      setLoading(true);
+      setIsLoading(true);
       const token = localStorage.getItem("edupath_token");
       
-      await axios.post(
-        `http://localhost:5000/api/pathway/enroll/${recommendedTemplate._id}`,
+      const { data } = await axios.post(
+        `${API_BASE_URL}/pathway/enroll/${recommendedTemplate._id}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // 🟢 FIXED: Add { replace: true } so they can't hit the "Back" button to return to the quiz
-      navigate("/student/journey", { replace: true });
-      
+      navigate("/student/journey", { replace: true, state: { pathwayId: data.pathway._id } });
     } catch (err) {
-      alert("Failed to enroll in the pathway.");
-      setLoading(false);
+      alert(err?.response?.data?.message || "Failed to enroll in the pathway.");
+      setIsLoading(false);
     }
   };
 
-  // 🟢 NEW: Calculate which levels actually exist for the selected path
+  // Derive available levels dynamically based on what the user picked in Step 1
   const availableLevelsForSelectedPath = answers.pathName 
     ? [...new Set(allTemplates.filter(t => t.pathName === answers.pathName).map(t => t.level))]
     : [];
 
-  if (loading && currentStep === 1) return <PageShell><div className="p-10 text-center">Loading paths...</div></PageShell>;
-  if (error) return <PageShell><div className="p-10 text-center text-red-500">{error}</div></PageShell>;
+  // --- EARLY RETURNS ---
+  
+  if (isLoading && currentStep === 1) return <PageShell><div className="p-10 text-center font-bold text-slate-500">Loading your learning paths...</div></PageShell>;
+  if (error && currentStep === 1) return <PageShell><div className="p-10 text-center font-bold text-red-500">{error}</div></PageShell>;
 
+  if (limitReached) {
+    return (
+      <PageShell>
+        <div className="min-h-[80vh] flex flex-col items-center justify-center p-4">
+          <div className="bg-white/80 backdrop-blur-xl border border-black/5 shadow-2xl rounded-[32px] p-8 md:p-12 text-center max-w-lg">
+            <div className="w-20 h-20 bg-amber-100 text-amber-500 text-4xl rounded-full flex items-center justify-center mx-auto mb-6">⚠️</div>
+            <h2 className="text-3xl font-black text-slate-800 mb-4">Limit Reached</h2>
+            <p className="text-slate-500 mb-8 leading-relaxed">
+              You already have the maximum of {MAX_ACTIVE_PATHWAYS} active learning journeys. To start a new specialization, you must delete an existing one from your dashboard.
+            </p>
+            <button 
+              onClick={() => navigate("/student")}
+              className="bg-slate-800 text-white px-8 py-3.5 rounded-full font-black shadow-xl hover:scale-105 transition-all"
+            >
+              RETURN TO DASHBOARD
+            </button>
+          </div>
+        </div>
+      </PageShell>
+    );
+  }
+
+  // --- MAIN RENDER ---
   return (
     <PageShell>
       <div className="min-h-[80vh] flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-2xl">
           
-          {/* Progress Bar */}
           {currentStep < 3 && (
-            <div className="mb-8 w-full bg-gray-200 rounded-full h-2.5">
+            <div className="mb-8 w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
               <div 
-                className="bg-primary h-2.5 rounded-full transition-all duration-500 ease-out" 
+                className="bg-primary h-full rounded-full transition-all duration-500 ease-out" 
                 style={{ width: currentStep === 1 ? '50%' : '100%' }}
               ></div>
             </div>
@@ -141,7 +207,7 @@ const PathFinder = () => {
           <div className="bg-white/80 backdrop-blur-xl border border-black/5 shadow-2xl rounded-[32px] p-8 md:p-12 overflow-hidden relative min-h-[400px] flex flex-col justify-center">
             
             <AnimatePresence mode="wait">
-              {/* QUESTION 1: DYNAMIC PATHWAYS */}
+              {/* STEP 1: PATH SELECTION */}
               {currentStep === 1 && (
                 <motion.div 
                   key="step1"
@@ -151,13 +217,13 @@ const PathFinder = () => {
                   <p className="text-slate-500 mb-8">Select a specialization to help us customize your curriculum.</p>
                   
                   {availablePaths.length === 0 ? (
-                    <div className="bg-amber-50 text-amber-700 p-4 rounded-xl">No pathways are currently published. Please check back later!</div>
+                    <div className="bg-amber-50 text-amber-700 p-4 rounded-xl font-bold">No pathways are currently published. Please check back later!</div>
                   ) : (
                     <div className="grid gap-4 sm:grid-cols-2">
-                      {availablePaths.map((pathName, idx) => (
+                      {availablePaths.map((pathName) => (
                         <OptionCard 
-                          key={idx}
-                          title={pathName} 
+                          key={pathName} // SonarLint S6479: Uses unique string instead of array index
+                          title={getPathwayName(pathName)} 
                           icon="🎯" 
                           selected={answers.pathName === pathName} 
                           onClick={() => handleSelect("pathName", pathName)} 
@@ -168,18 +234,17 @@ const PathFinder = () => {
                 </motion.div>
               )}
 
-              {/* QUESTION 2: DYNAMIC LEVELS BASED ON SELECTION */}
+              {/* STEP 2: LEVEL SELECTION */}
               {currentStep === 2 && (
                 <motion.div 
                   key="step2"
                   initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}
                 >
-                  <button onClick={() => setCurrentStep(1)} className="text-sm font-bold text-gray-400 hover:text-primary mb-4">← Back</button>
+                  <button onClick={() => setCurrentStep(1)} className="text-sm font-bold text-gray-400 hover:text-primary mb-4 transition-colors">← Back</button>
                   <h2 className="text-3xl font-black text-slate-800 mb-2">What is your current skill level?</h2>
-                  <p className="text-slate-500 mb-8">Select from the available difficulty levels for {answers.pathName}.</p>
+                  <p className="text-slate-500 mb-8">Select from the available difficulty levels for {getPathwayName(answers.pathName)}.</p>
                   
                   <div className="grid gap-4">
-                    {/* 🟢 NEW: Loop through the available levels for this specific path */}
                     {availableLevelsForSelectedPath.map((level) => {
                       const uiData = LEVEL_UI_CONFIG[level] || { title: level, desc: "", icon: "📚" };
                       
@@ -198,56 +263,62 @@ const PathFinder = () => {
                 </motion.div>
               )}
 
-              {/* RESULTS / LOADING */}
+              {/* STEP 3: RESULT & ENROLLMENT */}
               {currentStep === 3 && (
                 <motion.div 
                   key="step3"
                   initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
                   className="text-center py-8"
                 >
-                  {loading ? (
+                  {isLoading ? (
                     <div className="flex flex-col items-center justify-center space-y-6">
                       <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                      <h2 className="text-2xl font-bold text-slate-800">Finding your path...</h2>
+                      <h2 className="text-2xl font-bold text-slate-800">Finding your perfect path...</h2>
                     </div>
                   ) : (
                     <div>
-                      <div className="inline-flex items-center justify-center w-20 h-20 bg-emerald-100 text-emerald-600 text-4xl rounded-full mb-6 shadow-sm">
-                        🎉
-                      </div>
-                      <h2 className="text-3xl font-black text-slate-800 mb-2">We found your path!</h2>
-                      <p className="text-slate-500 mb-8">Based on your answers, here is the best curriculum for you.</p>
-                      
-                      {recommendedTemplate ? (
-                        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 mb-8 text-left relative overflow-hidden">
-                          <div className="absolute top-0 left-0 w-full h-1 bg-primary"></div>
-                          <span className="bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                            {recommendedTemplate.level} Level
-                          </span>
-                          <h3 className="text-2xl font-bold text-slate-800 mt-4 mb-1">{recommendedTemplate.pathName}</h3>
-                          <p className="text-slate-500 text-sm">{recommendedTemplate.steps.length} Curated Learning Steps included.</p>
-                        </div>
+                      {error ? (
+                         <div className="bg-red-50 text-red-600 p-6 rounded-2xl mb-8 font-bold">
+                           {error}
+                         </div>
                       ) : (
-                        <div className="bg-red-50 text-red-600 p-6 rounded-2xl mb-8 font-bold">
-                          We couldn't find a perfect match. Please check back later!
-                        </div>
+                        <>
+                          <div className="inline-flex items-center justify-center w-20 h-20 bg-emerald-100 text-emerald-600 text-4xl rounded-full mb-6 shadow-sm">🎉</div>
+                          <h2 className="text-3xl font-black text-slate-800 mb-2">We found your path!</h2>
+                          <p className="text-slate-500 mb-8">Based on your answers, here is the best curriculum for you.</p>
+                          
+                          {recommendedTemplate ? (
+                            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 mb-8 text-left relative overflow-hidden">
+                              <div className="absolute top-0 left-0 w-full h-1 bg-primary"></div>
+                              <span className="bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                                {recommendedTemplate.level} Level
+                              </span>
+                              <h3 className="text-2xl font-bold text-slate-800 mt-4 mb-1">{getPathwayName(recommendedTemplate.pathName)}</h3>
+                              <p className="text-slate-500 text-sm">{recommendedTemplate.steps.length} Curated Learning Steps included.</p>
+                            </div>
+                          ) : (
+                            <div className="bg-amber-50 text-amber-600 p-6 rounded-2xl mb-8 font-bold border border-amber-200">
+                              We couldn't find a perfect match for that specific level. Please check back later!
+                            </div>
+                          )}
+
+                          <button 
+                            onClick={handleEnrollAndStart}
+                            disabled={!recommendedTemplate || isLoading}
+                            className="bg-primary text-white px-10 py-4 rounded-full font-black text-lg shadow-xl hover:brightness-95 hover:scale-105 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            ENROLL & START JOURNEY
+                          </button>
+                        </>
                       )}
 
-                      <button 
-                        onClick={handleEnrollAndStart}
-                        disabled={!recommendedTemplate || loading}
-                        className="bg-primary text-white px-10 py-4 rounded-full font-black text-lg shadow-xl hover:brightness-95 hover:scale-105 transition-all active:scale-95 disabled:opacity-50"
-                      >
-                        ENROLL & START JOURNEY
-                      </button>
-
-                      {/* Back / Restart Button */}
                       <div className="mt-6">
                         <button 
                           onClick={() => {
                             setCurrentStep(1);
                             setRecommendedTemplate(null);
                             setAnswers({ pathName: "", level: "" });
+                            setError(""); // Clear errors on reset
                           }} 
                           className="text-sm font-bold text-slate-400 hover:text-primary transition-colors"
                         >
@@ -267,6 +338,8 @@ const PathFinder = () => {
   );
 };
 
+// --- SUB-COMPONENTS ---
+
 const OptionCard = ({ title, desc, icon, selected, onClick }) => (
   <button 
     onClick={onClick}
@@ -283,5 +356,14 @@ const OptionCard = ({ title, desc, icon, selected, onClick }) => (
     </div>
   </button>
 );
+
+// SonarLint S6774: Add React PropTypes Validation
+OptionCard.propTypes = {
+  title: PropTypes.string.isRequired,
+  desc: PropTypes.string,
+  icon: PropTypes.string.isRequired,
+  selected: PropTypes.bool.isRequired,
+  onClick: PropTypes.func.isRequired,
+};
 
 export default PathFinder;

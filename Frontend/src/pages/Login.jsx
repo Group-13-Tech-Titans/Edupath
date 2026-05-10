@@ -10,7 +10,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useApp } from "../context/AppProvider.jsx";
 import GoogleAuthButton from "../components/GoogleAuthButton.jsx";
-import { emailRegex } from "../utils/validation"; // Removed passwordRegex from login!
+import { emailRegex } from "../utils/validation"; 
 
 // Dictionary mapping for role-based redirects
 const roleHomePath = {
@@ -21,7 +21,7 @@ const roleHomePath = {
 };
 
 const Login = () => {
-  const { login, setSession } = useApp(); // Accessing global auth state
+  const { login, setSession } = useApp(); 
   const navigate = useNavigate();
 
   // Component State (Controlled Inputs)
@@ -29,7 +29,10 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [errors, setErrors] = useState({});
-  const [isLoading, setIsLoading] = useState(false); // Added loading state for better UX
+  const [isLoading, setIsLoading] = useState(false); 
+  
+  // 🟢 NEW: State to toggle password visibility
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
@@ -38,8 +41,6 @@ const Login = () => {
         credential: credentialResponse.credential,
       });
 
-      // Use setSession! This saves the token to local storage
-      // AND instantly updates the global React state so the ProtectedRoute won't bounce!
       setSession(res.data.token, res.data.user);
 
       const user = res.data.user;
@@ -48,7 +49,7 @@ const Login = () => {
       if (user.role === "pending") {
         target = "/signup/role";
       } else if (user.status === "onboarding") {
-        target = `/signup/${user.role}`; // Forces user to the form!
+        target = `/signup/${user.role}`; 
       } else {
         target = roleHomePath[user.role] || "/";
       }
@@ -66,14 +67,12 @@ const Login = () => {
     e.preventDefault();
     let newErrors = {};
 
-    // Input Validation
     if (!email) {
       newErrors.email = "Please enter email";
     } else if (!emailRegex.test(email)) {
       newErrors.email = "Invalid email format";
     }
 
-    // Only check if password is provided. Never check complexity regex on Login.
     if (!password) {
       newErrors.authInput = "Please enter password";
     }
@@ -81,12 +80,10 @@ const Login = () => {
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
-    // Execute Login via Context
     setIsLoading(true);
     const res = await login(email.trim(), password);
     setIsLoading(false);
 
-    // Handle Error or Success Redirect
     if (!res.success) {
       setError(res.message || "Unable to login");
       return;
@@ -98,7 +95,7 @@ const Login = () => {
     if (user.role === "pending") {
       target = "/signup/role";
     } else if (user.status === "onboarding") {
-      target = `/signup/${user.role}`; // Forces user to the form!
+      target = `/signup/${user.role}`; 
     } else {
       target = roleHomePath[user.role] || "/";
     }
@@ -133,7 +130,6 @@ const Login = () => {
         </div>
 
         <div className="flex justify-center mt-6">
-          {/* Ensure your GoogleAuthButton accepts onSuccess/onError props! */}
           <GoogleAuthButton
             onSuccess={handleGoogleSuccess}
             onError={() => setError("Google sign-in failed")}
@@ -183,14 +179,36 @@ const Login = () => {
                 Forgot Password ?
               </Link>
             </div>
-            <input
-              id="password"
-              type="password"
-              className="w-full rounded-full border border-emerald-100 bg-white/80 px-4 py-2.5 text-sm outline-none ring-primary/40 focus:border-emerald-300 focus:ring"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={isLoading}
-            />
+            
+            {/* 🟢 FIXED: Wrapped input in relative div and added absolute toggle button */}
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                className="w-full rounded-full border border-emerald-100 bg-white/80 pl-4 pr-12 py-2.5 text-sm outline-none ring-primary/40 focus:border-emerald-300 focus:ring"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-emerald-600 transition-colors focus:outline-none"
+                tabIndex="-1" // Keeps it out of normal tab flow
+              >
+                {showPassword ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                  </svg>
+                )}
+              </button>
+            </div>
+            
             {errors.authInput && (
               <p className="text-red-500 text-xs mt-1">{errors.authInput}</p>
             )}
