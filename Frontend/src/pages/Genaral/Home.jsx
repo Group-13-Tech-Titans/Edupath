@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import LandingFooter from "../components/LandingFooter.jsx";
+import LandingFooter from "../../components/LandingFooter.jsx";
 
 
 const ease = [0.22, 1, 0.36, 1];

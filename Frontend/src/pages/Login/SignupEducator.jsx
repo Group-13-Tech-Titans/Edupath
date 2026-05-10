@@ -6,8 +6,8 @@
  */
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useApp } from "../context/AppProvider.jsx";
-import { emailRegex, passwordRegex, contactRegex, urlRegex } from "../utils/validation";
+import { useApp } from "../../context/AppProvider.jsx";
+import { emailRegex, passwordRegex, contactRegex, urlRegex } from "../../utils/validation.js";
 
 const SignupEducator = () => {
   // Grabbed currentUser from context to auto-fill the form

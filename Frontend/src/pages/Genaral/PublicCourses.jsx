@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import PageShell from "../components/PageShell.jsx";
-import { useApp } from "../context/AppProvider.jsx";
+import PageShell from "../../components/PageShell.jsx";
+import { useApp } from "../../context/AppProvider.jsx";
 
 const PublicCourses = () => {
   const { courses } = useApp();

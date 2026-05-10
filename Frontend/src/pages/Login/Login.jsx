@@ -8,9 +8,9 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useApp } from "../context/AppProvider.jsx";
-import GoogleAuthButton from "../components/GoogleAuthButton.jsx";
-import { emailRegex } from "../utils/validation"; // Removed passwordRegex from login!
+import { useApp } from "../../context/AppProvider.jsx";
+import GoogleAuthButton from "../../components/GoogleAuthButton.jsx";
+import { emailRegex } from "../../utils/validation.js"; // Removed passwordRegex from login!
 
 // Dictionary mapping for role-based redirects
 const roleHomePath = {

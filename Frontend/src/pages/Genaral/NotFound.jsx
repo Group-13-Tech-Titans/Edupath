@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import PageShell from "../components/PageShell.jsx";
+import PageShell from "../../components/PageShell.jsx";
 
 const NotFound = () => {
   return (

@@ -8,7 +8,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { passwordRegex } from "../utils/validation";
+import { passwordRegex } from "../../utils/validation";
 
 export default function ResetPassword() {
   const { token } = useParams(); // Extracts the token from the URL (e.g., /reset-password/:token)

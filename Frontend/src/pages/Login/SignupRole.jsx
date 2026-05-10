@@ -7,7 +7,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { useApp } from "../context/AppProvider.jsx";
+import { useApp } from "../../context/AppProvider.jsx";
 
 export default function SignupRole() {
   const navigate = useNavigate();

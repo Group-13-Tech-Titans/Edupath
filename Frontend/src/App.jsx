@@ -9,14 +9,14 @@ import ReviewerLayout from "./components/layouts/ReviewerLayout.jsx";
 import MentorLayout from "./components/layouts/MentorLayout.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
-import Home from "./pages/Home.jsx";
-import Login from "./pages/Login.jsx";
-import Signup from "./pages/Signup.jsx";
-import SignupRole from "./pages/SignupRole.jsx";
-import SignupStudent from "./pages/SignupStudent.jsx";
-import SignupEducator from "./pages/SignupEducator.jsx";
-import ForgotPassword from "./pages/ForgotPassword.jsx";
-import ResetPassword from "./pages/ResetPassword.jsx";
+import Home from "./pages/Genaral/Home.jsx";
+import Login from "./pages/Login/Login.jsx";
+import Signup from "./pages/Login/Signup.jsx";
+import SignupRole from "./pages/Login/SignupRole.jsx";
+import SignupStudent from "./pages/Login/SignupStudent.jsx";
+import SignupEducator from "./pages/Login/SignupEducator.jsx";
+import ForgotPassword from "./pages/Login/ForgotPassword.jsx";
+import ResetPassword from "./pages/Login/ResetPassword.jsx";
 
 import StudentCourses from "./pages/student/StudentCourses.jsx";
 import StudentCourseDetail from "./pages/student/StudentCourseDetail.jsx";
@@ -70,9 +70,9 @@ import MentorMessages from "./pages/mentor/MentorMessages.jsx";
 import MentorStudentDetails from "./pages/mentor/MentorStudentDetails.jsx";
 import MentorAnalytics from "./pages/mentor/MentorAnalytics.jsx";
 
-import ComingSoon from './pages/ComingSoon.jsx';
+import ComingSoon from './pages/Genaral/ComingSoon.jsx';
 
-import NotFound from "./pages/NotFound.jsx";
+import NotFound from "./pages/Genaral/NotFound.jsx";
 
 const App = () => {
   return (
