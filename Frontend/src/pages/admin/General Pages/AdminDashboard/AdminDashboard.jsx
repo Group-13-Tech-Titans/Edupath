@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import PageShell from "../../../../components/PageShell.jsx";
 import { useApp } from "../../../../context/AppProvider.jsx";
 import AdminFooter from "../../../../components/layouts/admin-layouts/AdminFooter.jsx";
-import StudentGrowthChart from "../../chart/StudentGrowthChart.jsx";
+import StudentGrowthChart from "../../chart/StudentGrowthChart/StudentGrowthChart.jsx";
 
 import DashboardHeader from "./DashboardHeader.jsx";
 import PendingEducatorsPreview from "./PendingEducatorsPreview.jsx";
