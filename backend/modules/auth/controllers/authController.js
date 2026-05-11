@@ -1,8 +1,7 @@
 /**
  * AUTHENTICATION CONTROLLER
- * Handles all business logic for user registration, login, role selection, 
+ * Handles all business logic for user registration, login, role selection,
  * password management, and Google OAuth integration.
- * * Design Pattern: MVC (Controller layer)
  * Auth Strategy: Stateless JWT (JSON Web Tokens) + Hybrid Authentication (Local/Google)
  */
 
@@ -10,7 +9,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const sendEmail = require("../../../utils/sendEmail");
-const crypto = require("node:crypto");
+const crypto = require("node:crypto"); // built-in Node.js module used to secure data
 const { OAuth2Client } = require("google-auth-library");
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -47,7 +46,6 @@ exports.googleLogin = async (req, res) => {
       });
     }
 
-    // Logic Flow: Handle positive condition first
     if (user) {
       // User exists (Account Linking): Update missing Google details safely
       if (!user.googleId) user.googleId = googleId;
@@ -82,7 +80,7 @@ exports.googleLogin = async (req, res) => {
   }
 };
 
-
+// Handle user role selection
 exports.selectRole = async (req, res) => {
   try {
     const { role } = req.body;
@@ -117,6 +115,7 @@ exports.selectRole = async (req, res) => {
   }
 };
 
+// Handle user normal registration
 exports.register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -150,6 +149,7 @@ exports.register = async (req, res) => {
   }
 };
 
+// Handle normal/local user login
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -171,6 +171,7 @@ exports.login = async (req, res) => {
   }
 };
 
+// Handle user forgot-password
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -206,6 +207,7 @@ exports.forgotPassword = async (req, res) => {
   }
 };
 
+// Handle user reset password
 exports.resetPassword = async (req, res) => {
   try {
     const { password } = req.body;
@@ -234,6 +236,7 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
+// Get user profile
 exports.getCurrentUser = (req, res) => {
   // `req.user` is populated by authMiddleware
   const safe = req.user.toObject ? req.user.toObject() : req.user;
@@ -242,6 +245,7 @@ exports.getCurrentUser = (req, res) => {
   res.json({ user: safe });
 };
 
+// Handle user profile update
 exports.updateProfile = async (req, res) => {
   try {
     const { name, role, password, profile, status, specializationTag, isMentor } = req.body;
@@ -268,6 +272,7 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
+// Handle user password changed
 exports.changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -279,7 +284,6 @@ exports.changePassword = async (req, res) => {
     const user = await User.findById(req.user._id).select("+password");
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Handling Google users setting a password for the first time
     if (user.password) {
       if (!currentPassword) return res.status(400).json({ message: "Current password is required" });
       const isMatch = await bcrypt.compare(currentPassword, user.password);
@@ -299,6 +303,7 @@ exports.changePassword = async (req, res) => {
 //           ADMIN / ROLE LOGIC
 // ==========================================
 
+// Handle admin user creation
 exports.createAdminUser = async (req, res) => {
   try {
     const { name, email, password, role, specializationTag } = req.body;
@@ -331,7 +336,7 @@ exports.createAdminUser = async (req, res) => {
 exports.adminWelcome = (req, res) => res.json({ message: "Welcome Admin" });
 exports.educatorWelcome = (req, res) => res.json({ message: "Welcome Educator" });
 
-// GET all reviewers (using your User model)
+// GET all reviewers
 exports.getAllReviewers = async (req, res) => {
   try {
     const reviewers = await User.find({ role: "reviewer" }).select("-password");
@@ -341,7 +346,7 @@ exports.getAllReviewers = async (req, res) => {
   }
 };
 
-// ADD a reviewer (Modified your createAdminUser logic)
+// Handle reviewer creation
 exports.createReviewer = async (req, res) => {
   try {
     const { name, email, password, specializationTag } = req.body;
@@ -355,10 +360,10 @@ exports.createReviewer = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role: "reviewer", // Explicitly set role
-      specializationTag, // Friend's expertise
+      role: "reviewer",
+      specializationTag,
       authProvider: "local",
-      isVerified: true, 
+      isVerified: true,
     });
 
     res.status(201).json({ message: "Reviewer created", id: newUser._id });
@@ -367,7 +372,7 @@ exports.createReviewer = async (req, res) => {
   }
 };
 
-// UPDATE a reviewer (From friend's logic)
+// UPDATE a reviewer
 exports.updateReviewer = async (req, res) => {
   try {
     const { name, email, password, specializationTag } = req.body;
@@ -378,7 +383,7 @@ exports.updateReviewer = async (req, res) => {
     }
 
     const updated = await User.findOneAndUpdate(
-      { _id: req.params.id, role: "reviewer" }, // Security: Only update if it's a reviewer
+      { _id: req.params.id, role: "reviewer" }, // Security: Only update if user is a reviewer
       { $set: updateData },
       { returnDocument: 'after', runValidators: true }
     ).select("-password");
@@ -402,7 +407,7 @@ exports.deleteReviewer = async (req, res) => {
 };
 
 
-
+// Handle course enrollment
 exports.enrollInCourse = async (req, res) => {
   try {
     const courseId = req.params.id;
