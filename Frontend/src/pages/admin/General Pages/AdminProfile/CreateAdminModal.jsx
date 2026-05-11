@@ -6,8 +6,6 @@ export default function CreateAdminModal({ onClose, createAdminApi, getAuthHeade
   const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
 
 
-
-
   const handleCreateAdminSubmit = async (e) => {
     e.preventDefault();
     setIsCreatingAdmin(true);
@@ -42,11 +40,12 @@ export default function CreateAdminModal({ onClose, createAdminApi, getAuthHeade
         
         <form onSubmit={handleCreateAdminSubmit} className="space-y-4">
           <div>
+
             {/* Full Name Input */}
             <label className="text-sm font-semibold text-slate-700">Full Name</label>
-            <input 
-              type="text" 
-              required 
+            <input
+              type="text"
+              required
               value={newAdminForm.fullName} 
               onChange={(e) => setNewAdminForm({ ...newAdminForm, fullName: e.target.value })} 
               placeholder="Eg: Kasun Perera" 

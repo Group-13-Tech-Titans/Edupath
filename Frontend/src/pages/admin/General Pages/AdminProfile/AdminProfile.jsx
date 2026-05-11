@@ -12,13 +12,22 @@ import CreateAdminModal from "./CreateAdminModal";
 
 const LS_KEY = "edupath_admin_profile_v1";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const GET_ME_API = `${API_URL}/api/auth/me`; 
+const GET_ME_API = `${API_URL}/api/auth/me`;
 const UPDATE_PROFILE_API = `${API_URL}/api/auth/profile`; //update profile API endpoint
 const CREATE_ADMIN_API = `${API_URL}/api/admin/create-user`; //create admin API endpoint
 const CHANGE_PASSWORD_API = `${API_URL}/api/auth/change-password`; //change password API endpoint
 
 export default function AdminProfile() {
-  const defaultProfile = { id: "", email: "", fullName: "", phone: "", bio: "", avatar: "", role: "admin", updatedAt: null };
+  const defaultProfile = {
+    id: "",
+    email: "",
+    fullName: "",
+    phone: "",
+    bio: "",
+    avatar: "",
+    role: "admin",
+    updatedAt: null,
+  };
 
   // State Management
   const [profile, setProfile] = useState(defaultProfile);
@@ -28,7 +37,11 @@ export default function AdminProfile() {
   const [toast, setToast] = useState(null);
   const [showCreateAdmin, setShowCreateAdmin] = useState(false);
 
-  const getAuthHeader = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem("edupath_token")}` } });
+  const getAuthHeader = () => ({
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("edupath_token")}`,
+    },
+  });
 
   const showToast = (type, text) => {
     setToast({ type, text });
@@ -46,7 +59,6 @@ export default function AdminProfile() {
           email: userData.email,
           fullName: userData.name || userData.fullName || "EduPath Admin",
           phone: userData.phone || "",
-          bio: userData.bio || "",
           avatar: userData.avatar || "",
           role: userData.role || "admin",
           updatedAt: userData.updatedAt,
@@ -69,7 +81,8 @@ export default function AdminProfile() {
   const onPickAvatar = (file) => {
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => setForm((prev) => ({ ...prev, avatar: reader.result }));
+    reader.onload = () =>
+      setForm((prev) => ({ ...prev, avatar: reader.result }));
     reader.readAsDataURL(file);
   };
 
@@ -77,20 +90,34 @@ export default function AdminProfile() {
 
   const submitProfile = async (e) => {
     e.preventDefault();
-    if (!form.fullName.trim()) return showToast("error", "Full name is required.");
+    if (!form.fullName.trim())
+      return showToast("error", "Full name is required.");
     setIsUpdatingProfile(true);
 
     try {
-      const payload = { name: form.fullName.trim(), fullName: form.fullName.trim(), phone: form.phone.trim(), bio: form.bio.trim(), avatar: form.avatar };
+      const payload = {
+        name: form.fullName.trim(),
+        fullName: form.fullName.trim(),
+        phone: form.phone.trim(),
+        bio: form.bio.trim(),
+        avatar: form.avatar,
+      };
       await axios.patch(UPDATE_PROFILE_API, payload, getAuthHeader());
 
-      const nextProfile = { ...profile, ...payload, updatedAt: new Date().toISOString() };
+      const nextProfile = {
+        ...profile,
+        ...payload,
+        updatedAt: new Date().toISOString(),
+      };
       setProfile(nextProfile);
       localStorage.setItem(LS_KEY, JSON.stringify(nextProfile));
       setEditing(false);
       showToast("success", "Profile updated successfully!");
     } catch (err) {
-      showToast("error", err.response?.data?.message || "Failed to update profile.");
+      showToast(
+        "error",
+        err.response?.data?.message || "Failed to update profile.",
+      );
     } finally {
       setIsUpdatingProfile(false);
     }
@@ -101,7 +128,9 @@ export default function AdminProfile() {
       {/* Toast Notification */}
       {toast && (
         <div className="fixed right-4 top-20 z-50">
-          <div className={`rounded-2xl border px-4 py-3 text-sm shadow-lg backdrop-blur bg-white/80 ${toast.type === "success" ? "border-emerald-200 text-emerald-700" : "border-red-200 text-red-600"}`}>
+          <div
+            className={`rounded-2xl border px-4 py-3 text-sm shadow-lg backdrop-blur bg-white/80 ${toast.type === "success" ? "border-emerald-200 text-emerald-700" : "border-red-200 text-red-600"}`}
+          >
             {toast.text}
           </div>
         </div>
@@ -109,12 +138,18 @@ export default function AdminProfile() {
 
       <div className="space-y-6">
         {/* 1. Extracted Header Component */}
-        <ProfileHeader 
-          editing={editing} 
-          isUpdatingProfile={isUpdatingProfile} 
-          onAddAdminClick={() => setShowCreateAdmin(true)} 
-          onEditClick={() => { setForm(profile); setEditing(true); }} 
-          onCancelClick={() => { setForm(profile); setEditing(false); }} 
+        <ProfileHeader
+          editing={editing}
+          isUpdatingProfile={isUpdatingProfile}
+          onAddAdminClick={() => setShowCreateAdmin(true)}
+          onEditClick={() => {
+            setForm(profile);
+            setEditing(true);
+          }}
+          onCancelClick={() => {
+            setForm(profile);
+            setEditing(false);
+          }}
         />
 
         <div className="grid gap-6 lg:grid-cols-3">
@@ -123,32 +158,35 @@ export default function AdminProfile() {
 
           <div className="lg:col-span-2 space-y-6">
             {/* 3. Extracted Middle Form Component */}
-            <ProfileEditForm 
-              form={form} 
-              editing={editing} 
-              updateField={updateField} 
-              onPickAvatar={onPickAvatar} 
-              submitProfile={submitProfile} 
+            <ProfileEditForm
+              form={form}
+              editing={editing}
+              updateField={updateField}
+              onPickAvatar={onPickAvatar}
+              submitProfile={submitProfile}
             />
 
             {/* 4. Extracted Password Component */}
-            <PasswordChange 
-              changePasswordApi={CHANGE_PASSWORD_API} 
-              getAuthHeader={getAuthHeader} 
+            <PasswordChange
+              changePasswordApi={CHANGE_PASSWORD_API}
+              getAuthHeader={getAuthHeader}
             />
           </div>
         </div>
       </div>
-      
-      <div><br/><AdminFooter /></div>
+
+      <div>
+        <br />
+        <AdminFooter />
+      </div>
 
       {/* 5. Extracted Modal Component */}
       {showCreateAdmin && (
-        <CreateAdminModal 
-          onClose={() => setShowCreateAdmin(false)} 
-          createAdminApi={CREATE_ADMIN_API} 
-          getAuthHeader={getAuthHeader} 
-          showToast={showToast} 
+        <CreateAdminModal
+          onClose={() => setShowCreateAdmin(false)}
+          createAdminApi={CREATE_ADMIN_API}
+          getAuthHeader={getAuthHeader}
+          showToast={showToast}
         />
       )}
     </PageShell>

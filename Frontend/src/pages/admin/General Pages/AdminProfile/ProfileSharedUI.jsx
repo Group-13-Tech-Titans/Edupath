@@ -1,5 +1,6 @@
 import React from "react";
 
+// Get initials from name (e.g., "Kasun Perera" -> "KP")
 export function getInitials(name = "") {
   if (!name) return "A";
   const parts = name.trim().split(" ").filter(Boolean);
@@ -8,11 +9,13 @@ export function getInitials(name = "") {
   return (a + b).toUpperCase();
 }
 
+// Shared Tailwind classes for input fields
 export const inputClass = (disabled) =>
   `w-full rounded-2xl border border-black/10 bg-white/70 px-4 py-3 text-sm text-text-dark placeholder:text-muted/70 shadow-sm outline-none transition
    focus:border-primary/40 focus:ring-2 focus:ring-primary/20
    ${disabled ? "opacity-70" : "hover:bg-white/80"}`;
 
+// Wrapper for input fields with a top label
 export const Field = ({ label, children }) => (
   <label className="block">
     <span className="text-xs font-semibold text-text-dark">{label}</span>
@@ -20,6 +23,7 @@ export const Field = ({ label, children }) => (
   </label>
 );
 
+// Box to display read-only text info
 export const InfoRow = ({ label, value, multiline }) => (
   <div className="rounded-2xl border border-black/5 bg-white/70 p-4">
     <p className="text-[11px] font-semibold text-muted">{label}</p>
@@ -29,6 +33,7 @@ export const InfoRow = ({ label, value, multiline }) => (
   </div>
 );
 
+// Large profile picture (or initials if no image)
 export const AvatarCircle = ({ avatar, name }) => (
   <div className="h-16 w-16 overflow-hidden rounded-3xl border border-black/10 bg-white/70 shadow-sm">
     {avatar ? (
@@ -41,6 +46,7 @@ export const AvatarCircle = ({ avatar, name }) => (
   </div>
 );
 
+// Small profile picture (Used in Edit Form)
 export const AvatarMini = ({ avatar, name }) => (
   <div className="h-11 w-11 overflow-hidden rounded-2xl border border-black/10 bg-white/70 shadow-sm">
     {avatar ? (
