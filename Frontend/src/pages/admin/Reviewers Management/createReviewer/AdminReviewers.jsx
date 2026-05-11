@@ -60,7 +60,6 @@ export default function AdminReviewers() {
     fetchSpecializations();
   }, [fetchReviewers, fetchSpecializations]);
 
-  // --- Search Logic ---
   // Filters the reviewers list based on the search query (checks name, email, and tags)
   const filteredReviewers = reviewers.filter((r) => {
     let tagsString = Array.isArray(r.specializationTags) ? r.specializationTags.join(" ") : r.specializationTag || "";
@@ -79,7 +78,7 @@ export default function AdminReviewers() {
       
       <div className="mx-auto max-w-6xl grid gap-5 lg:grid-cols-2">
         
-        {/* 1. Create Form Component (Handles its own internal state and API logic) */}
+        {/* 1. Create Form Component  */}
         <CreateReviewerForm 
           activeSpecializations={activeSpecializations}
           API_BASE={API_BASE}
@@ -87,7 +86,7 @@ export default function AdminReviewers() {
           fetchReviewers={fetchReviewers}
         />
 
-        {/* 2. Reviewers List Component (Handles search and displaying cards) */}
+        {/* 2. Reviewers List Component  */}
         <ReviewersList 
           search={search}
           setSearch={setSearch}
@@ -100,7 +99,7 @@ export default function AdminReviewers() {
       <br />
       <AdminFooter />
 
-      {/* 3. Edit Modal Component (Now handles its own state and API logic) */}
+      {/* 3. Edit Modal Component  */}
       <EditReviewerModal 
         editingReviewer={editingReviewer}
         setEditingReviewer={setEditingReviewer}
@@ -110,7 +109,7 @@ export default function AdminReviewers() {
         fetchReviewers={fetchReviewers}
       />
 
-      {/* 4. Delete Confirmation Modal (Now handles its own API logic) */}
+      {/* 4. Delete Confirmation Modal ) */}
       <DeleteConfirmModal 
         deleteConfirmId={deleteConfirmId}
         setDeleteConfirmId={setDeleteConfirmId}

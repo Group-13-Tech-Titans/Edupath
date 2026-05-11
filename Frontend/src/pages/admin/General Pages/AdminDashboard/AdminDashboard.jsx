@@ -13,42 +13,20 @@ import PendingEducatorsPreview from "./PendingEducatorsPreview.jsx";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const PENDING_EDUCATORS_API = `${API_URL}/api/admin/educators/pending`;
 
+
 export default function AdminDashboard() {
   const { users, courses } = useApp();
   const navigate = useNavigate();
 
-  // States
+  // Local state to store pending educator requests and loading status
   const [pendingRequests, setPendingRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const getAuthHeader = () => ({
-    headers: { Authorization: `Bearer ${localStorage.getItem("edupath_token")}` }
+    headers: { Authorization: `Bearer ${localStorage.getItem("edupath_token")}` } 
   });
 
-  // Fetch pending educators
-  useEffect(() => {
-    const fetchPendingEducators = async () => {
-      try {
-        setIsLoading(true);
-        const res = await axios.get(PENDING_EDUCATORS_API, getAuthHeader());
-        const allPending = res.data.educators || res.data || [];
-        setPendingRequests(allPending.slice(0, 3));
-      } catch (err) {
-        console.error("Failed to load pending educators:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchPendingEducators();
-  }, []);
-
-  // Navigation Handlers
-  const handleViewEducator = (educator) => {
-    const educatorId = educator._id || educator.id;
-    navigate(`/admin/verify-educator/${educatorId}`, { 
-      state: { educator } 
-    });
-  };
+ 
 
   return (
     <PageShell>
@@ -60,18 +38,13 @@ export default function AdminDashboard() {
         />
 
         {/* 2. Pending Educators List Component */}
-        <PendingEducatorsPreview 
-          isLoading={isLoading}
-          pendingRequests={pendingRequests}
-          onViewAllClick={() => navigate('/admin/verify-educators')}
-          onViewEducatorClick={handleViewEducator}
-        />
+        <PendingEducatorsPreview />
+        
 
         {/* 3. Chart Component */}
         <div> 
           <StudentGrowthChart />
         </div>
-        
         <br />
       </div>
 

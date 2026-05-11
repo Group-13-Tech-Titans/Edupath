@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import axios from "axios";
-// Import the warning icon from lucide-react
 import { AlertTriangle } from "lucide-react";
 
 // Modal component to confirm and execute the deletion of a reviewer
@@ -53,7 +52,7 @@ export default function DeleteConfirmModal({
           Are you sure you want to delete this reviewer? This action cannot be undone.
         </p>
         
-        {/* Action Buttons Container */}
+        {/* Action Buttons  */}
         <div className="flex gap-3">
           
           {/* Cancel Button: Closes the modal by clearing the selected ID */}

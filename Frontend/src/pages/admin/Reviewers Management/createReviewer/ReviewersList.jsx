@@ -9,7 +9,7 @@ const getInitials = (name = "") => {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 };
 
-//export reviewers list 
+//pass props from admin reviewers to this component
 export default function ReviewersList({
   search = "",
   setSearch,

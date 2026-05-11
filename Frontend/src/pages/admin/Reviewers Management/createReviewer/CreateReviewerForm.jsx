@@ -7,7 +7,7 @@ export default function CreateReviewerForm({
   getAuthHeader,
   fetchReviewers, 
 }) {
-  // Local States
+  // Local States for form data, error/success messages, and submission status
   const [form, setForm] = useState({ name: "", email: "", specializationTags: [] });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -16,6 +16,7 @@ export default function CreateReviewerForm({
   // Form Handlers
   const handleChange = (e) => setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
 
+  // Handles adding a specialization tag 
   const handleAddSpecToForm = (e) => {
     const spec = e.target.value;
     if (spec && !form.specializationTags.includes(spec)) {
@@ -23,19 +24,22 @@ export default function CreateReviewerForm({
     }
   };
 
+  // Handles removing a specialization tag from the form
   const handleRemoveSpecFromForm = (spec) => {
     setForm((p) => ({ ...p, specializationTags: p.specializationTags.filter((s) => s !== spec) }));
   };
 
+  // Form submission handler
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(""); 
     setSuccess("");
     
-    if (form.specializationTags.length === 0) {
+    if (form.specializationTags.length === 0) { // Ensure at least one specialization is selected
       return setError("Please select at least one specialization.");
     }
 
+    //payload created based on the form state
     setIsSubmitting(true);
     try {
       await axios.post(API_BASE, form, getAuthHeader());
@@ -44,7 +48,7 @@ export default function CreateReviewerForm({
       setForm({ name: "", email: "", specializationTags: [] });
       
       
-      setTimeout(() => setSuccess(""), 3000);
+      setTimeout(() => setSuccess(""), 3000); // hide success message after 3 seconds
     } catch (err) {
       setError(err.response?.data?.message || "Failed to create reviewer");
     } finally {
@@ -53,17 +57,21 @@ export default function CreateReviewerForm({
   };
 
   return (
+    //form header and description
     <div className="rounded-[26px] bg-white/80 shadow-lg p-6 ring-1 ring-emerald-100 h-fit">
       <h2 className="text-lg font-bold text-slate-900">Create Reviewer</h2>
       <p className="text-sm text-slate-500 mt-1">
         Fill the form and create a new reviewer login.
       </p>
+      
 
+    
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
         {success && <p className="text-green-500 text-sm font-medium">{success}</p>}
 
         <div>
+          {/* Name Input Field */}
           <label className="text-sm font-semibold text-slate-700">Name</label>
           <input
             name="name"
@@ -76,6 +84,7 @@ export default function CreateReviewerForm({
         </div>
 
         <div>
+          {/* Email Input Field */}
           <label className="text-sm font-semibold text-slate-700">Email</label>
           <input
             name="email"
@@ -89,6 +98,7 @@ export default function CreateReviewerForm({
         </div>
 
         <div>
+          {/* Specialization Tags Multi-select */}
           <label className="text-sm font-semibold text-slate-700 block mb-2">
             Specialization Tags
           </label>
@@ -113,7 +123,8 @@ export default function CreateReviewerForm({
             onChange={handleAddSpecToForm}
             className="w-full rounded-full border px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-emerald-100 bg-white cursor-pointer transition"
           >
-            <option value="" disabled>+ Add a specialization...</option>
+            {/* Specialization dropdown options */}
+            <option value="" disabled>+ Add a specialization...</option> {/*  */}
             {activeSpecializations
               .filter((spec) => !form.specializationTags.includes(spec.name))
               .map((spec) => (
@@ -123,7 +134,8 @@ export default function CreateReviewerForm({
               ))}
           </select>
         </div>
-
+        
+        {/* Submit Button */}
         <button
           type="submit"
           disabled={isSubmitting}
