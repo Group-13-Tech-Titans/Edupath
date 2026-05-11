@@ -2,7 +2,7 @@ const User = require("../../auth/models/User");
 const sendEmail = require("../../../utils/sendEmail"); 
 const { educatorVerificationResultEmail } = require("../../../utils/emailTemplates");
 
-// Get all educators who are waiting for admin approval
+//get pending educators for admin review
 exports.getPendingEducators = async (req, res) => {
   try {
     const pendingEducators = await User.find({ role: "educator", status: "PENDING_VERIFICATION" }).select("-password");
@@ -16,17 +16,17 @@ exports.getPendingEducators = async (req, res) => {
 exports.verifyEducator = async (req, res) => {
   try {
     const educatorId = req.params.id;
-    const { status } = req.body; // Expects "approved" or "rejected"
+    const { status } = req.body; //  "approved" or "rejected"
 
     // Update educator status in the database
     const updatedEducator = await User.findByIdAndUpdate(
       educatorId,
       { status: status }, 
       { new: true } 
-    ).select("-password");
+    ).select("-password"); // Exclude password from the response
 
     if (!updatedEducator) {
-      return res.status(404).json({ message: "Educator not found" });
+      return res.status(404).json({ message: "Educator not found" }); // Handle case where educator is not found
     }
 
     // Send notification email
@@ -57,7 +57,7 @@ exports.verifyEducator = async (req, res) => {
   }
 };
 
-// Explicitly reject an educator (Alternative dedicated route)
+// Explicitly reject an educator 
 exports.rejectEducator = async (req, res) => {
   try {
     const educatorId = req.params.id;
@@ -66,13 +66,14 @@ exports.rejectEducator = async (req, res) => {
       educatorId,
       { status: "REJECTED" }, 
       { new: true } 
-    ).select("-password");
+    ).select("-password"); // Exclude password from the response
 
     if (!updatedEducator) {
       return res.status(404).json({ message: "Educator not found" });
     }
 
     try {
+      // Send rejection email
       const emailContent = educatorVerificationResultEmail({
         educatorName: updatedEducator.name,
         status: "rejected"

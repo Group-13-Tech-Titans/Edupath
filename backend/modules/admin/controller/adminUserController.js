@@ -18,16 +18,19 @@ exports.createAdminUser = async (req, res) => {
     const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ message: "Email already in use" });
 
-    // Generate a secure random password and hash it
+    // Generate a secure random password and hash it using bcrypt
     const generatedPassword = crypto.randomBytes(4).toString("hex");
-    const hashedPassword = await bcrypt.hash(generatedPassword, BCRYPT_SALT_ROUNDS);
+    const hashedPassword = await bcrypt.hash(
+      generatedPassword,
+      BCRYPT_SALT_ROUNDS,
+    );
 
     // Save new admin to the database
     const newUser = await User.create({
-      name: name || email.split("@")[0],
+      name: name || email.split("@")[0], // Default to email prefix if name not provided
       email,
       password: hashedPassword, 
-      role: role || "admin", 
+      role: "admin", 
       specializationTag: role === "reviewer" ? specializationTag : null,
       authProvider: "local",
       isVerified: true, 
@@ -41,6 +44,8 @@ exports.createAdminUser = async (req, res) => {
         plainPassword: generatedPassword 
       });
 
+
+      // Send the email 
       await sendEmail({
         to: newUser.email,
         subject: emailContent.subject,

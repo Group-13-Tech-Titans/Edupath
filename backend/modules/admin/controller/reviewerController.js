@@ -4,13 +4,13 @@ const { reviewerAccountCreatedEmail } = require("../../../utils/emailTemplates")
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 
-const BCRYPT_SALT_ROUNDS = 10;
+const BCRYPT_SALT_ROUNDS = 10; //salt rounds for password hashing
 
 // Fetch all reviewers from the database
 exports.getAllReviewers = async (req, res) => {
   try {
     const reviewers = await User.find({ role: "reviewer" }).select("-password");
-    res.json(reviewers);
+    res.json(reviewers);  // Return reviewers without passwords 
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch reviewers" });
   }
@@ -21,7 +21,7 @@ exports.createReviewer = async (req, res) => {
   try {
     const { name, email, specializationTags } = req.body;
     
-    const existing = await User.findOne({ email });
+    const existing = await User.findOne({ email }); // Check if email is already registered
     if (existing) return res.status(400).json({ message: "Email already in use" });
 
     // Generate random password
@@ -39,7 +39,8 @@ exports.createReviewer = async (req, res) => {
       isVerified: true, 
     });
 
-    // Send email with credentials
+
+    // Send email for reviewer account creation with temporary password
     try {
       const emailContent = reviewerAccountCreatedEmail({
         name: newUser.name,
@@ -53,9 +54,9 @@ exports.createReviewer = async (req, res) => {
         text: emailContent.text,
         html: emailContent.html
       });
-      console.log(`✅ Account credentials emailed to Reviewer: ${newUser.email}`);
+      console.log(`✅ Account credentials emailed to Reviewer: ${newUser.email}`); // Log success message for email sending
     } catch (emailError) {
-      console.error("⚠️ Failed to send credentials email:", emailError.message);
+      console.error("⚠️ Failed to send credentials email:", emailError.message); // Log error if email sending fails
     }
 
     res.status(201).json({ message: "Reviewer created and credentials sent via email", id: newUser._id });
@@ -64,24 +65,26 @@ exports.createReviewer = async (req, res) => {
   }
 };
 
+
 // Update reviewer details (Name, Tags, or Password)
 exports.updateReviewer = async (req, res) => {
   try {
     const { name, email, password, specializationTags } = req.body;
     const updateData = { name, email, specializationTags: specializationTags || [] };
     
-    // Only hash and update password if a new one is provided
+    // Only hash and update password 
     if (password) updateData.password = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
     const updated = await User.findOneAndUpdate(
       { _id: req.params.id, role: "reviewer" }, { $set: updateData }, { returnDocument: 'after' }
-    ).select("-password");
+    ).select("-password"); // Exclude password from the response
     
     res.json(updated);
   } catch (err) {
     res.status(500).json({ message: "Update failed" });
   }
 };
+
 
 // Delete a reviewer from the system
 exports.deleteReviewer = async (req, res) => {
