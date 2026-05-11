@@ -230,3 +230,25 @@ exports.reviewerAccountCreatedEmail = ({ name, email, plainPassword }) => {
     text: `Hi ${name}, your EduPath reviewer account is ready. Email: ${email}, Password: ${plainPassword}. Please login and change your password immediately.`
   };
 };
+
+// ─────────────────────────────────────────────
+// 7. Admin Account Created (Sent to new Admin)
+// ─────────────────────────────────────────────
+exports.adminAccountCreatedEmail = ({ name, email, plainPassword }) => {
+  return {
+    subject: "Welcome to EduPath! Your Admin Account Details",
+    html: wrapper(`
+      ${heading("Your Admin Account is Ready")}
+      ${para(`Hi ${name},`)}
+      ${para("You have been granted Administrator access on the EduPath platform. You can use the credentials below to log in to your admin dashboard:")}
+      ${infoBox([
+        ["Email", email],
+        ["Temporary Password", `<span style="font-family: monospace; font-size: 16px; background: #e0f2ee; padding: 2px 6px; border-radius: 4px; letter-spacing: 1px;">${plainPassword}</span>`],
+        ["Role", "Administrator"]
+      ])}
+      ${para("<strong>Security Notice:</strong> Because this is an administrative account, you are required to change this temporary password immediately after your first login.")}
+      ${btn(`${BASE_URL}/login`, "Log In to Admin Dashboard")}
+    `),
+    text: `Hi ${name}, your EduPath Admin account is ready. Email: ${email}, Password: ${plainPassword}. Please login and change your password immediately.`
+  };
+};

@@ -12,10 +12,10 @@ import CreateAdminModal from "./CreateAdminModal";
 
 const LS_KEY = "edupath_admin_profile_v1";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const GET_ME_API = `${API_URL}/api/auth/me`;
-const UPDATE_PROFILE_API = `${API_URL}/api/auth/profile`;
-const CREATE_ADMIN_API = `${API_URL}/api/admin/create-user`;
-const CHANGE_PASSWORD_API = `${API_URL}/api/auth/change-password`;
+const GET_ME_API = `${API_URL}/api/auth/me`; 
+const UPDATE_PROFILE_API = `${API_URL}/api/auth/profile`; //update profile API endpoint
+const CREATE_ADMIN_API = `${API_URL}/api/admin/create-user`; //create admin API endpoint
+const CHANGE_PASSWORD_API = `${API_URL}/api/auth/change-password`; //change password API endpoint
 
 export default function AdminProfile() {
   const defaultProfile = { id: "", email: "", fullName: "", phone: "", bio: "", avatar: "", role: "admin", updatedAt: null };
