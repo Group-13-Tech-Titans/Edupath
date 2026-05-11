@@ -17,7 +17,7 @@ export default function ApplicantInfo({ educator, fullName }) {
     educator?.profile?.contactNumber || 
     educator?.contactNumber;
 
-  // Extract and format specialization data
+  // Extract expertise/specialization from various possible fields
   let expertise = "Not Provided";
   if (educator?.profile?.specializationTag) {
     expertise = educator.profile.specializationTag;
@@ -34,26 +34,30 @@ export default function ApplicantInfo({ educator, fullName }) {
       <h2 className="text-lg font-bold text-slate-800 border-b pb-2">Applicant Information</h2>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Full Name */}
         <DetailField 
           label="Full Name" 
           value={educator?.profile?.fullName || educator?.name || fullName || "Not Provided"} 
         />
         
+        {/* Email Address */}
         <DetailField 
           label="Email Address" 
           value={educator?.profile?.email || educator?.email || "Not Provided"} 
         />
         
+        {/* Contact Number */}
         <DetailField 
           label="Contact Number" 
           value={contactNum || "Not Provided"} 
         />
-        
+        {/* Expertise / Specialization */}
         <DetailField 
           label="Expertise / Specialization" 
           value={expertise} 
         />
         
+        {/* Application Date (using createdAt or updatedAt as fallback) */}
         <DetailField 
           label="Application Date" 
           value={educator?.createdAt || educator?.updatedAt ? new Date(educator.createdAt || educator.updatedAt).toLocaleString() : "Unknown"} 
