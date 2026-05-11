@@ -1,6 +1,37 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
+
+// Reusable component for footer columns
+const FooterCol = ({ title, items }) => (
+  <div>
+    <p className="text-sm font-semibold text-text-dark">{title}</p>
+    <ul className="mt-3 space-y-2 text-xs text-muted">
+      {items.map((item) => (
+        <li key={item.label}>
+          <Link
+            to={item.to}
+            className="cursor-pointer hover:text-text-dark hover:underline"
+          >
+            {item.label}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  </div>
+);
+
+
+// Small reusable component for icons
+const IconDot = ({ children, title }) => (
+  <div
+    title={title}
+    className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary"
+  >
+    {children}
+  </div>
+);
+
 const AdminFooter = () => {
   return (
     <footer className="rounded-[28px] border border-black/5 bg-white/70 p-6 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
@@ -35,7 +66,8 @@ const AdminFooter = () => {
         />
 
         
-        <FooterCol
+        {/* Help & Policy Links */}
+        <FooterCol   
           title="Help & Policy"
           items={[
             { label: "Admin Help Center", to: "/admin/help" },
@@ -46,6 +78,8 @@ const AdminFooter = () => {
         />
       </div>
 
+
+{/* Help & Policy Links */}
       <div className="mt-6 border-t border-black/5 pt-4 text-center text-xs text-muted">
         {new Date().getFullYear()} EduPath Admin Panel • All rights reserved.
       </div>
@@ -53,31 +87,5 @@ const AdminFooter = () => {
   );
 };
 
-const FooterCol = ({ title, items }) => (
-  <div>
-    <p className="text-sm font-semibold text-text-dark">{title}</p>
-    <ul className="mt-3 space-y-2 text-xs text-muted">
-      {items.map((item) => (
-        <li key={item.label}>
-          <Link
-            to={item.to}
-            className="cursor-pointer hover:text-text-dark hover:underline"
-          >
-            {item.label}
-          </Link>
-        </li>
-      ))}
-    </ul>
-  </div>
-);
-
-const IconDot = ({ children, title }) => (
-  <div
-    title={title}
-    className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary"
-  >
-    {children}
-  </div>
-);
 
 export default AdminFooter;

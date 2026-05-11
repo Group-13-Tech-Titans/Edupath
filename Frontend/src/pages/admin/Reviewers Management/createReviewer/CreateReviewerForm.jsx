@@ -1,17 +1,59 @@
-import React from "react";
+import React, { useState } from "react";
+import axios from "axios";
 
 export default function CreateReviewerForm({
-  form = { name: "", email: "", specializationTags: [] }, 
-  error = "",
-  success = "",
-  activeSpecializations = [], 
-  handleChange,
-  handleAddSpecToForm,
-  handleRemoveSpecFromForm,
-  handleSubmit,
+  activeSpecializations = [],
+  API_BASE,
+  getAuthHeader,
+  fetchReviewers, 
 }) {
+  // Local States
+  const [form, setForm] = useState({ name: "", email: "", specializationTags: [] });
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Form Handlers
+  const handleChange = (e) => setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
+
+  const handleAddSpecToForm = (e) => {
+    const spec = e.target.value;
+    if (spec && !form.specializationTags.includes(spec)) {
+      setForm((p) => ({ ...p, specializationTags: [...p.specializationTags, spec] }));
+    }
+  };
+
+  const handleRemoveSpecFromForm = (spec) => {
+    setForm((p) => ({ ...p, specializationTags: p.specializationTags.filter((s) => s !== spec) }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(""); 
+    setSuccess("");
+    
+    if (form.specializationTags.length === 0) {
+      return setError("Please select at least one specialization.");
+    }
+
+    setIsSubmitting(true);
+    try {
+      await axios.post(API_BASE, form, getAuthHeader());
+      fetchReviewers(); 
+      setSuccess("Reviewer account created ✅");
+      setForm({ name: "", email: "", specializationTags: [] });
+      
+      
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to create reviewer");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className="rounded-[26px] bg-white/80 shadow-lg p-6 ring-1 ring-emerald-100">
+    <div className="rounded-[26px] bg-white/80 shadow-lg p-6 ring-1 ring-emerald-100 h-fit">
       <h2 className="text-lg font-bold text-slate-900">Create Reviewer</h2>
       <p className="text-sm text-slate-500 mt-1">
         Fill the form and create a new reviewer login.
@@ -84,9 +126,10 @@ export default function CreateReviewerForm({
 
         <button
           type="submit"
-          className="w-full rounded-full bg-emerald-500 py-3 font-bold text-white shadow-md hover:bg-emerald-600 transition"
+          disabled={isSubmitting}
+          className="w-full rounded-full bg-emerald-500 py-3 font-bold text-white shadow-md hover:bg-emerald-600 transition disabled:opacity-70"
         >
-          Create reviewer
+          {isSubmitting ? "Creating..." : "Create reviewer"}
         </button>
       </form>
     </div>

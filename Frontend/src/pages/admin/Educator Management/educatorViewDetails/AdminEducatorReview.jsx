@@ -3,9 +3,6 @@ import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
 import PageShell from "../../../../components/PageShell.jsx"; 
 import AdminFooter from "../../../../components/layouts/admin-layouts/AdminFooter.jsx"; 
-
-
-
 import ReviewHeader from "./ReviewHeader.jsx";
 import ApplicantInfo from "./ApplicantInfo.jsx";
 import ReviewActions from "./ReviewActions.jsx";
