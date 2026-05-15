@@ -1,24 +1,19 @@
 /**
  * STEP QUIZ CONTROLLER
  * Handles fetching, tracking, and evaluating quizzes linked to specific pathway steps.
- * Design Patterns: Single Source of Truth, Controller Pattern, Single Responsibility Principle.
  */
 
 const StepQuiz = require("../models/StepQuiz");
 const Pathway = require("../../pathway/models/Pathway");
 
 // --- CONFIGURATION CONSTANTS ---
-const PASSING_SCORE_THRESHOLD = 50; 
+const PASSING_SCORE_THRESHOLD = 50;
 const STATUS_COMPLETED = "completed";
 const STATUS_IN_PROGRESS = "in-progress";
 
-// ==========================================
-// HELPER FUNCTIONS (Resolves Cognitive Complexity)
-// ==========================================
+// --- Helper functions -----
 
-/**
- * Calculates the percentage score of a quiz attempt.
- */
+// Calculates the percentage score of a quiz attempt.
 const calculateQuizScore = (questions, answers) => {
   let correctCount = 0;
   questions.forEach((q, index) => {
@@ -29,9 +24,7 @@ const calculateQuizScore = (questions, answers) => {
   return (correctCount / questions.length) * 100;
 };
 
-/**
- * Handles the state transition of unlocking the next step in the curriculum.
- */
+// Handles the state transition of unlocking the next step in the curriculum.
 const unlockNextPathwayStep = async (pathwayId, userId, stepOrder) => {
   const pathway = await Pathway.findOne({ _id: pathwayId, userId });
   if (!pathway) return;
@@ -48,13 +41,10 @@ const unlockNextPathwayStep = async (pathwayId, userId, stepOrder) => {
   await pathway.save();
 };
 
-// ==========================================
-// CONTROLLER EXPORTS
-// ==========================================
+// ------------------------------------
 
-/**
- * Generates a quiz attempt by pulling the questions directly from the saved Pathway data.
- */
+
+// Generates a quiz attempt by pulling the questions directly from the saved Pathway data.
 exports.generateStepQuiz = async (req, res) => {
   try {
     const { pathwayId, stepOrder } = req.body;
@@ -91,7 +81,7 @@ exports.generateStepQuiz = async (req, res) => {
       userId: req.user._id,
       pathwayId,
       stepOrder,
-      questions: step.quiz, 
+      questions: step.quiz,
       attempt: attemptNumber
     });
 
@@ -118,9 +108,7 @@ exports.generateStepQuiz = async (req, res) => {
   }
 };
 
-/**
- * Evaluates the student's answers, calculates the score, and unlocks the next step if passed.
- */
+// Evaluates the student's answers, calculates the score, and unlocks the next step if passed.
 
 exports.submitStepQuiz = async (req, res) => {
   try {
@@ -130,9 +118,9 @@ exports.submitStepQuiz = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid payload provided." });
     }
 
-    const quizAttempt = await StepQuiz.findOne({ 
-      _id: quizId, 
-      userId: req.user._id 
+    const quizAttempt = await StepQuiz.findOne({
+      _id: quizId,
+      userId: req.user._id
     });
 
     if (!quizAttempt) return res.status(404).json({ success: false, message: "Quiz attempt not found" });

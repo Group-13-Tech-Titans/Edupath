@@ -1,7 +1,6 @@
 /**
  * ROLE-BASED ACCESS CONTROL (RBAC) MIDDLEWARE
  * Restricts endpoint access to specific user roles.
- * Design Pattern: Factory Function / Closure
  */
 
 const roleMiddleware = (roles) => {

@@ -27,10 +27,6 @@ router.get("/educator", authMiddleware, roleMiddleware(["educator"]), authContro
 router.get("/admin", authMiddleware, roleMiddleware(["admin"]), authController.adminWelcome);
 router.post("/admin/create-user", authMiddleware, roleMiddleware(["admin"]), authController.createAdminUser);
 
-// ==========================================
-//   ADMIN: REVIEWER MANAGEMENT (MERGED)
-// ==========================================
-
 // Get all reviewers
 router.get("/admin/reviewers", authMiddleware, roleMiddleware(["admin"]), authController.getAllReviewers);
 

@@ -13,7 +13,6 @@ const {
 
 const authMiddleware = require("../../../middleware/authMiddleware");
 
-// Ensure authentication for all quiz actions
 router.post("/generate", authMiddleware, generateStepQuiz);
 router.post("/submit", authMiddleware, submitStepQuiz);
 

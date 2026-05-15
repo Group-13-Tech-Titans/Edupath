@@ -1,7 +1,6 @@
 /**
  * USER DATABASE MODEL
  * Defines the schema, data types, and validations for users in MongoDB.
- * Design Pattern: Active Record / Data Mapper (via Mongoose)
  */
 
 const mongoose = require("mongoose");

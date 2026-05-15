@@ -1,7 +1,6 @@
 /**
  * EMAIL UTILITY SERVICE
  * Handles sending transactional emails (like password resets).
- * Design Pattern: Singleton / Utility Module
  */
 
 const nodemailer = require("nodemailer");
@@ -19,19 +18,17 @@ const sendEmail = async ({ to, subject, text, html }) => {
   try {
     // Send the email using the pre-established transporter
     const info = await transporter.sendMail({
-      from: `"EduPath Security" <${process.env.EMAIL_USER}>`, // Added a professional sender name
+      from: `"EduPath Security" <${process.env.EMAIL_USER}>`,
       to,
       subject,
       text,
       html,
     });
 
-    // Helpful for debugging in development
     console.log(`Email sent successfully to ${to}. Message ID: ${info.messageId}`);
     return info;
 
   } catch (error) {
-    // Catch email-specific errors and log them before throwing
     console.error(`FAILED to send email to ${to}. Error:`, error.message);
     throw new Error("Email service is currently unavailable.");
   }

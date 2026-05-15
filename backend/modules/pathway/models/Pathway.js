@@ -25,11 +25,11 @@ const stepSchema = new mongoose.Schema({
 
   quiz: [{
     question: { type: String, required: true },
-    options: { 
-      type: [String], 
+    options: {
+      type: [String],
       // Validation to ensure a quiz has at least 2 options to be valid
       validate: [v => v.length >= 2, 'Quiz must have at least 2 options']
-    }, 
+    },
     correctAnswerIndex: { type: Number, default: 0 }
   }],
 
@@ -40,7 +40,6 @@ const stepSchema = new mongoose.Schema({
 // Represents both Master Templates (Admin/Reviewer) and Individual Student Journeys.
 const pathwaySchema = new mongoose.Schema(
   {
-    // ADMIN / REVIEWER TEMPLATE FIELDS
     isTemplate: { type: Boolean, default: false },
     originalTemplateId: { type: mongoose.Schema.Types.ObjectId, ref: "Pathway" },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
@@ -50,14 +49,13 @@ const pathwaySchema = new mongoose.Schema(
       default: "draft",
     },
 
-    // STUDENT FIELDS
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     pathName: { type: String, required: true, trim: true },
     level: { type: String, required: true, trim: true },
 
     steps: [stepSchema],
   },
-  { timestamps: true }
+  { timestamps: true } //  automatically add createdAt and updatedAt fields into database
 );
 
 // Ensures only 1 Template per Specialization + Level exists globally. while allowing infinite student enrollments with the same name.

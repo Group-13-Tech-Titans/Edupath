@@ -14,19 +14,15 @@ const STATUS = {
  * SMART FUZZY MATCH ENGINE
  * Normalizes strings to match specialized tags (e.g., "ui-ux" equals "UI/UX Design").
  * Prevents global duplicate creations.
- *
- * @param {string} name1
- * @param {string} name2
- * @returns {boolean} True if matched
  */
 
-const fuzzyMatch = (name1, name2) => {
+const specializationMatch = (name1, name2) => {
   // Edge case handling: Ensure inputs exist and are strictly strings
   if (!name1 || !name2 || typeof name1 !== "string" || typeof name2 !== "string") return false;
   
   // Strip spaces, dashes, slashes, and make lowercase
-  const n1 = name1.toLowerCase().replace(/[^a-z0-9]/g, "");
-  const n2 = name2.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const n1 = name1.toLowerCase().replaceAll(/[^a-z0-9]/g, "");
+  const n2 = name2.toLowerCase().replaceAll(/[^a-z0-9]/g, "");
   
   if (!n1 || !n2) return false;
   if (n1 === n2) return true; // Direct match
@@ -149,6 +145,7 @@ exports.createPathway = async (req, res) => {
   }
 };
 
+// Handle path-step completion
 exports.completeStep = async (req, res) => {
   try {
     const { pathwayId, stepOrder } = req.body;
@@ -168,20 +165,26 @@ exports.completeStep = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Pathway not found" });
 
-    const step = pathway.steps.find((s) => s.order === stepOrder);
+    const step = pathway.steps.find((step) => step.order === stepOrder);
 
-    if (!step)
+    if (!step){
       return res
         .status(404)
         .json({ success: false, message: "Step not found" });
-    if (!step.isUnlocked)
+    }
+      
+    if (!step.isUnlocked){
       return res
         .status(400)
         .json({ success: false, message: "Step is locked" });
-    if (step.isCompleted)
+    }
+      
+    if (step.isCompleted){
       return res
         .status(400)
         .json({ success: false, message: "Step already completed" });
+    }
+      
 
     step.isCompleted = true;
 
@@ -218,7 +221,7 @@ exports.completeStep = async (req, res) => {
 // GET ALL PATHWAYS FOR STUDENT
 exports.getMyPathway = async (req, res) => {
   try {
-    // Returns an Array of all student's pathways, most recently updated first
+    // Returns an Array of all student's pathways, most recently added pathway first
     const pathways = await Pathway.find({
       userId: req.user._id,
       isTemplate: false,
@@ -242,7 +245,7 @@ exports.getMyPathway = async (req, res) => {
   }
 };
 
-// SYNC SPECIFIC PATHWAY (requires pathwayId from frontend)
+// SYNC SPECIFIC PATHWAY/Step (requires pathwayId from frontend)
 exports.syncPathwaySteps = async (req, res) => {
   try {
     const { pathwayId, steps } = req.body;
@@ -276,6 +279,7 @@ exports.syncPathwaySteps = async (req, res) => {
 
 // ADMIN / REVIEWER LOGIC
 
+// Handle Admin/Reviewer pathway creation
 exports.createTemplatePathway = async (req, res) => {
   try {
     let { pathName, level } = req.body;
@@ -336,6 +340,7 @@ exports.createTemplatePathway = async (req, res) => {
   }
 };
 
+// Get pathway Templates to show in Admin/Reviewer Pathway creation
 exports.getTemplatePathways = async (req, res) => {
   try {
     let query = { isTemplate: true };
@@ -345,8 +350,10 @@ exports.getTemplatePathways = async (req, res) => {
       const spec = await Specialization.findOne({
         slug: req.user.specializationTag,
       });
+
       const officialName = spec ? spec.name : req.user.specializationTag;
 
+      // Restrict the upcoming database search query to pathways matching either the official name or the slug
       query.pathName = { $in: [officialName, req.user.specializationTag] };
     }
 
@@ -360,6 +367,7 @@ exports.getTemplatePathways = async (req, res) => {
   }
 };
 
+// Get pathway templetes using its id
 exports.getTemplateById = async (req, res) => {
   try {
     const template = await Pathway.findOne({
@@ -399,6 +407,7 @@ exports.getTemplateById = async (req, res) => {
   }
 };
 
+// Handle Pathway templates Edits
 exports.updateTemplate = async (req, res) => {
   try {
     let { pathName, level, steps } = req.body;
@@ -431,7 +440,7 @@ exports.updateTemplate = async (req, res) => {
       pathName = officialName;
     }
 
-    // Ensure update doesn't violate unique constraints
+    // Check user did any changes/updates , if not skip the databse lookup
     if (
       templateToUpdate.level !== level ||
       templateToUpdate.pathName !== pathName
@@ -440,7 +449,7 @@ exports.updateTemplate = async (req, res) => {
         pathName,
         level,
         isTemplate: true,
-        _id: { $ne: req.params.id },
+        _id: { $ne: req.params.id }, //$ne (Not Equal) MongoDB operator
       });
 
       if (existingPathway) {
@@ -481,6 +490,7 @@ exports.updateTemplate = async (req, res) => {
   }
 };
 
+// Handle new pathway-step creations
 exports.addStepToTemplate = async (req, res) => {
   try {
     const { templateId } = req.params;
@@ -494,7 +504,7 @@ exports.addStepToTemplate = async (req, res) => {
     if (
       !template ||
       (req.user.role === "reviewer" &&
-        !fuzzyMatch(template.pathName, req.user.specializationTag))
+        !specializationMatch(template.pathName, req.user.specializationTag))
     ) {
       return res
         .status(404)
@@ -528,6 +538,7 @@ exports.addStepToTemplate = async (req, res) => {
   }
 };
 
+// Handle pathway Delete
 exports.deleteTemplatePathway = async (req, res) => {
   try {
     const template = await Pathway.findOne({
@@ -538,7 +549,7 @@ exports.deleteTemplatePathway = async (req, res) => {
     if (
       !template ||
       (req.user.role === "reviewer" &&
-        !fuzzyMatch(template.pathName, req.user.specializationTag))
+        !specializationMatch(template.pathName, req.user.specializationTag))
     ) {
       return res
         .status(404)
@@ -560,6 +571,7 @@ exports.deleteTemplatePathway = async (req, res) => {
   }
 };
 
+// Handle pathway template enable/disable status
 exports.updateTemplateStatus = async (req, res) => {
   try {
     const { status } = req.body;
@@ -572,7 +584,7 @@ exports.updateTemplateStatus = async (req, res) => {
     if (
       !templateToUpdate ||
       (req.user.role === "reviewer" &&
-        !fuzzyMatch(templateToUpdate.pathName, req.user.specializationTag))
+        !specializationMatch(templateToUpdate.pathName, req.user.specializationTag))
     ) {
       return res
         .status(404)
@@ -594,6 +606,7 @@ exports.updateTemplateStatus = async (req, res) => {
   }
 };
 
+// Get all published/enable Templates
 exports.getPublishedTemplates = async (req, res) => {
   try {
     const templates = await Pathway.find({
@@ -609,7 +622,7 @@ exports.getPublishedTemplates = async (req, res) => {
   }
 };
 
-// ENROLL IN A TEMPLATE (Enforces Max 3 Rule)
+// Handle Student ENROLL IN A TEMPLATE (Enforces Max 3 Pathways)
 exports.enrollInTemplate = async (req, res) => {
   try {
     const { templateId } = req.params;
@@ -694,6 +707,7 @@ exports.enrollInTemplate = async (req, res) => {
   }
 };
 
+// Suggest Pathway according to student
 exports.recommendPathway = async (req, res) => {
   try {
     const { pathName, level } = req.body;
@@ -745,10 +759,10 @@ exports.recommendPathway = async (req, res) => {
   }
 };
 
-// DELETE SPECIFIC PATHWAY (requires an ID)
+// DELETE SPECIFIC Student enroll pathway
 exports.deleteMyPathway = async (req, res) => {
   try {
-    const pathwayId = req.params.id; // Target specific ID
+    const pathwayId = req.params.id;
 
     const pathway = await Pathway.findOneAndDelete({
       _id: pathwayId,
