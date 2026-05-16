@@ -9,7 +9,7 @@ import ReviewerLayout from "./components/layouts/ReviewerLayout.jsx";
 import MentorLayout from "./components/layouts/MentorLayout.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
-import Home from "./pages/Genaral/Home.jsx";
+import Home from "./pages/Genaral/LandingPage/LandingBloomPro.jsx";
 import Login from "./pages/Login/Login.jsx";
 import Signup from "./pages/Login/Signup.jsx";
 import SignupRole from "./pages/Login/SignupRole.jsx";

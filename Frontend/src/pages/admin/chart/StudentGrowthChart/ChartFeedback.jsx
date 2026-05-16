@@ -1,14 +1,17 @@
 import React from "react";
 import { GraduationCap } from "lucide-react"; 
 
+
+//loading state component for chart
 export function ChartLoading() {
   return (
     <div className="h-[300px] flex items-center justify-center text-slate-400 animate-pulse text-sm font-semibold">
-      Loading Chart Data...
+      Loading Chart Data... 
     </div>
   );
 }
 
+//error state component for chart
 export function ChartError() {
   return (
     <div className="h-[300px] flex items-center justify-center text-red-500 text-sm font-semibold bg-red-50 rounded-2xl">
@@ -17,6 +20,7 @@ export function ChartError() {
   );
 }
 
+//empty state component for chart - no data to display
 export function ChartEmpty() {
   return (
     <div className="h-[300px] flex flex-col items-center justify-center text-slate-500 text-sm bg-slate-50 rounded-2xl border border-dashed border-slate-200">
