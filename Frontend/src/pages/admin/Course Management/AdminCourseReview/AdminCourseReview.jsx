@@ -11,16 +11,19 @@ import CourseReviewForm from "./CourseReviewForm";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
+// Main page where an Admin reviews a specific course
 export default function AdminCourseReview() {
   const { id } = useParams(); 
   const navigate = useNavigate();
 
-  const [course, setCourse] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const [toast, setToast] = useState(null);
 
+  const [course, setCourse] = useState(null); // Store course data
+  const [isLoading, setIsLoading] = useState(true); //show loading animation while fetching data
+  const [isSubmitting, setIsSubmitting] = useState(false); //disable buttons while submitting review
+  const [error, setError] = useState(""); // Store any error messages
+  const [toast, setToast] = useState(null); // Used for small popup messages (success/error)
+
+  // Stores the data for the review form (Name, Email, Stars, Notes)
   const [review, setReview] = useState({
     reviewerName: "Loading...", 
     reviewerEmail: "Loading...", 
@@ -28,6 +31,7 @@ export default function AdminCourseReview() {
     notes: ""
   });
 
+  // Helper function to get the token form user browser storage 
   const getAuthHeader = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem("edupath_token")}` }
   });
@@ -37,15 +41,19 @@ export default function AdminCourseReview() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  //fetch data when page loads
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Fetch course details using the course ID 
         const resCourse = await axios.get(`${API_URL}/api/admin/courses/${id}`, getAuthHeader());
         setCourse(resCourse.data.course);
 
+        //fetch currunt logged in admin detailes for auto filling the reviewer name and email
         const resUser = await axios.get(`${API_URL}/api/auth/me`, getAuthHeader());
         const adminUser = resUser.data.user;
 
+        //auto fill the form with admin name and email
         if (adminUser) {
           setReview(prev => ({
             ...prev,
@@ -57,16 +65,18 @@ export default function AdminCourseReview() {
         console.error(err);
         setError("Failed to load course details. It may have been deleted.");
       } finally {
-        setIsLoading(false);
+        setIsLoading(false); //stop loading animation
       }
     };
     
     fetchData();
   }, [id]);
 
+  // Handle form input changes
   const handleInputChange = (e) => setReview(prev => ({ ...prev, [e.target.name]: e.target.value }));
   const handleStarClick = (rateValue) => setReview(prev => ({ ...prev, rating: rateValue }));
 
+  // Prevent approving a course without giving a star rating
   const submitReview = async (decision) => {
     if (decision === "approved" && review.rating === 0) {
       showToast("error", "Please provide a star rating before approving.");
@@ -75,15 +85,17 @@ export default function AdminCourseReview() {
 
     setIsSubmitting(true);
     try {
+      // Send the review decision and details to the backend
       const payload = { ...review, decision };
       await axios.patch(`${API_URL}/api/admin/courses/${id}/review`, payload, getAuthHeader());
       
+      // Show success message 
       showToast("success", `Course successfully ${decision}!`);
-      setTimeout(() => navigate(-1), 1500);
+      setTimeout(() => navigate(-1), 1500); // Navigate back after a 1.5 second delay
     } catch (err) {
       console.error(err);
       showToast("error", err.response?.data?.message || "Failed to submit review.");
-      setIsSubmitting(false);
+      setIsSubmitting(false); // Re-enable buttons if submission fails
     }
   };
 
@@ -125,15 +137,15 @@ export default function AdminCourseReview() {
 
       <div className="space-y-6">
         
-        {/* Header Component */}
+        {/* Header Component with Back Button */}
         <CourseReviewHeader onBack={() => navigate(-1)} />
 
         <div className="grid gap-6 lg:grid-cols-2">
           
-          {/* Left Side: Course Details */}
+          {/*Course Details */}
           <CourseDetailsPanel course={course} />
 
-          {/* Right Side: Review Form */}
+          {/*Review Form */}
           <CourseReviewForm 
             review={review}
             handleInputChange={handleInputChange}
@@ -145,6 +157,7 @@ export default function AdminCourseReview() {
         </div>
       </div>
       <br/>
+      {/* Admin Footer */}
       <AdminFooter />
     </PageShell>
   );

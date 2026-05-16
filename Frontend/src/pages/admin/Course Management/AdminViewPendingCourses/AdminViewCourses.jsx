@@ -1,13 +1,14 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import AdminFooter from "../../../../components/layouts/admin-layouts/AdminFooter.jsx";
 import PageShell from "../../../../components/PageShell.jsx"; 
 
-// Import Refactored Components
+// Import child components
 import CourseOverviewStats from "./CourseOverviewStats";
 import CoursesGrid from "./CoursesGrid";
 
+// API endpoints
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const PENDING_COURSES_API = `${API_URL}/api/admin/courses/pending`;
 const COURSE_STATS_API = `${API_URL}/api/admin/courses/stats`;
@@ -15,24 +16,25 @@ const COURSE_STATS_API = `${API_URL}/api/admin/courses/stats`;
 export default function AdminViewCourses() {
   const navigate = useNavigate();
 
-  // States
-  const [courses, setCourses] = useState([]);
-  const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0 });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [search, setSearch] = useState("");
+  // Component states
+  const [courses, setCourses] = useState([]); // List of pending courses
+  const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0 }); // Course counts
+  const [isLoading, setIsLoading] = useState(true); // Loading status
+  const [error, setError] = useState(""); // Error messages
 
+  // Helper to get auth token
   const getAuthHeader = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem("edupath_token")}` }
   });
 
-  // Fetch Data
+  // Fetch data on component mount
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
         setError("");
         
+        // Fetch both pending courses and stats at the same time
         const [pendingRes, statsRes] = await Promise.all([
           axios.get(PENDING_COURSES_API, getAuthHeader()),
           axios.get(COURSE_STATS_API, getAuthHeader())
@@ -52,17 +54,7 @@ export default function AdminViewCourses() {
     fetchData();
   }, []);
 
-  // Filter Courses
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return courses.filter((c) => {
-      if (!q) return true;
-      const educatorName = c.educator?.name || c.educator?.fullName || c.educator || "";
-      const hay = `${c.title} ${c.desc} ${c.category} ${educatorName} ${c.level}`.toLowerCase();
-      return hay.includes(q);
-    });
-  }, [courses, search]);
-
+  // Function to navigate to course review page
   const openCourse = (id) => navigate(`/admin/course-rating/${id}`);
 
   return (
@@ -72,11 +64,11 @@ export default function AdminViewCourses() {
         {/* 1. Stats Component */}
         <CourseOverviewStats stats={stats} />
 
-        {/* 2. Grid Component (Handles Loading, Errors, and the Grid itself) */}
+        {/* 2. Grid Component (Directly passing the fetched courses) */}
         <CoursesGrid 
           isLoading={isLoading} 
           error={error} 
-          filteredCourses={filtered} 
+          filteredCourses={courses} 
           openCourse={openCourse} 
         />
         
