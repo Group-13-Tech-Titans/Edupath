@@ -2,7 +2,9 @@ import React from "react";
 import { ClipboardCheck } from "lucide-react"; // 
 import PendingCourseCard from "./PendingCourseCard";
 
+// A grid component to display pending courses with loading, error, and empty states
 export default function CoursesGrid({ isLoading, error, filteredCourses, openCourse }) {
+   //loading states
   if (isLoading) {
     return (
       <div className="rounded-[26px] border border-black/5 bg-white/60 p-5 text-sm text-slate-500 animate-pulse text-center">
@@ -11,6 +13,7 @@ export default function CoursesGrid({ isLoading, error, filteredCourses, openCou
     );
   }
 
+  //error states
   if (error) {
     return (
       <div className="rounded-[26px] border border-red-200 bg-red-50 p-5 text-sm text-red-600 text-center">
@@ -18,13 +21,13 @@ export default function CoursesGrid({ isLoading, error, filteredCourses, openCou
       </div>
     );
   }
-
+//Empty states
   if (filteredCourses.length === 0) {
     return (
       <div className="rounded-[26px] border border-black/5 bg-white/60 p-8 text-center">
         <div className="w-16 h-16 mx-auto bg-slate-100 rounded-full flex items-center justify-center mb-3">
-
-            
+ 
+          {/* display clipboard icon */}
           <ClipboardCheck className="w-8 h-8 text-slate-400" strokeWidth={1.5} />
         </div>
         <p className="text-sm font-semibold text-slate-700">All Caught Up!</p>
@@ -33,12 +36,13 @@ export default function CoursesGrid({ isLoading, error, filteredCourses, openCou
     );
   }
 
+  //success states
   return (
     <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {filteredCourses.map((c) => (
         <PendingCourseCard 
-          key={c._id || c.id} 
-          course={c} 
+          key={c._id || c.id}  
+          course={c}  //pass the individual course data to the card 
           openCourse={openCourse} 
         />
       ))}
