@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 
+//create new admin modal component
 export default function CreateAdminModal({ onClose, createAdminApi, getAuthHeader, showToast }) {
   const [newAdminForm, setNewAdminForm] = useState({ fullName: "", email: "" });
   const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);

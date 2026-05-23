@@ -10,12 +10,13 @@ import ProfileEditForm from "./ProfileEditForm";
 import PasswordChange from "./PasswordChange";
 import CreateAdminModal from "./CreateAdminModal";
 
+// API Endpoints
 const LS_KEY = "edupath_admin_profile_v1";
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000"; 
 const GET_ME_API = `${API_URL}/api/auth/me`;
 const UPDATE_PROFILE_API = `${API_URL}/api/auth/profile`; //update profile API endpoint
 const CREATE_ADMIN_API = `${API_URL}/api/admin/create-user`; //create admin API endpoint
-const CHANGE_PASSWORD_API = `${API_URL}/api/auth/change-password`; //change password API endpoint
+const CHANGE_PASSWORD_API = `${API_URL}/api/auth/change-password`;  //change password API endpoint
 
 export default function AdminProfile() {
   const defaultProfile = {
@@ -30,19 +31,21 @@ export default function AdminProfile() {
   };
 
   // State Management
-  const [profile, setProfile] = useState(defaultProfile);
+  const [profile, setProfile] = useState(defaultProfile); 
   const [form, setForm] = useState(defaultProfile);
   const [editing, setEditing] = useState(false);
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [toast, setToast] = useState(null);
   const [showCreateAdmin, setShowCreateAdmin] = useState(false);
 
+  // Helper to get auth header for API requests
   const getAuthHeader = () => ({
     headers: {
       Authorization: `Bearer ${localStorage.getItem("edupath_token")}`,
     },
   });
 
+  // Helper to show toast notifications 2.5 seconds
   const showToast = (type, text) => {
     setToast({ type, text });
     setTimeout(() => setToast(null), 2500);
@@ -52,6 +55,7 @@ export default function AdminProfile() {
   useEffect(() => {
     const fetchMyProfile = async () => {
       try {
+      //try to fetch data from database
         const res = await axios.get(GET_ME_API, getAuthHeader());
         const userData = res.data.user || res.data;
         const mappedProfile = {
@@ -78,6 +82,7 @@ export default function AdminProfile() {
   }, []);
 
   // Form Handlers
+  //convert uploaded image file into browswer displayable format 
   const onPickAvatar = (file) => {
     if (!file) return;
     const reader = new FileReader();
@@ -92,9 +97,10 @@ export default function AdminProfile() {
     e.preventDefault();
     if (!form.fullName.trim())
       return showToast("error", "Full name is required.");
-    setIsUpdatingProfile(true);
+    setIsUpdatingProfile(true); //start loading
 
     try {
+      // Prepare the data to send to the server
       const payload = {
         name: form.fullName.trim(),
         fullName: form.fullName.trim(),
@@ -102,8 +108,10 @@ export default function AdminProfile() {
         bio: form.bio.trim(),
         avatar: form.avatar,
       };
+      //send updated profile data to backend
       await axios.patch(UPDATE_PROFILE_API, payload, getAuthHeader());
 
+      // If successful, update our local data and exit edit mode
       const nextProfile = {
         ...profile,
         ...payload,
@@ -119,13 +127,13 @@ export default function AdminProfile() {
         err.response?.data?.message || "Failed to update profile.",
       );
     } finally {
-      setIsUpdatingProfile(false);
+      setIsUpdatingProfile(false); //end loading
     }
   };
 
   return (
     <PageShell>
-      {/* Toast Notification */}
+      {/* success , error notifications */}
       {toast && (
         <div className="fixed right-4 top-20 z-50">
           <div
@@ -137,7 +145,7 @@ export default function AdminProfile() {
       )}
 
       <div className="space-y-6">
-        {/* 1. Extracted Header Component */}
+        {/* Header Component */}
         <ProfileHeader
           editing={editing}
           isUpdatingProfile={isUpdatingProfile}
@@ -153,11 +161,11 @@ export default function AdminProfile() {
         />
 
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* 2. Extracted Left Summary Component */}
+          {/* Profile Summary Component */}
           <ProfileSummary profile={profile} />
 
           <div className="lg:col-span-2 space-y-6">
-            {/* 3. Extracted Middle Form Component */}
+            {/* Profile Edit Form */}
             <ProfileEditForm
               form={form}
               editing={editing}
@@ -166,7 +174,7 @@ export default function AdminProfile() {
               submitProfile={submitProfile}
             />
 
-            {/* 4. Extracted Password Component */}
+            {/* Change Password Component */}
             <PasswordChange
               changePasswordApi={CHANGE_PASSWORD_API}
               getAuthHeader={getAuthHeader}
@@ -177,10 +185,9 @@ export default function AdminProfile() {
 
       <div>
         <br />
-        <AdminFooter />
       </div>
 
-      {/* 5. Extracted Modal Component */}
+      {/* Create Admin Modal Component */}
       {showCreateAdmin && (
         <CreateAdminModal
           onClose={() => setShowCreateAdmin(false)}
@@ -189,6 +196,10 @@ export default function AdminProfile() {
           showToast={showToast}
         />
       )}
+
+      {/* Footer Component */}
+      <AdminFooter />
+
     </PageShell>
   );
 }

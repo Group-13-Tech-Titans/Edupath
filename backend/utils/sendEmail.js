@@ -1,8 +1,4 @@
-/**
- * EMAIL UTILITY SERVICE
- * Handles sending transactional emails (like password resets).
- * Design Pattern: Singleton / Utility Module
- */
+
 
 const nodemailer = require("nodemailer");
 

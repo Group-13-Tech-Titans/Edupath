@@ -141,9 +141,7 @@ exports.courseSubmittedEmail = ({ educatorName, educatorEmail, courseTitle, cate
   text: `Hi ${educatorName}, your course "${courseTitle}" has been submitted for review. You'll be notified once reviewed.`
 });
 
-// ─────────────────────────────────────────────
-// 4. Course review decision (approved or rejected)
-// ─────────────────────────────────────────────
+//  Course review decision (approved or rejected)
 exports.courseReviewedEmail = ({ educatorName, educatorEmail, courseTitle, decision, rating, notes, reviewerName }) => {
   const approved = decision === "approved";
   const decisionLabel = approved ? "Approved ✓" : "Rejected";
@@ -183,9 +181,7 @@ exports.courseReviewedEmail = ({ educatorName, educatorEmail, courseTitle, decis
 };
 
 
-// ─────────────────────────────────────────────
-// 5. Educator Verification Result (Sent to Educator)
-// ─────────────────────────────────────────────
+//  Educator Verification Result (Sent to Educator)
 exports.educatorVerificationResultEmail = ({ educatorName, status }) => {
   const isApproved = status.toLowerCase() === "approved" || status.toLowerCase() === "verified";
   const decisionLabel = isApproved ? "Approved ✓" : "Rejected";
@@ -209,9 +205,7 @@ exports.educatorVerificationResultEmail = ({ educatorName, status }) => {
   };
 };
 
-// ─────────────────────────────────────────────
-// 6. Reviewer Account Created (Sent to new Reviewer)
-// ─────────────────────────────────────────────
+// Reviewer Account Created (Sent to new Reviewer)
 exports.reviewerAccountCreatedEmail = ({ name, email, plainPassword }) => {
   return {
     subject: "Welcome to EduPath! Your Reviewer Account Details",
@@ -231,9 +225,7 @@ exports.reviewerAccountCreatedEmail = ({ name, email, plainPassword }) => {
   };
 };
 
-// ─────────────────────────────────────────────
-// 7. Admin Account Created (Sent to new Admin)
-// ─────────────────────────────────────────────
+//  Admin Account Created (Sent to new Admin)
 exports.adminAccountCreatedEmail = ({ name, email, plainPassword }) => {
   return {
     subject: "Welcome to EduPath! Your Admin Account Details",
