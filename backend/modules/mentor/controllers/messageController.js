@@ -8,19 +8,22 @@ const { getIO } = require("../../../utils/socketManager");
 /**
  * 1. GET /api/mentor/messages/conversations
  * Returns all chat threads for the logged-in user (mentor or student).
+ * sorts them by most recent activity
  */
 const getConversations = async (req, res) => {
   try {
-    const userId = req.user._id;
-    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const userId = req.user._id;         //Gets current logged-in user ID from JWT middleware.
+    const userObjectId = new mongoose.Types.ObjectId(userId);      //Converts string ID → MongoDB ObjectId
 
     console.log(`[getConversations] User: ${userId}`);
 
+
+    //Find conversations where:user is mentor OR user is student
     const query = {
-      $or: [{ mentorId: userObjectId }, { studentId: userObjectId }]
+      $or: [{ mentorId: userObjectId }, { studentId: userObjectId }]    
     };
 
-    const conversationDocs = await Conversation.find(query).sort({ lastMessageTime: -1 });
+    const conversationDocs = await Conversation.find(query).sort({ lastMessageTime: -1 });   //Find all matching conversations.Sort newest first.
     console.log(`[getConversations] Found ${conversationDocs.length} conversations.`);
 
     const sanitized = conversationDocs.map(c => ({
@@ -141,7 +144,7 @@ const sendMessage = async (req, res) => {
       ...newMessage.toObject(),
       senderName: sender ? sender.name : "Someone"
     };
-    io.to(receiverId.toString()).emit("receive_message", messageWithSender);
+    io.to(receiverId.toString()).emit("receive_message", messageWithSender);   //This sends message instantly to receiver.
 
     res.status(201).json(newMessage);
   } catch (error) {
@@ -213,6 +216,7 @@ const getUnreadCount = async (req, res) => {
     console.log(`[getUnreadCount] User: ${userId}`);
 
     // Sum unread messages from all conversations where user is a participant
+    // Instead of:looping manually in JS Database calculates total directly.
     // If user is the mentor, count 'unreadCount'. If user is the student, count 'studentUnreadCount'.
     const results = await Conversation.aggregate([
       {

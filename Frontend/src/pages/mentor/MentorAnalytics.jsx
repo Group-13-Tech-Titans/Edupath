@@ -21,8 +21,9 @@ export default function MentorAnalytics() {
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get("http://localhost:5000/api/mentor/analytics", {
+        const token = localStorage.getItem("edupath_token") || localStorage.getItem("token");
+        const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+        const res = await axios.get(`${baseUrl}/api/mentor/analytics`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setData(res.data);
@@ -36,7 +37,7 @@ export default function MentorAnalytics() {
   }, []);
 
   const maxSessions = useMemo(() => {
-    if (!data.monthlyVolume.length) return 1;
+    if (!data.monthlyVolume || !data.monthlyVolume.length) return 1;
     return Math.max(...data.monthlyVolume.map(m => m.count)) || 1;
   }, [data.monthlyVolume]);
 
@@ -47,6 +48,8 @@ export default function MentorAnalytics() {
       </div>
     );
   }
+
+  const hourBlocks = [9, 11, 13, 15, 17, 19];
 
   return (
     <>
@@ -68,7 +71,7 @@ export default function MentorAnalytics() {
 
       {/* Stats - Dynamic */}
       <section className="mb-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {data.stats.map((s, idx) => (
+        {(data.stats || []).map((s, idx) => (
           <motion.div
             key={s.label}
             initial={{ opacity: 0, y: 10 }}
@@ -98,7 +101,7 @@ export default function MentorAnalytics() {
               {[0, 1, 2, 3].map(i => <div key={i} className="w-full border-t border-slate-900"></div>)}
             </div>
 
-            {data.monthlyVolume.map((m, idx) => (
+            {(data.monthlyVolume || []).map((m, idx) => (
               <div key={m.month} className="relative flex-1 flex flex-col items-center group h-full justify-end">
                 <motion.div
                   initial={{ height: 0 }}
@@ -120,7 +123,7 @@ export default function MentorAnalytics() {
         <section className="rounded-2xl bg-white p-7 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
           <h2 className="mb-8 text-xl font-semibold text-slate-800">Learning Tracks</h2>
           <div className="space-y-6">
-            {data.tracksDistribution.length > 0 ? data.tracksDistribution.map((t, idx) => (
+            {data.tracksDistribution?.length > 0 ? data.tracksDistribution.map((t, idx) => (
               <div key={t.name}>
                 <div className="mb-2 flex justify-between items-center text-sm">
                   <span className="font-semibold text-slate-700">{t.name}</span>
@@ -141,8 +144,8 @@ export default function MentorAnalytics() {
           </div>
         </section>
 
-        {/* Weekly Heatmap - (Keeping mock for now as it needs complex session time processing) */}
-        <section className="lg:col-span-3 rounded-2xl bg-white p-7 shadow-[0_4px_20_rgba(0,0,0,0.08)]">
+        {/* Weekly Heatmap - Real Activity Patterns */}
+        <section className="lg:col-span-3 rounded-2xl bg-white p-7 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-xl font-semibold text-slate-800">Weekly Activity Heatmap</h2>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Activity Patterns</p>
@@ -154,18 +157,22 @@ export default function MentorAnalytics() {
                 <div key={d} className="flex-1 text-center text-[10px] font-bold text-slate-400 uppercase">{d}</div>
               ))}
             </div>
-            {[9, 11, 13, 15, 17, 19].map(hour => (
-              <div key={hour} className="flex gap-2 items-center">
-                <div className="w-16 text-right text-[10px] font-bold text-slate-400">{hour}:00</div>
-                {[1, 2, 3, 4, 5, 6, 7].map(day => {
-                  // Simplified random heatmap to maintain visual interest
-                  const intensity = Math.random();
-                  const color = intensity > 0.8 ? 'bg-teal-500' : intensity > 0.5 ? 'bg-teal-300' : intensity > 0.2 ? 'bg-teal-100' : 'bg-slate-50';
+            {data.heatmapData?.map((row, rowIdx) => (
+              <div key={rowIdx} className="flex gap-2 items-center">
+                <div className="w-16 text-right text-[10px] font-bold text-slate-400">{hourBlocks[rowIdx]}:00</div>
+                {row.map((count, dayIdx) => {
+                  const color = count > 5 ? 'bg-teal-600' : count > 2 ? 'bg-teal-400' : count > 0 ? 'bg-teal-100' : 'bg-slate-50';
                   return (
                     <motion.div
-                      key={day} whileHover={{ scale: 1.05 }}
+                      key={dayIdx} 
+                      whileHover={{ scale: 1.05 }}
                       className={`flex-1 h-8 rounded-md ${color} transition cursor-help relative group`}
                     >
+                      {count > 0 && (
+                        <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all bg-slate-800 text-white text-[10px] px-2 py-1 rounded-md font-bold whitespace-nowrap shadow-lg z-10">
+                          {count} Interactions
+                        </div>
+                      )}
                     </motion.div>
                   );
                 })}

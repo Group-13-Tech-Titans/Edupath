@@ -4,7 +4,12 @@ const Session = require("../models/Session");
 const Resource = require("../models/Resource");
 const mongoose = require("mongoose");
 
-// GET /api/mentor/students
+/**
+ * GET /api/mentor/students
+ * Fetches the list of students assigned to the logged-in mentor.
+ * Allows filtering by status (active/paused/new) and search (name/track).
+ * Supports sorting by name or enrollment date.
+ */
 const getStudents = async (req, res) => {
   try {
     const { status, search, sort } = req.query;
@@ -36,7 +41,11 @@ const getStudents = async (req, res) => {
   }
 };
 
-// GET /api/mentor/students/stats
+/**
+ * GET /api/mentor/students/stats
+ * Calculates and returns statistics for the mentor's student base.
+ * Provides counts for total, active, paused, and new students.
+ */
 const getStudentStats = async (req, res) => {
   try {
     const [total, active, paused, newStudents] = await Promise.all([
@@ -53,7 +62,12 @@ const getStudentStats = async (req, res) => {
   }
 };
 
-// GET /api/mentor/students/:studentId
+/**
+ * GET /api/mentor/students/:studentId
+ * Retrieves detailed profile information for a specific student.
+ * This includes basic info, session history, shared resources, and discussed topics.
+ * It checks both the explicit relationship table and the general user table.
+ */
 const getStudentById = async (req, res) => {
   try {
     const mentorId = req.user._id;
@@ -63,30 +77,6 @@ const getStudentById = async (req, res) => {
 
     // 1. Validate studentId
     if (!mongoose.Types.ObjectId.isValid(studentId)) {
-      const mockStudents = {
-        "S001": { name: "Priya Sharma", track: "Web Development", email: "priya@example.com" },
-        "S002": { name: "Rahul Mehta", track: "Data Science & ML", email: "rahul@example.com" },
-        "S003": { name: "Anjali Kumar", track: "React & TypeScript", email: "anjali@example.com" },
-        "S004": { name: "Nimal Perera", track: "Networking", email: "nimal@example.com" },
-        "S005": { name: "Sahana Jayasinghe", track: "Web Development", email: "sahana@example.com" },
-        "S006": { name: "Kavindu Fernando", track: "Web Development", email: "kavindu@example.com" },
-      };
-
-      if (mockStudents[studentId]) {
-        const mock = mockStudents[studentId];
-        return res.json({
-          studentId,
-          name: mock.name,
-          email: mock.email,
-          track: mock.track,
-          status: "mock",
-          createdAt: new Date(),
-          role: "student",
-          sessions: [],
-          resources: [],
-          discussedTopics: []
-        });
-      }
       return res.status(400).json({ message: "Invalid student ID format." });
     }
 
@@ -146,7 +136,11 @@ const getStudentById = async (req, res) => {
   }
 };
 
-// POST /api/mentor/students
+/**
+ * POST /api/mentor/students
+ * Manually adds a student to the mentor's list.
+ * This is used to establish a tracking relationship if it doesn't exist yet.
+ */
 const addStudent = async (req, res) => {
   try {
     const { studentId, studentName, track, status } = req.body;
@@ -175,7 +169,11 @@ const addStudent = async (req, res) => {
   }
 };
 
-// PUT /api/mentor/students/:studentId
+/**
+ * PUT /api/mentor/students/:studentId
+ * Updates the relationship data for a student, such as their track,
+ * current status, or the mentor's private notes.
+ */
 const updateStudent = async (req, res) => {
   try {
     const { status, track, mentorNotes, lastActivity } = req.body;
@@ -207,7 +205,11 @@ const updateStudent = async (req, res) => {
   }
 };
 
-// DELETE /api/mentor/students/:studentId
+/**
+ * DELETE /api/mentor/students/:studentId
+ * Removes a student from the mentor's assigned list.
+ * This deletes the relationship record but not the user itself.
+ */
 const removeStudent = async (req, res) => {
   try {
     const student = await MentorStudent.findOneAndDelete({
@@ -226,7 +228,10 @@ const removeStudent = async (req, res) => {
   }
 };
 
-// PATCH /api/mentor/students/:studentId/notes
+/**
+ * PATCH /api/mentor/students/:studentId/notes
+ * specifically updates the mentor's private notes about a student.
+ */
 const updateMentorNotes = async (req, res) => {
   try {
     const { mentorNotes } = req.body;

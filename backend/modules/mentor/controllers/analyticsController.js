@@ -26,11 +26,13 @@ const getMentorAnalytics = async (req, res) => {
     // (Assumes duration is string like "45 mins" or "1 hour")
     let totalMinutes = 0;
     sessions.forEach(s => {
-      const d = s.duration || "0";
+      const d = (s.duration || "0").toLowerCase();
       if (d.includes("hour")) {
-        totalMinutes += parseFloat(d) * 60;
+        const hours = parseFloat(d) || 1;
+        totalMinutes += hours * 60;
       } else {
-        totalMinutes += parseFloat(d);
+        const mins = parseFloat(d) || 0;
+        totalMinutes += mins;
       }
     });
     const totalHours = Math.round(totalMinutes / 60);
@@ -59,15 +61,30 @@ const getMentorAnalytics = async (req, res) => {
     // 5. Tracks Distribution Percentage
     const totalTracksCount = tracks.reduce((acc, t) => acc + t.count, 0);
     const tracksDistribution = tracks.map(t => ({
-      name: t._id || "Other",
+      name: t._id || "General",
       percent: totalTracksCount > 0 ? Math.round((t.count / totalTracksCount) * 100) : 0
     }));
 
-    // 6. Weekly Activity Heatmap (Simulated from session data)
-    // We'll create a 7x24 grid of activity
-    const heatmap = [];
-    // For now, we'll return a simplified version or the raw session times for the frontend to process
-    // But to match the frontend request, let's just send the aggregated counts
+    // 6. Weekly Activity Heatmap (From real session data)
+    // We create a 6x7 grid (hours x days)
+    const heatmapData = [];
+    const hourBlocks = [9, 11, 13, 15, 17, 19];
+    
+    hourBlocks.forEach(hour => {
+      const row = [];
+      for (let day = 1; day <= 7; day++) {
+        // Count sessions that happened on this day of week (1=Mon, 7=Sun) and near this hour
+        const count = sessions.filter(s => {
+          const sDate = new Date(s.createdAt);
+          // getDay() returns 0 for Sunday, 1 for Monday etc.
+          const sDay = sDate.getDay() === 0 ? 7 : sDate.getDay();
+          const sHour = sDate.getHours();
+          return sDay === day && sHour >= hour && sHour < hour + 2;
+        }).length;
+        row.push(count);
+      }
+      heatmapData.push(row);
+    });
     
     res.json({
       stats: [
@@ -78,6 +95,7 @@ const getMentorAnalytics = async (req, res) => {
       ],
       monthlyVolume,
       tracksDistribution,
+      heatmapData,
       totalReviews: reviews.length
     });
 

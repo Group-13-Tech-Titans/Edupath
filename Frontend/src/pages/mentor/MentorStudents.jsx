@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { getMentorStudents, getMentorSessions } from "../../api/mentorApi";
 
 export default function MentorStudents() {
   const navigate = useNavigate();
@@ -13,66 +14,91 @@ export default function MentorStudents() {
     navigate("/login");
   };
 
-  // demo dataset from your HTML (replace with API later)
-  const students = useMemo(
-    () => [
-      {
-        id: "S001",
-        name: "Priya Sharma",
-        initials: "PS",
-        status: "active",
-        track: "Web Development",
-        enrolled: "3 months ago",
-        lastActivity: "2 hours ago",
-      },
-      {
-        id: "S002",
-        name: "Rahul Mehta",
-        initials: "RM",
-        status: "active",
-        track: "Data Science & ML",
-        enrolled: "1 month ago",
-        lastActivity: "Yesterday",
-      },
-      {
-        id: "S003",
-        name: "Anjali Kumar",
-        initials: "AK",
-        status: "active",
-        track: "React & TypeScript",
-        enrolled: "2 months ago",
-        lastActivity: "3 days ago",
-      },
-      {
-        id: "S004",
-        name: "Nimal Perera",
-        initials: "NP",
-        status: "new",
-        track: "Networking",
-        enrolled: "5 days ago",
-        lastActivity: "1 hour ago",
-      },
-      {
-        id: "S005",
-        name: "Sahana Jayasinghe",
-        initials: "SJ",
-        status: "paused",
-        track: "Web Development",
-        enrolled: "4 months ago",
-        lastActivity: "2 weeks ago",
-      },
-      {
-        id: "S006",
-        name: "Kavindu Fernando",
-        initials: "KF",
-        status: "active",
-        track: "Web Development",
-        enrolled: "2 weeks ago",
-        lastActivity: "Today",
-      },
-    ],
-    []
-  );
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Helper to get initials
+  const getInitials = (name) => {
+    if (!name) return "??";
+    const parts = name.split(" ");
+    if (parts.length >= 2) {
+      return (parts[0][0] + (parts[1]?.[0] || "")).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  // Helper to format time ago
+  const formatTimeAgo = (date) => {
+    if (!date) return "Never";
+    const d = new Date(date);
+    const now = new Date();
+    const diffMs = now - d;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHr = Math.floor(diffMin / 60);
+    const diffDays = Math.floor(diffHr / 24);
+
+    if (diffDays > 30) return d.toLocaleDateString();
+    if (diffDays > 0) return `${diffDays} days ago`;
+    if (diffHr > 0) return `${diffHr} hours ago`;
+    if (diffMin > 0) return `${diffMin} mins ago`;
+    return "Just now";
+  };
+
+  useEffect(() => {
+    const fetchAllStudents = async () => {
+      try {
+        setLoading(true);
+        // Fetch both explicit student relations and sessions
+        const [studentData, sessionData] = await Promise.all([
+          getMentorStudents(),
+          getMentorSessions()
+        ]);
+
+        const studentMap = new Map();
+
+        // 1. Add students from explicit relations
+        studentData.forEach((s) => {
+          const id = s.studentId;
+          studentMap.set(id, {
+            id: id,
+            name: s.studentName || "Unknown Student",
+            initials: getInitials(s.studentName),
+            status: s.status || "active",
+            track: s.track || "General",
+            enrolled: formatTimeAgo(s.enrolledAt),
+            lastActivity: formatTimeAgo(s.lastActivity),
+            rawEnrolledAt: s.enrolledAt,
+          });
+        });
+
+        // 2. Add students from sessions (if not already added)
+        sessionData.forEach((sess) => {
+          const id = sess.studentId;
+          if (!studentMap.has(id)) {
+            studentMap.set(id, {
+              id: id,
+              name: sess.studentName || "Unknown Student",
+              initials: getInitials(sess.studentName),
+              status: sess.status === "completed" ? "active" : "new",
+              track: "General", // Sessions don't always have track info
+              enrolled: formatTimeAgo(sess.createdAt),
+              lastActivity: formatTimeAgo(sess.updatedAt || sess.createdAt),
+              rawEnrolledAt: sess.createdAt,
+            });
+          }
+        });
+
+        setStudents(Array.from(studentMap.values()));
+      } catch (error) {
+        console.error("Failed to fetch students:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAllStudents();
+  }, []);
 
   const [statusFilter, setStatusFilter] = useState("all");
   const [trackFilter, setTrackFilter] = useState("all");
@@ -107,7 +133,7 @@ export default function MentorStudents() {
 
     if (sortMode === "name_asc") arr = [...arr].sort((a, b) => a.name.localeCompare(b.name));
     if (sortMode === "name_desc") arr = [...arr].sort((a, b) => b.name.localeCompare(a.name));
-    if (sortMode === "enrolled_desc") arr = [...arr].sort((a, b) => (a.enrolled || "").localeCompare(b.enrolled || ""));
+    if (sortMode === "enrolled_desc") arr = [...arr].sort((a, b) => (b.rawEnrolledAt || "").localeCompare(a.rawEnrolledAt || ""));
 
     return arr;
   }, [students, statusFilter, trackFilter, sortMode, searchText]);
