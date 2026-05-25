@@ -1,9 +1,3 @@
-/**
- * AUTHENTICATION MIDDLEWARE
- * Intercepts incoming requests to protected routes, verifies the JWT session,
- * and retrieves the authenticated user's data from the database.
- * Design Pattern: Interceptor / Middleware Pattern
- */
 
 const jwt = require("jsonwebtoken");
 const User = require("../modules/auth/models/User");

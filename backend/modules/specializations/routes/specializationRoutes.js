@@ -1,6 +1,9 @@
 const express = require("express");
 const Specialization = require("../models/Specialization"); 
+const authMiddleware = require("../../../middleware/authMiddleware");
+const roleMiddleware = require("../../../middleware/roleMiddleware");
 const router = express.Router();
+
 
 // GET all specializations (For Admin to see everything)
 router.get("/", async (req, res) => {
@@ -14,7 +17,7 @@ router.get("/", async (req, res) => {
 });
 
 // POST a new specialization (For Admin to add new fields)
-router.post("/", async (req, res) => {
+router.post("/",authMiddleware, roleMiddleware(["admin"]), async (req, res) => {
   try {
     const { name } = req.body;
     if (!name) return res.status(400).json({ message: "Specialization name is required" });

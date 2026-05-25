@@ -18,17 +18,11 @@ app.use(express.json());
 
 
 app.use("/api/auth", require("./modules/auth/routes/authRoutes"));
-
 app.use("/api/admin", require("./modules/admin/routes/adminRoutes"));
-
 app.use("/api/pathway", require("./modules/pathway/routes/pathwayRoutes"));
-
 app.use("/api/step-quiz", require("./modules/quiz/routes/stepQuizRoutes"));
-
 app.use("/api/courses", require("./modules/courses/routes/courseRoutes"));
-
 app.use("/api/upload", require("./modules/upload/routes/uploadRoutes"));
-
 app.use("/api/specializations", require("./modules/specializations/routes/specializationRoutes"));
 
 const server = http.createServer(app);
