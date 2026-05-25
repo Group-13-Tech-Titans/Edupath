@@ -47,7 +47,7 @@ import AdminPathwayBuilder from "./pages/admin/Pathway Management/AdminPathwayBu
 import AdminPathwayList from "./pages/admin/Pathway Management/AdminPathwayList.jsx";
 import AdminPathwayEdit from "./pages/admin/Pathway Management/AdminPathwayEdit.jsx";
 import AdminEducatorReview from './pages/admin/Educator Management/educatorViewDetails/AdminEducatorReview.jsx';
-import AdminSpecializations from './pages/admin/Reviewers Management/AdminSpecializations.jsx';
+import AdminSpecializations from './pages/admin/Reviewers Management/specializations/AdminSpecializations.jsx'; 
 import AdminCourseReview from './pages/admin/Course Management/AdminCourseReview/AdminCourseReview.jsx';// Admin course review page
 
 import ReviewerDashboard from "./pages/reviewer/ReviewerDashboard.jsx";

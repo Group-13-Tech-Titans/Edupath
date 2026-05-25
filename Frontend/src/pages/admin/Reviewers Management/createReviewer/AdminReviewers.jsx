@@ -78,7 +78,7 @@ export default function AdminReviewers() {
       
       <div className="mx-auto max-w-6xl grid gap-5 lg:grid-cols-2">
         
-        {/* 1. Create Form Component  */}
+        {/* Create Form Component  */}
         <CreateReviewerForm 
           activeSpecializations={activeSpecializations}
           API_BASE={API_BASE}
@@ -86,7 +86,7 @@ export default function AdminReviewers() {
           fetchReviewers={fetchReviewers}
         />
 
-        {/* 2. Reviewers List Component  */}
+        {/* Reviewers List Component  */}
         <ReviewersList 
           search={search}
           setSearch={setSearch}
@@ -99,7 +99,7 @@ export default function AdminReviewers() {
       <br />
       <AdminFooter />
 
-      {/* 3. Edit Modal Component  */}
+      {/* Edit Modal Component  */}
       <EditReviewerModal 
         editingReviewer={editingReviewer}
         setEditingReviewer={setEditingReviewer}
@@ -109,7 +109,7 @@ export default function AdminReviewers() {
         fetchReviewers={fetchReviewers}
       />
 
-      {/* 4. Delete Confirmation Modal ) */}
+      {/* Delete Confirmation Modal ) */}
       <DeleteConfirmModal 
         deleteConfirmId={deleteConfirmId}
         setDeleteConfirmId={setDeleteConfirmId}
