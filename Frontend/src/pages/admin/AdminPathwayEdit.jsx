@@ -1,9 +1,3 @@
-/**
- * ADMIN PATHWAY EDIT COMPONENT
- * Allows administrators to modify existing curriculum templates.
- * Design Patterns: Adapter Pattern (Data Transformation), Controlled Components, Single Responsibility.
- */
-
 import React, { useState, useEffect } from "react";
 import PropTypes from 'prop-types';
 import axios from "axios";
@@ -22,10 +16,7 @@ const RESOURCE_TYPES = {
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substring(2);
 
-// ==========================================
-// DATA TRANSFORMATION ADAPTERS
-// Resolves S2004 (Deep Nesting) inside API calls
-// ==========================================
+
 const transformStepFromDB = (step) => ({
   ...step,
   id: step._id || generateId(),
@@ -51,9 +42,9 @@ const transformStepForDB = (step, index) => {
   };
 };
 
-// ==========================================
-// SUB-COMPONENTS (Resolves Cognitive Complexity)
-// ==========================================
+// ================
+// SUB-COMPONENTS
+// ===============
 
 const ResourceItem = ({ res, index, stepIndex, isUploading, onResourceChange, onRemove, onFileUpload }) => {
   return (
@@ -89,7 +80,7 @@ const ResourceItem = ({ res, index, stepIndex, isUploading, onResourceChange, on
               type="text"
               placeholder="Upload a PDF file →"
               value={res.url}
-              readOnly 
+              readOnly
               className="w-full rounded-md border border-black/10 px-3 py-1.5 text-xs outline-none bg-slate-50 text-slate-500 cursor-not-allowed"
             />
             <label htmlFor={`upload-${res.id}`} className={`shrink-0 cursor-pointer bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-1.5 rounded-md text-xs font-bold transition-colors ${isUploading ? "opacity-50 pointer-events-none" : ""}`}>
@@ -317,7 +308,7 @@ const AdminPathwayEdit = () => {
         const token = localStorage.getItem("edupath_token");
         const config = { headers: { Authorization: `Bearer ${token}` } };
         
-        // 1. Fetch specializations (Resolves S2486 - Handle Exception)
+        // Fetch specializations
         try {
           const { data: specData } = await axios.get(`${API_BASE_URL}/specializations`, config);
           specsArray = specData.specializations || [];
@@ -329,10 +320,10 @@ const AdminPathwayEdit = () => {
           setIsFetchingSpecs(false);
         }
 
-        // 2. Fetch the actual template being edited
+        // Fetch the actual template being edited
         const { data } = await axios.get(`${API_BASE_URL}/pathway/template/${id}`, config);
 
-        // Keep legacy names in the dropdown if they were deleted from the DB
+        // Keep old names in the dropdown if they were deleted from the DB
         const exists = specsArray.find(s => s.name === data.template.pathName);
         if (!exists && data.template.pathName) {
            setSpecializations([...specsArray, { _id: "legacy", name: data.template.pathName }]);
@@ -343,7 +334,7 @@ const AdminPathwayEdit = () => {
           level: data.template.level,
         });
 
-        // 🟢 ADAPTER PATTERN: Uses extracted helper to resolve S2004
+        // Uses extracted helper
         setSteps((data.template.steps || []).map(transformStepFromDB));
         setLoading(false);
       } catch (err) {
@@ -373,7 +364,8 @@ const AdminPathwayEdit = () => {
 
   const addResourceToStep = (stepIndex) => {
     const newSteps = [...steps];
-    if (!newSteps[stepIndex].resources) newSteps[stepIndex].resources = [];
+    if (!newSteps[stepIndex].resources)
+      newSteps[stepIndex].resources = [];
     newSteps[stepIndex].resources.push({ id: generateId(), title: "", url: "", type: RESOURCE_TYPES.VIDEO });
     setSteps(newSteps);
   };
@@ -410,8 +402,10 @@ const AdminPathwayEdit = () => {
       if (res.data.success) {
         const newSteps = [...steps];
         newSteps[stepIndex].resources[resIndex].url = res.data.item.url;
-        if (!newSteps[stepIndex].resources[resIndex].title) newSteps[stepIndex].resources[resIndex].title = file.name;
-        if (file.name.toLowerCase().endsWith(".pdf")) newSteps[stepIndex].resources[resIndex].type = RESOURCE_TYPES.PDF;
+        if (!newSteps[stepIndex].resources[resIndex].title)
+          newSteps[stepIndex].resources[resIndex].title = file.name;
+        if (file.name.toLowerCase().endsWith(".pdf"))
+          newSteps[stepIndex].resources[resIndex].type = RESOURCE_TYPES.PDF;
         
         setSteps(newSteps);
         setError(""); // Clear error state on success
@@ -421,7 +415,7 @@ const AdminPathwayEdit = () => {
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setUploadingFile(null);
-      event.target.value = null; 
+      event.target.value = null;
     }
   };
 
@@ -486,7 +480,8 @@ const AdminPathwayEdit = () => {
 
   // --- VALIDATION LOGIC ---
   const validateResource = (res, stepIndex, resIndex) => {
-    if (!res.title.trim()) return `Please provide a Title for Learning Material #${resIndex + 1} in Step ${stepIndex + 1}.`;
+    if (!res.title.trim()) 
+      return `Please provide a Title for Learning Material #${resIndex + 1} in Step ${stepIndex + 1}.`;
     
     if (!res.url.trim()) {
       return res.type === RESOURCE_TYPES.PDF 
@@ -501,7 +496,8 @@ const AdminPathwayEdit = () => {
   };
 
   const validateStep = (step, index) => {
-    if (!step.title.trim() || !step.description.trim()) return `Please fill out both the Title and Description for Step ${index + 1}.`;
+    if (!step.title.trim() || !step.description.trim()) 
+      return `Please fill out both the Title and Description for Step ${index + 1}.`;
     
     const resources = step.resources || [];
     for (let j = 0; j < resources.length; j++) {
@@ -512,9 +508,11 @@ const AdminPathwayEdit = () => {
   };
 
   const validatePathwayPayload = () => {
-    if (!pathway.pathName?.trim()) return "Please select a Pathway Name.";
+    if (!pathway.pathName?.trim()) 
+      return "Please select a Pathway Name.";
     
-    if (steps.length === 0) return "You must add at least one step to the curriculum.";
+    if (steps.length === 0) 
+      return "You must add at least one step to the curriculum.";
 
     for (let i = 0; i < steps.length; i++) {
       const err = validateStep(steps[i], i);
@@ -534,7 +532,6 @@ const AdminPathwayEdit = () => {
         return;
     }
 
-    // 🟢 ADAPTER PATTERN: Utilizes extracted helper to resolve S2004
     const formattedSteps = steps.map(transformStepForDB);
 
     try {
@@ -558,8 +555,10 @@ const AdminPathwayEdit = () => {
 
   // --- RENDER HELPERS ---
   const renderSpecializationOptions = () => {
-    if (isFetchingSpecs) return <option value={pathway.pathName}>⏳ Loading...</option>;
-    if (specializations.length === 0) return <option value={pathway.pathName}>{pathway.pathName}</option>;
+    if (isFetchingSpecs) 
+      return <option value={pathway.pathName}>⏳ Loading...</option>;
+    if (specializations.length === 0) 
+      return <option value={pathway.pathName}>{pathway.pathName}</option>;
     return specializations.map((spec) => (
       <option key={spec._id || spec.slug} value={spec.name}>{spec.name}</option>
     ));
@@ -663,7 +662,6 @@ const AdminPathwayEdit = () => {
                     />
                   </div>
 
-                  {/* RESOURCES (S2004 Resolved by Sub-Component) */}
                   <div className="sm:col-span-2 pt-2 border-t border-black/5 mt-2">
                     <div className="flex items-center justify-between mb-2">
                       <span className="block text-xs font-bold text-text-dark uppercase tracking-wider">Learning Materials</span>
@@ -673,7 +671,6 @@ const AdminPathwayEdit = () => {
                     </div>
 
                     <div className="space-y-2">
-                      {/* Resolves S6582 (Optional Chaining) */}
                       {(step.resources?.length > 0) ? (
                         step.resources.map((res, resIndex) => (
                           <ResourceItem 
@@ -717,7 +714,6 @@ const AdminPathwayEdit = () => {
                     </div>
                   </div>
 
-                  {/* QUIZZES (S2004 Resolved by Sub-Component) */}
                   <div className="sm:col-span-2 pt-4 border-t border-black/10 mt-4">
                     <div className="flex items-center justify-between mb-3">
                       <span className="block text-xs font-bold text-text-dark uppercase tracking-wider">Step Assessment (Quiz)</span>

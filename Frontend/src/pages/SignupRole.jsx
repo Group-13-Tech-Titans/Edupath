@@ -1,8 +1,7 @@
 /**
  * SIGNUP ROLE COMPONENT
- * The second step in the onboarding funnel. Allows a "pending" user
+ * The second step in the onboarding. Allows a "pending" user
  * to select their role (Student or Educator) and re-issues their JWT.
- * Design Patterns: Progressive Profiling, State Synchronization.
  */
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -15,8 +14,7 @@ export default function SignupRole() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(""); // UI Error state
 
-  // Fallback to localhost if environment variable is missing
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const API_URL = import.meta.env.BACKEND_URL || "http://localhost:5000";
 
   const chooseRole = async (role) => {
     try {

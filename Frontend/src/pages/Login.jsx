@@ -1,7 +1,6 @@
 /**
  * LOGIN COMPONENT
  * Handles user authentication via Email/Password and Google OAuth.
- * Design Patterns: Controlled Components, Context API Integration, Declarative Routing.
  */
 
 import React, { useState } from "react";
@@ -10,7 +9,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useApp } from "../context/AppProvider.jsx";
 import GoogleAuthButton from "../components/GoogleAuthButton.jsx";
-import { emailRegex } from "../utils/validation"; 
+import { emailRegex } from "../utils/validation";
 
 // Dictionary mapping for role-based redirects
 const roleHomePath = {
@@ -21,7 +20,7 @@ const roleHomePath = {
 };
 
 const Login = () => {
-  const { login, setSession } = useApp(); 
+  const { login, setSession } = useApp();
   const navigate = useNavigate();
 
   // Component State (Controlled Inputs)
@@ -31,9 +30,10 @@ const Login = () => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false); 
   
-  // 🟢 NEW: State to toggle password visibility
+  // State to toggle password visibility
   const [showPassword, setShowPassword] = useState(false);
 
+  // Handle google login
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
       setIsLoading(true);
@@ -49,7 +49,7 @@ const Login = () => {
       if (user.role === "pending") {
         target = "/signup/role";
       } else if (user.status === "onboarding") {
-        target = `/signup/${user.role}`; 
+        target = `/signup/${user.role}`;
       } else {
         target = roleHomePath[user.role] || "/";
       }
@@ -64,7 +64,7 @@ const Login = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // Stop the page from reloading
     let newErrors = {};
 
     if (!email) {
@@ -180,7 +180,7 @@ const Login = () => {
               </Link>
             </div>
             
-            {/* 🟢 FIXED: Wrapped input in relative div and added absolute toggle button */}
+            {/* Wrapped input in relative div and added absolute toggle button */}
             <div className="relative">
               <input
                 id="password"
@@ -194,7 +194,7 @@ const Login = () => {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-emerald-600 transition-colors focus:outline-none"
-                tabIndex="-1" // Keeps it out of normal tab flow
+                tabIndex="-1"
               >
                 {showPassword ? (
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">

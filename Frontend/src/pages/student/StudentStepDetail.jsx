@@ -1,7 +1,6 @@
 /**
  * STUDENT STEP DETAIL COMPONENT
  * Renders the content, resources, and quiz for a specific pathway step.
- * Design Patterns: Single Responsibility Principle, Sub-component Extraction, Guard Clauses.
  */
 
 import React, { useState, useEffect } from "react";
@@ -14,14 +13,12 @@ const API_BASE_URL = "http://localhost:5000/api";
 
 const cleanForSync = (arr) => (Array.isArray(arr) ? arr.map(({ _id, id, ...rest }) => rest) : []);
 
-// ==========================================
-// BACKGROUND SYNC ADAPTER
-// ==========================================
 
 const checkStepNeedsUpdate = (studentStep, templateStep) => {
   return (
     studentStep.title !== templateStep.title ||
     studentStep.description !== templateStep.description ||
+    // Strip database IDs and compare nested arrays as flat JSON strings
     JSON.stringify(cleanForSync(studentStep.resources)) !== JSON.stringify(cleanForSync(templateStep.resources)) ||
     JSON.stringify(cleanForSync(studentStep.linkedCourses)) !== JSON.stringify(cleanForSync(templateStep.linkedCourses)) ||
     JSON.stringify(cleanForSync(studentStep.quiz)) !== JSON.stringify(cleanForSync(templateStep.quiz))
@@ -69,7 +66,8 @@ const syncWithTemplate = async (currentStudentPathway, config) => {
   try {
     const { data: templateData } = await axios.get(`${API_BASE_URL}/pathway/published`, config);
     const pathwayTemplate = templateData.templates.find((t) => {
-      if (currentStudentPathway.originalTemplateId) return t._id === currentStudentPathway.originalTemplateId;
+      if (currentStudentPathway.originalTemplateId) 
+        return t._id === currentStudentPathway.originalTemplateId;
       return t.pathName === currentStudentPathway.pathName && t.level === currentStudentPathway.level;
     });
 
@@ -82,6 +80,7 @@ const syncWithTemplate = async (currentStudentPathway, config) => {
       });
 
       if (hasUpdates) {
+        // Sort steps in ascending numerical order (e.g., Step 1, Step 2, Step 3)
         syncedSteps.sort((a, b) => a.order - b.order);
         currentStudentPathway.steps = syncedSteps;
         axios.put(`${API_BASE_URL}/pathway/my/sync`, { pathwayId: currentStudentPathway._id, steps: syncedSteps }, config).catch(console.error);
@@ -93,9 +92,6 @@ const syncWithTemplate = async (currentStudentPathway, config) => {
   return currentStudentPathway;
 };
 
-// ==========================================
-// EXTRACTED UI COMPONENTS 
-// ==========================================
 
 const ResourceCard = ({ res, icon, themeClass, hoverClass, isDownloadable, handleView, handleDownload, downloadingUrl, viewingUrl }) => {
   if (!isDownloadable) {
@@ -206,7 +202,7 @@ LinkedCourseCard.propTypes = {
   course: PropTypes.object.isRequired,
 };
 
-// 🟢 NEW: Extracted to flatten the S2004 Deep Nesting in the Quiz
+
 const QuizOption = ({ opt, optId, inputName, isChecked, onChange }) => (
   <label
     htmlFor={optId}
@@ -232,7 +228,6 @@ QuizOption.propTypes = {
   onChange: PropTypes.func.isRequired,
 };
 
-// 🟢 NEW: Extracted to flatten the S2004 Deep Nesting in the Quiz
 const QuizQuestion = ({ q, qIndex, stepIdentifier, selectedAnswer, onAnswerChange }) => {
   const qKey = q._id || `quiz-q-${qIndex}`;
 
@@ -269,7 +264,6 @@ QuizQuestion.propTypes = {
   onAnswerChange: PropTypes.func.isRequired,
 };
 
-// 🟢 CLEANED: QuizSection is now beautifully flat
 const QuizSection = ({ quiz, quizAnswers, setQuizAnswers, stepIdentifier }) => {
   const handleAnswerChange = (qIndex, optIndex) => {
     setQuizAnswers(prev => ({ ...prev, [qIndex]: optIndex }));
@@ -299,13 +293,10 @@ QuizSection.propTypes = {
 };
 
 
-// ==========================================
-// MAIN COMPONENT
-// ==========================================
 const StudentStepDetail = () => {
   const { stepOrder } = useParams(); 
   const navigate = useNavigate();
-  const location = useLocation();
+  const location = useLocation(); // Access the current URL location object to monitor path or query changes
   const targetPathwayId = location.state?.pathwayId;
 
   const [pathway, setPathway] = useState(null);
@@ -322,18 +313,24 @@ const StudentStepDetail = () => {
   const [downloadingUrl, setDownloadingUrl] = useState(null);
   const [viewingUrl, setViewingUrl] = useState(null);
 
+  // handle pdf download
   const handleDownload = async (e, url, title, type) => {
-    e.preventDefault();
-    if (downloadingUrl === url) return; 
+    e.preventDefault(); // Stop the browser page reload
+     // Stop duplicate processing if the user rapidly clicks the same downloading link
+    if (downloadingUrl === url) return;
     
-    setDownloadingUrl(url); 
+    setDownloadingUrl(url);
     try {
+      // Fetch raw file binary data from storage server into browser context
       const response = await fetch(url);
       if (!response.ok) throw new Error("Network response was not ok");
       
+       // Convert network stream response into a raw binary storage block (Blob)
       const blob = await response.blob();
+        // Create a local virtual reference URL in browser RAM pointing directly to this memory block
       const blobUrl = globalThis.URL.createObjectURL(blob);
       
+      // Construct an invisible, virtual link element to spoof a user download click
       const link = document.createElement("a");
       link.href = blobUrl;
       
@@ -342,20 +339,24 @@ const StudentStepDetail = () => {
         fileName += ".pdf";
       }
       
+       // Force the browser to treat this click as an official standalone download save prompt
       link.download = fileName;
+      // Mount the link element to the document workspace tree, simulate action, and clear it out
       document.body.appendChild(link);
       link.click();
       link.remove();
       
+      // Deallocate virtual RAM address reference after 1 second to avoid memory leaks
       setTimeout(() => globalThis.URL.revokeObjectURL(blobUrl), 1000);
     } catch (err) {
       console.error("Download failed:", err);
-      globalThis.open(url, "_blank"); 
+      globalThis.open(url, "_blank");
     } finally {
       setDownloadingUrl(null); 
     }
   };
 
+  // handle pdf document view
   const handleView = async (e, url, type) => {
     e.preventDefault();
     if (viewingUrl === url) return; 
@@ -400,7 +401,8 @@ const StudentStepDetail = () => {
             ? data.pathways.find(p => p._id === targetPathwayId) 
             : data.pathways[0];
 
-        if (!currentStudentPathway) currentStudentPathway = data.pathways[0];
+        if (!currentStudentPathway)
+          currentStudentPathway = data.pathways[0];
 
         currentStudentPathway = await syncWithTemplate(currentStudentPathway, config);
 
@@ -460,6 +462,7 @@ const StudentStepDetail = () => {
   const handleSubmitQuiz = () => {
     if (!currentStep.quiz || currentStep.quiz.length === 0) return;
     
+    // Validate that the student has provided an answer for every question in the quiz
     if (Object.keys(quizAnswers).length < currentStep.quiz.length) {
       setShowQuizErrors(true);
       return;

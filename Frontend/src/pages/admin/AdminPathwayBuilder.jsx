@@ -18,6 +18,7 @@ const RESOURCE_TYPES = {
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substring(2);
 
 // --- SUB-COMPONENT ---
+// Handle course selection in pathway builder
 const CourseSelectionPage = ({ onClose, onSelect }) => {
   const [dbCourses, setDbCourses] = useState([]);
   const [search, setSearch] = useState("");
@@ -137,7 +138,7 @@ const AdminPathwayBuilder = () => {
 
   const [pathway, setPathway] = useState({
     pathName: "",
-    level: PATHWAY_LEVELS[0], 
+    level: PATHWAY_LEVELS[0],
   });
 
   const [steps, setSteps] = useState([
@@ -235,14 +236,14 @@ const AdminPathwayBuilder = () => {
         if (file.name.toLowerCase().endsWith(".pdf")) newSteps[stepIndex].resources[resIndex].type = RESOURCE_TYPES.PDF;
         
         setSteps(newSteps);
-        setError(""); 
+        setError("");
       }
     } catch (err) {
       setError(`Upload failed: ${err.response?.data?.message || err.message}`);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setUploadingFile(null);
-      event.target.value = null; 
+      event.target.value = null;
     }
   };
 
@@ -251,7 +252,7 @@ const AdminPathwayBuilder = () => {
     const newSteps = [...steps];
     if (!newSteps[stepIndex].quiz) newSteps[stepIndex].quiz = [];
     newSteps[stepIndex].quiz.push({
-      id: generateId(), 
+      id: generateId(),
       question: "",
       options: [{ id: generateId(), text: "" }, { id: generateId(), text: "" }, { id: generateId(), text: "" }, { id: generateId(), text: "" }],
       correctAnswerIndex: 0,
@@ -283,7 +284,8 @@ const AdminPathwayBuilder = () => {
     const newSteps = [...steps];
     const stepIdx = activeCourseSelector.stepIndex;
 
-    if (!newSteps[stepIdx].linkedCourses) newSteps[stepIdx].linkedCourses = [];
+    if (!newSteps[stepIdx].linkedCourses)
+      newSteps[stepIdx].linkedCourses = [];
     const courseId = course._id || course.id;
     
     if (!newSteps[stepIdx].linkedCourses.some((c) => c.courseId === courseId)) {
@@ -306,12 +308,13 @@ const AdminPathwayBuilder = () => {
     setSteps(newSteps);
   };
 
-  // --- VALIDATION HELPERS (Resolves S3776 Cognitive Complexity) ---
+  // --- VALIDATION HELPERS ---
   const validateResource = (res, stepIndex, resIndex) => {
-    if (!res.title.trim()) return `Please provide a Title for Learning Material #${resIndex + 1} in Step ${stepIndex + 1}.`;
+    if (!res.title.trim())
+      return `Please provide a Title for Learning Material #${resIndex + 1} in Step ${stepIndex + 1}.`;
     
     if (!res.url.trim()) {
-      return res.type === RESOURCE_TYPES.PDF 
+      return res.type === RESOURCE_TYPES.PDF
         ? `Please upload the PDF document for "${res.title}" in Step ${stepIndex + 1}.`
         : `Please paste a URL for "${res.title}" in Step ${stepIndex + 1}.`;
     }
@@ -335,8 +338,10 @@ const AdminPathwayBuilder = () => {
   };
 
   const validatePathwayPayload = () => {
-    if (!pathway.pathName.trim()) return "Please select a Pathway Name.";
-    if (steps.length === 0) return "You must add at least one step to the curriculum.";
+    if (!pathway.pathName.trim())
+      return "Please select a Pathway Name.";
+    if (steps.length === 0)
+      return "You must add at least one step to the curriculum.";
 
     for (let i = 0; i < steps.length; i++) {
       const err = validateStep(steps[i], i);
@@ -352,7 +357,7 @@ const AdminPathwayBuilder = () => {
     const validationError = validatePathwayPayload();
     if (validationError) {
         setError(validationError);
-        window.scrollTo({ top: 0, behavior: "smooth" }); 
+        window.scrollTo({ top: 0, behavior: "smooth" });
         return;
     }
 
@@ -393,10 +398,12 @@ const AdminPathwayBuilder = () => {
     }
   };
 
-  // --- RENDER HELPERS (Resolves S3358 and S2004) ---
+  // --- RENDER HELPERS ---
   const renderSpecializationOptions = () => {
-    if (isFetchingSpecs) return <option value="" disabled>⏳ Loading specializations...</option>;
-    if (specializations.length === 0) return <option value="" disabled>❌ No specializations found</option>;
+    if (isFetchingSpecs)
+      return <option value="" disabled>⏳ Loading specializations...</option>;
+    if (specializations.length === 0)
+      return <option value="" disabled>❌ No specializations found</option>;
     return specializations.map((spec) => (
       <option key={spec._id} value={spec.name}>{spec.name}</option>
     ));
@@ -408,7 +415,7 @@ const AdminPathwayBuilder = () => {
         <label htmlFor={`quiz-opt-radio-${opt.id}`} className="sr-only">Set Correct Answer</label>
         <input 
           id={`quiz-opt-radio-${opt.id}`}
-          type="radio" 
+          type="radio"
           name={`correct-ans-${stepIdentifier}-${q.id}`} 
           checked={q.correctAnswerIndex === optIndex} 
           onChange={() => handleQuizChange(stepIndex, qIndex, "correctAnswerIndex", optIndex)} 

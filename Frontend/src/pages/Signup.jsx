@@ -1,9 +1,9 @@
 /**
  * SIGNUP COMPONENT
  * Handles new user registration via Email/Password or Google OAuth.
- * Design Patterns: Controlled Components, Client-Side Validation, 
  * Multi-Step Onboarding Routing.
  */
+
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -22,9 +22,9 @@ const Signup = () => {
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [errors, setErrors] = useState({});
-  const [isLoading, setIsLoading] = useState(false); 
+  const [isLoading, setIsLoading] = useState(false);
   
-  // 🟢 NEW: States to toggle visibility for both password fields
+  // States to toggle visibility for both password fields
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -33,7 +33,7 @@ const Signup = () => {
       setIsLoading(true);
       const res = await axios.post("http://localhost:5000/api/auth/google", {
         credential: credentialResponse.credential,
-        isSignup: true, 
+        isSignup: true,
       });
 
       setSession(res.data.token, res.data.user);
@@ -44,9 +44,9 @@ const Signup = () => {
       if (user.role === "pending") {
         target = "/signup/role";
       } else if (user.status === "onboarding") {
-        target = `/signup/${user.role}`; 
+        target = `/signup/${user.role}`;
       } else {
-        target = "/"; 
+        target = "/";
       }
 
       navigate(target, { replace: true });
@@ -59,7 +59,7 @@ const Signup = () => {
       if (errorMessage === "Account already exists. Please log in.") {
         setTimeout(() => {
           navigate("/login", { replace: true });
-        }, 2500); 
+        }, 2500);
       }
     } finally {
       setIsLoading(false);
@@ -152,7 +152,7 @@ const Signup = () => {
 
           <div>
             <label htmlFor="password" className="text-xs font-medium text-text-dark">Password</label>
-            {/* 🟢 FIXED: Wrapped in relative div with toggle button */}
+            {/* Wrapped in relative div with toggle button */}
             <div className="relative mt-1">
               <input
                 id="password"
@@ -185,7 +185,7 @@ const Signup = () => {
           
           <div>
             <label htmlFor="confirm" className="text-xs font-medium text-text-dark">Confirm Password</label>
-            {/* 🟢 FIXED: Wrapped in relative div with toggle button */}
+            {/* Wrapped in relative div with toggle button */}
             <div className="relative mt-1">
               <input
                 id="confirm"

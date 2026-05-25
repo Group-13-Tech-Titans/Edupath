@@ -106,7 +106,7 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   const setSession = useCallback((token, user) => {
-    setToken(token); // ✅ saves to edupath_token
+    setToken(token); // saves to edupath_token
     setState((prev) => ({
       ...prev,
       currentUser: normalizeUser(user),
@@ -118,7 +118,7 @@ export const AppProvider = ({ children }) => {
     async (email, password) => {
       try {
         const result = await authApi.login(email.trim(), password);
-        setSession(result.token, result.user); // ✅ needs authApi.login to return token too
+        setSession(result.token, result.user); // needs authApi.login to return token too
         return { success: true, user: result.user };
       } catch (err) {
         return {

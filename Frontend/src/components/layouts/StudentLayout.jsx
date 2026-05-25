@@ -5,7 +5,7 @@ import { useApp } from "../../context/AppProvider.jsx";
 const StudentLayout = () => {
   const { currentUser, logout } = useApp();
   
-  // 🟢 NEW: State to track if the mobile hamburger menu is open
+  // State to track if the mobile menu is open
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -50,7 +50,7 @@ const StudentLayout = () => {
             </button>
           </div>
 
-          {/* MOBILE HAMBURGER MENU BUTTON */}
+          {/* MOBILE MENU BUTTON */}
           <button 
             className="md:hidden flex flex-col items-center justify-center h-8 w-8 space-y-1.5 z-50 cursor-pointer"
             onClick={toggleMenu}

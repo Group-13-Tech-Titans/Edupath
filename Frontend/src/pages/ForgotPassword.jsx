@@ -1,7 +1,6 @@
 /**
  * FORGOT PASSWORD COMPONENT
  * Allows users to request a password reset link via email.
- * Design Patterns: Controlled Components, Conditional Rendering, Env Variables.
  */
 import { useState } from "react";
 import axios from "axios";
@@ -14,7 +13,7 @@ export default function ForgotPassword() {
   const [loading, setLoading] = useState(false);
 
   // Grab the backend URL from environment variables
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const API_URL = import.meta.env.BACKEND_URL || "http://localhost:5000";
 
   const submit = async (e) => {
     e.preventDefault();

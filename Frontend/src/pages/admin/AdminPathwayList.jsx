@@ -12,7 +12,7 @@ const STATUS = {
 
 const AdminPathwayList = () => {
   const [templates, setTemplates] = useState([]);
-  const [specializations, setSpecializations] = useState([]); // 🟢 NEW: State for DB mapping
+  const [specializations, setSpecializations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -20,15 +20,13 @@ const AdminPathwayList = () => {
     fetchInitialData();
   }, []);
 
-  /**
-   * Fetches both Master Templates and Specializations concurrently.
-   */
+// Fetches both Master Templates and Specializations concurrently.
   const fetchInitialData = async () => {
     try {
       const token = localStorage.getItem("edupath_token");
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      // Promise.all allows us to fetch both endpoints simultaneously for better performance
+      // Promise all allows us to fetch both endpoints simultaneously for better performance
       const [pathwayRes, specRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/pathway/template`, config),
         axios.get(`${API_BASE_URL}/specializations`, config).catch(() => ({ data: { specializations: [] } })) // Silently catch spec errors
@@ -44,26 +42,23 @@ const AdminPathwayList = () => {
     }
   };
 
-  /**
-   * Cross-references the pathway's slug/name with the database to ensure perfect formatting.
-   * @param {string} val - The raw pathway name or slug
-   * @returns {string} The formatted name
-   */
+  // Cross-references the pathway's slug/name with the database to ensure perfect formatting.
   const getPathwayName = (val) => {
     if (!val) return "";
     
-    // 1. Try to find exact match in DB
+    // Try to find exact match in DB
     const found = specializations.find(s => s.slug === val || s.name === val);
     if (found) return found.name;
     
-    // 2. Fallback formatting if DB lookup fails
-    if (val.includes(" ")) return val; 
-    if (val.toLowerCase() === "ui-ux") return "UI/UX Design";
+    // Fallback formatting if DB lookup fails
+    if (val.includes(" ")) 
+      return val;
+
     return val.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
   };
 
   const handleDelete = async (id) => {
-    // Utilize window.confirm for a native browser safety check
+    // Utilize window.confirm for a native browser safety check before delete
     if (!globalThis.confirm("Are you sure you want to delete this pathway? This cannot be undone.")) return;
 
     try {
@@ -167,7 +162,6 @@ const AdminPathwayList = () => {
                     </button>
                   </div>
 
-                  {/* 🟢 DYNAMIC DB NAMING applied here */}
                   <h3 className="text-lg font-bold text-slate-800 line-clamp-2">
                     {getPathwayName(template.pathName)}
                   </h3>

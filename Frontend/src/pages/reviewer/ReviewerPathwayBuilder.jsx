@@ -16,23 +16,20 @@ const RESOURCE_TYPES = {
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substring(2);
 
-// HELPER: Converts "full-stack-development" into "Full Stack Development" for the UI
+// e.g- Converts "full-stack-development" into "Full Stack Development" for the UI
 const formatSpecializationName = (slug) => {
   if (!slug) return "Loading specialization...";
   if (slug === "Specialization Not Found") return slug;
   if (slug.includes(" ")) return slug;
-  if (slug.toLowerCase() === "ui-ux") return "UI/UX Design";
 
+  // Splits by hyphens, capitalizes the first letter of each word, and rejoins with spaces and return
   return slug
     .split("-")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 };
 
-// ==========================================
-// EXTRACTED SUB-COMPONENTS (Resolves Cognitive Complexity & Nesting)
-// ==========================================
-
+// handle pathway step resources
 const ResourceItem = ({ res, index, stepIndex, isUploading, onResourceChange, onRemove, onFileUpload }) => {
   const renderUrlInput = () => {
     if (res.type === RESOURCE_TYPES.PDF) {
@@ -185,6 +182,7 @@ QuizItem.propTypes = {
   onRemove: PropTypes.func.isRequired,
 };
 
+// Handle course selection
 const CourseSelectionPage = ({ onClose, onSelect }) => {
   const [dbCourses, setDbCourses] = useState([]);
   const [search, setSearch] = useState("");
@@ -275,9 +273,8 @@ CourseSelectionPage.propTypes = {
     onSelect: PropTypes.func.isRequired,
 };
 
-// ==========================================
-// MAIN COMPONENT: REVIEWER PATHWAY BUILDER
-// ==========================================
+// Handle Reviewer pathway creation
+
 const ReviewerPathwayBuilder = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -379,11 +376,13 @@ const ReviewerPathwayBuilder = () => {
       if (res.data.success) {
         const newSteps = [...steps];
         newSteps[stepIndex].resources[resIndex].url = res.data.item.url;
-        if (!newSteps[stepIndex].resources[resIndex].title) newSteps[stepIndex].resources[resIndex].title = file.name;
-        if (file.name.toLowerCase().endsWith(".pdf")) newSteps[stepIndex].resources[resIndex].type = RESOURCE_TYPES.PDF;
+        if (!newSteps[stepIndex].resources[resIndex].title)
+          newSteps[stepIndex].resources[resIndex].title = file.name;
+        if (file.name.toLowerCase().endsWith(".pdf"))
+          newSteps[stepIndex].resources[resIndex].type = RESOURCE_TYPES.PDF;
         
         setSteps(newSteps);
-        setError(""); 
+        setError("");
       }
     } catch (err) {
       setError(`Upload failed: ${err.response?.data?.message || err.message}`);
@@ -401,7 +400,8 @@ const ReviewerPathwayBuilder = () => {
     const newSteps = [...steps];
     const stepIdx = activeCourseSelector.stepIndex;
 
-    if (!newSteps[stepIdx].linkedCourses) newSteps[stepIdx].linkedCourses = [];
+    if (!newSteps[stepIdx].linkedCourses) 
+      newSteps[stepIdx].linkedCourses = [];
     const courseId = course._id || course.id;
     
     if (!newSteps[stepIdx].linkedCourses.some((c) => c.courseId === courseId)) {
@@ -424,9 +424,11 @@ const ReviewerPathwayBuilder = () => {
     setSteps(newSteps);
   };
 
+  //add new quiz
   const addQuizQuestion = (stepIndex) => {
     const newSteps = [...steps];
-    if (!newSteps[stepIndex].quiz) newSteps[stepIndex].quiz = [];
+    if (!newSteps[stepIndex].quiz)
+      newSteps[stepIndex].quiz = [];
     newSteps[stepIndex].quiz.push({
       id: generateId(), 
       question: "",
@@ -436,12 +438,14 @@ const ReviewerPathwayBuilder = () => {
     setSteps(newSteps);
   };
 
+  // add quiz content
   const handleQuizChange = (stepIndex, qIndex, field, value) => {
     const newSteps = [...steps];
     newSteps[stepIndex].quiz[qIndex][field] = value;
     setSteps(newSteps);
   };
 
+  // add answer content
   const handleQuizOptionChange = (stepIndex, qIndex, optIndex, value) => {
     const newSteps = [...steps];
     newSteps[stepIndex].quiz[qIndex].options[optIndex].text = value;
@@ -456,7 +460,8 @@ const ReviewerPathwayBuilder = () => {
 
   // --- VALIDATION HELPERS ---
   const validateResource = (res, stepIndex, resIndex) => {
-    if (!res.title.trim()) return `Please provide a Title for Learning Material #${resIndex + 1} in Step ${stepIndex + 1}.`;
+    if (!res.title.trim()) 
+      return `Please provide a Title for Learning Material #${resIndex + 1} in Step ${stepIndex + 1}.`;
     
     if (!res.url.trim()) {
       return res.type === RESOURCE_TYPES.PDF 
@@ -471,7 +476,8 @@ const ReviewerPathwayBuilder = () => {
   };
 
   const validateStep = (step, index) => {
-    if (!step.title.trim() || !step.description.trim()) return `Please fill out both the Title and Description for Step ${index + 1}.`;
+    if (!step.title.trim() || !step.description.trim()) 
+      return `Please fill out both the Title and Description for Step ${index + 1}.`;
     
     const resources = step.resources || [];
     for (let j = 0; j < resources.length; j++) {
@@ -485,7 +491,8 @@ const ReviewerPathwayBuilder = () => {
     if (!pathway.pathName?.trim() || pathway.pathName === "Loading specialization..." || pathway.pathName === "Specialization Not Found") {
       return "Valid Specialization required.";
     }
-    if (steps.length === 0) return "You must add at least one step to the curriculum.";
+    if (steps.length === 0) 
+      return "You must add at least one step to the curriculum.";
 
     for (let i = 0; i < steps.length; i++) {
       const err = validateStep(steps[i], i);
@@ -501,7 +508,7 @@ const ReviewerPathwayBuilder = () => {
     const validationError = validatePathwayPayload();
     if (validationError) {
         setError(validationError);
-        window.scrollTo({ top: 0, behavior: "smooth" }); 
+        window.scrollTo({ top: 0, behavior: "smooth" });
         return;
     }
 
@@ -573,7 +580,6 @@ const ReviewerPathwayBuilder = () => {
               <label htmlFor="pathName" className="mb-1 block text-sm font-medium text-text-dark">
                 Assigned Specialization
               </label>
-              {/* 🟢 RBAC: Locked Input - Reviewers cannot change their specialization */}
               <input
                 id="pathName"
                 type="text"

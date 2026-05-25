@@ -1,8 +1,7 @@
 /**
  * SIGNUP STUDENT COMPONENT
- * Final step in the student onboarding funnel. Collects detailed profile 
+ * Final step in the student onboarding funnel. Collects detailed profile
  * metadata and officially converts their role from "pending" to "student".
- * Design Patterns: Controlled Form Object, Auto-filling Context Data.
  */
 
 import React, { useState, useEffect } from "react";
@@ -30,7 +29,7 @@ const SignupStudent = () => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
-  // 🟢 NEW: States to toggle visibility for both password fields
+  // States to toggle visibility for both password fields
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -41,6 +40,7 @@ const SignupStudent = () => {
     }
   }, [currentUser]);
 
+  // Update form state dynamically using the input's name attribute
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -179,7 +179,7 @@ const SignupStudent = () => {
 
           <div>
             <label htmlFor="password" className="text-xs font-medium text-gray-700">Password</label>
-            {/* 🟢 FIXED: Wrapped in relative div with toggle button */}
+            {/* Wrapped in relative div with toggle button */}
             <div className="relative mt-1">
               <input
                 id="password"
@@ -213,7 +213,7 @@ const SignupStudent = () => {
 
           <div>
             <label htmlFor="confirm" className="text-xs font-medium text-gray-700">Confirm password</label>
-            {/* 🟢 FIXED: Wrapped in relative div with toggle button */}
+            {/* Wrapped in relative div with toggle button */}
             <div className="relative mt-1">
               <input
                 id="confirm"

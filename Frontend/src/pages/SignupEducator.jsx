@@ -2,7 +2,6 @@
  * SIGNUP EDUCATOR COMPONENT
  * Final step in the educator onboarding funnel. Collects professional
  * credentials and upgrades their role, setting status to PENDING_VERIFICATION.
- * Design Patterns: Controlled Form Object, Auto-filling Context Data.
  */
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
@@ -31,7 +30,7 @@ const SignupEducator = () => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false); 
 
-  // 🟢 NEW: States to toggle visibility for both password fields
+  // States to toggle visibility for both password fields
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -154,7 +153,6 @@ const SignupEducator = () => {
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label htmlFor="password" className="text-xs font-medium text-gray-700">Password</label>
-              {/* 🟢 FIXED: Wrapped in relative div with toggle button */}
               <div className="relative mt-1">
                 <input
                   id="password"
@@ -188,7 +186,6 @@ const SignupEducator = () => {
             
             <div>
               <label htmlFor="confirm" className="text-xs font-medium text-gray-700">Confirm password</label>
-              {/* 🟢 FIXED: Wrapped in relative div with toggle button */}
               <div className="relative mt-1">
                 <input
                   id="confirm"

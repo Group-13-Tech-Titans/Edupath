@@ -2,7 +2,6 @@
  * PROTECTED ROUTE COMPONENT
  * Acts as a UI Gatekeeper. Checks global Context state to ensure a user
  * is authenticated and authorized before rendering child routes.
- * Design Patterns: Layout Wrapper, Declarative Routing, RBAC.
  */
 
 import React from "react";

@@ -1,7 +1,6 @@
 /**
- * PATH FINDER COMPONENT (STUDENT ONBOARDING WIZARD)
+ * PATH FINDER COMPONENT (STUDENT ONBOARDING)
  * Interactive questionnaire that recommends a curriculum based on user selections.
- * Design Patterns: Wizard Pattern, Controlled State, Concurrent Data Fetching, Optimistic UI.
  */
 
 import React, { useState, useEffect } from "react";
@@ -23,7 +22,7 @@ const LEVEL_UI_CONFIG = {
   },
   "Intermediate": {
     title: "Some Experience",
-    desc: "I know the basics and want to build intermediate skills.",
+    desc: "I know the basics and want to learn intermediate skills.",
     icon: "🛠️"
   },
   "Advanced": {
@@ -60,29 +59,29 @@ const PathFinder = () => {
         const token = localStorage.getItem("edupath_token");
         const config = { headers: { Authorization: `Bearer ${token}` } };
         
-        // 🟢 OPTIMIZATION: Resolves Network Waterfall by fetching data concurrently
+        // Resolves Network Waterfall by fetching data concurrently
         const [specRes, myDataRes, publishedRes] = await Promise.all([
           axios.get(`${API_BASE_URL}/specializations`, config).catch(() => ({ data: { specializations: [] } })),
           axios.get(`${API_BASE_URL}/pathway/my`, config),
           axios.get(`${API_BASE_URL}/pathway/published`, config)
         ]);
 
-        // 1. Map Specializations
+        //  Map Specializations
         setSpecializations(specRes.data.specializations || []);
 
-        // 2. Enforce Business Logic Limits
+        //  Enforce Business Logic Limits
         if (myDataRes.data.hasPathway && myDataRes.data.pathways?.length >= MAX_ACTIVE_PATHWAYS) {
           setLimitReached(true);
           setIsLoading(false);
           return; // Early return to block rendering the wizard
         }
 
-        // 3. Populate Available Published Paths
+        //  Populate Available Published Paths
         const templates = publishedRes.data.templates || [];
         setAllTemplates(templates); 
         
         // Extract unique path names dynamically
-        const uniquePaths = [...new Set(templates.map(t => t.pathName))];
+        const uniquePaths = [...new Set(templates.map(t => t.pathName))]; // Remove duplicate path names
         setAvailablePaths(uniquePaths);
         
         setIsLoading(false);
@@ -102,10 +101,8 @@ const PathFinder = () => {
     if (!val) return "";
     const found = specializations.find(s => s.slug === val || s.name === val);
     if (found) return found.name;
-    
     if (val.includes(" ")) return val;
-    if (val.toLowerCase() === "ui-ux") return "UI/UX Design";
-    return val.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    return val.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" "); // e.g., "ui-ux" -> "Ui Ux"
   };
 
   const handleSelect = (field, value) => {
@@ -157,7 +154,7 @@ const PathFinder = () => {
     }
   };
 
-  // Derive available levels dynamically based on what the user picked in Step 1
+  // Derive available levels dynamically based on what the user picked in Step 1(Pathway)
   const availableLevelsForSelectedPath = answers.pathName 
     ? [...new Set(allTemplates.filter(t => t.pathName === answers.pathName).map(t => t.level))]
     : [];
@@ -189,7 +186,6 @@ const PathFinder = () => {
     );
   }
 
-  // --- MAIN RENDER ---
   return (
     <PageShell>
       <div className="min-h-[80vh] flex flex-col items-center justify-center p-4">
@@ -222,7 +218,7 @@ const PathFinder = () => {
                     <div className="grid gap-4 sm:grid-cols-2">
                       {availablePaths.map((pathName) => (
                         <OptionCard 
-                          key={pathName} // SonarLint S6479: Uses unique string instead of array index
+                          key={pathName}
                           title={getPathwayName(pathName)} 
                           icon="🎯" 
                           selected={answers.pathName === pathName} 
@@ -294,7 +290,7 @@ const PathFinder = () => {
                                 {recommendedTemplate.level} Level
                               </span>
                               <h3 className="text-2xl font-bold text-slate-800 mt-4 mb-1">{getPathwayName(recommendedTemplate.pathName)}</h3>
-                              <p className="text-slate-500 text-sm">{recommendedTemplate.steps.length} Curated Learning Steps included.</p>
+                              <p className="text-slate-500 text-sm">{recommendedTemplate.steps.length} Selected Learning Steps included.</p>
                             </div>
                           ) : (
                             <div className="bg-amber-50 text-amber-600 p-6 rounded-2xl mb-8 font-bold border border-amber-200">
@@ -357,7 +353,6 @@ const OptionCard = ({ title, desc, icon, selected, onClick }) => (
   </button>
 );
 
-// SonarLint S6774: Add React PropTypes Validation
 OptionCard.propTypes = {
   title: PropTypes.string.isRequired,
   desc: PropTypes.string,

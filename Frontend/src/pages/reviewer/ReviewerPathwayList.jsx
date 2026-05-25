@@ -1,9 +1,3 @@
-/**
- * REVIEWER PATHWAY LIST COMPONENT
- * Displays a grid of Master Curriculum Templates assigned to the Reviewer.
- * Design Patterns: Asynchronous Data Fetching, Optimistic UI Updates, Data Dictionary Mapping.
- */
-
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
@@ -18,7 +12,7 @@ const STATUS = {
 
 const ReviewerPathwayList = () => {
   const [templates, setTemplates] = useState([]);
-  const [specializations, setSpecializations] = useState([]); // 🟢 NEW: State for DB mapping
+  const [specializations, setSpecializations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -172,7 +166,6 @@ const ReviewerPathwayList = () => {
                     </button>
                   </div>
                   
-                  {/* 🟢 DYNAMIC DB NAMING applied here */}
                   <h3 className="text-lg font-bold text-slate-800 line-clamp-2">
                     {getPathwayName(template.pathName)}
                   </h3>

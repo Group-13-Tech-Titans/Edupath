@@ -1,7 +1,6 @@
 /**
  * STUDENT DASHBOARD COMPONENT
  * Primary landing hub for students to track pathways and learning statistics.
- * Design Patterns: Container/Presentational, Concurrent Fetching, Optimistic UI.
  */
 
 import React, { useState, useEffect } from "react";
@@ -21,14 +20,14 @@ const GRADIENTS = [
   "from-indigo-500 to-blue-400"
 ];
 
-// ==========================================
-// HELPERS & EXTRACTED COMPONENTS
-// ==========================================
-
 const getPathwayIcon = (index) => {
-  if (index === 0) return "🚀";
-  if (index === 1) return "💡";
-  return "⭐";
+  if (index === 0) {
+    return "🚀";
+  } else if (index === 1) {
+    return "💡";
+  } else {
+    return "⭐";
+  }
 };
 
 const StatCard = ({ icon, title, value, themeClass }) => (
@@ -118,24 +117,11 @@ PathwayCard.propTypes = {
   onDelete: PropTypes.func.isRequired,
 };
 
-// ==========================================
-// MAIN CONTAINER COMPONENT
-// ==========================================
+
 const StudentDashboard = () => {
   const navigate = useNavigate();
-  const { currentUser, courses, lessonProgress } = useApp();
+  const { currentUser } = useApp();
   
-  const email = currentUser?.email;
-  const progress = lessonProgress[email] || {};
-  const approvedCourses = courses.filter((c) => c.status === "approved");
-
-  const completedCount = Object.values(progress).reduce(
-    (acc, lessons) => acc + (lessons ? lessons.length : 0),
-    0
-  );
-  
-  const streakDays = currentUser?.streakDays || 7; 
-
   const [activePathways, setActivePathways] = useState([]);
   const [specializations, setSpecializations] = useState([]);
   const [loadingPathway, setLoadingPathway] = useState(true);
@@ -186,7 +172,6 @@ const StudentDashboard = () => {
     if (found) return found.name;
     
     if (val.includes(" ")) return val;
-    if (val.toLowerCase() === "ui-ux") return "UI/UX Design";
     return val.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
   };
 
@@ -213,7 +198,6 @@ const StudentDashboard = () => {
       setShowDeleteModal(false);
       setPathwayToDelete(null);
     } catch (err) {
-      // 🟢 FIXED S2486: Now we actually USE the 'err' object by logging it
       console.error("Error deleting pathway:", err); 
       alert("Failed to delete pathway. Please try again.");
     } finally {
@@ -306,12 +290,6 @@ const StudentDashboard = () => {
         </div>
 
         {renderPathwayContent()}
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4">
-          <StatCard icon="📚" title="Active Courses" value={approvedCourses.length} themeClass="bg-blue-50 text-blue-500" />
-          <StatCard icon="✅" title="Lessons Done" value={completedCount} themeClass="bg-emerald-50 text-emerald-500" />
-          <StatCard icon="🔥" title="Study Streak" value={`${streakDays} Days`} themeClass="bg-orange-50 text-orange-500" />
-        </div>
 
       </div>
 

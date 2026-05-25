@@ -1,9 +1,3 @@
-/**
- * REVIEWER PATHWAY EDIT COMPONENT
- * Allows reviewers to modify existing curriculum templates for their specialization.
- * Design Patterns: Adapter Pattern, Controlled Components, Single Responsibility.
- */
-
 import React, { useState, useEffect } from "react";
 import PropTypes from 'prop-types';
 import axios from "axios";
@@ -22,12 +16,11 @@ const RESOURCE_TYPES = {
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substring(2);
 
-// HELPER: Converts "full-stack-development" into "Full Stack Development"
+// Converts "full-stack-development" into "Full Stack Development" for the UI
 const formatSpecializationName = (slug) => {
   if (!slug) return "Loading specialization...";
   if (slug === "Specialization Not Found") return slug;
-  if (slug.includes(" ")) return slug; 
-  if (slug.toLowerCase() === "ui-ux") return "UI/UX Design";
+  if (slug.includes(" ")) return slug;
   
   return slug
     .split("-")
@@ -35,9 +28,7 @@ const formatSpecializationName = (slug) => {
     .join(" ");
 };
 
-// ==========================================
-// DATA TRANSFORMATION ADAPTERS (Resolves S2004 Deep Nesting)
-// ==========================================
+
 const transformStepFromDB = (step) => ({
   ...step,
   id: step._id || generateId(),
@@ -63,10 +54,7 @@ const transformStepForDB = (step, index) => {
   };
 };
 
-// ==========================================
-// SUB-COMPONENTS (Resolves S2004 Deep Nesting in JSX)
-// ==========================================
-
+// handle pathway step resources
 const ResourceItem = ({ res, index, stepIndex, isUploading, onResourceChange, onRemove, onFileUpload }) => {
   return (
     <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
@@ -139,6 +127,7 @@ ResourceItem.propTypes = {
   onFileUpload: PropTypes.func.isRequired,
 };
 
+// show linked course in step
 const LinkedCourseItem = ({ c, index, stepIndex, onRemove }) => (
   <div className="flex items-center justify-between bg-blue-50/50 p-3 rounded-xl border border-blue-100">
     <div className="flex items-center gap-3">
@@ -161,6 +150,7 @@ LinkedCourseItem.propTypes = {
   onRemove: PropTypes.func.isRequired,
 };
 
+// show quizzes in step
 const QuizItem = ({ q, qIndex, stepIndex, stepIdentifier, onChange, onOptionChange, onRemove }) => (
   <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100 relative">
     <button type="button" onClick={() => onRemove(stepIndex, qIndex)} className="absolute top-2 right-2 text-red-400 hover:bg-red-50 p-1.5 rounded-md font-bold text-xs">✕ Remove</button>
@@ -302,9 +292,7 @@ CourseSelectionPage.propTypes = {
     onSelect: PropTypes.func.isRequired,
 };
 
-// ==========================================
-// MAIN COMPONENT: REVIEWER PATHWAY EDIT
-// ==========================================
+
 const ReviewerPathwayEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -411,8 +399,10 @@ const ReviewerPathwayEdit = () => {
       if (res.data.success) {
         const newSteps = [...steps];
         newSteps[stepIndex].resources[resIndex].url = res.data.item.url;
-        if (!newSteps[stepIndex].resources[resIndex].title) newSteps[stepIndex].resources[resIndex].title = file.name;
-        if (file.name.toLowerCase().endsWith(".pdf")) newSteps[stepIndex].resources[resIndex].type = RESOURCE_TYPES.PDF;
+        if (!newSteps[stepIndex].resources[resIndex].title) 
+          newSteps[stepIndex].resources[resIndex].title = file.name;
+        if (file.name.toLowerCase().endsWith(".pdf")) 
+          newSteps[stepIndex].resources[resIndex].type = RESOURCE_TYPES.PDF;
         
         setSteps(newSteps);
         setError(""); 
@@ -432,7 +422,8 @@ const ReviewerPathwayEdit = () => {
     const newSteps = [...steps];
     const stepIdx = activeCourseSelector.stepIndex;
 
-    if (!newSteps[stepIdx].linkedCourses) newSteps[stepIdx].linkedCourses = [];
+    if (!newSteps[stepIdx].linkedCourses) 
+      newSteps[stepIdx].linkedCourses = [];
     const courseId = course._id || course.id;
     
     if (!newSteps[stepIdx].linkedCourses.some((c) => c.courseId === courseId)) {
@@ -487,10 +478,11 @@ const ReviewerPathwayEdit = () => {
 
   // --- VALIDATION LOGIC ---
   const validateResource = (res, stepIndex, resIndex) => {
-    if (!res.title.trim()) return `Please provide a Title for Learning Material #${resIndex + 1} in Step ${stepIndex + 1}.`;
+    if (!res.title.trim()) 
+      return `Please provide a Title for Learning Material #${resIndex + 1} in Step ${stepIndex + 1}.`;
     
     if (!res.url.trim()) {
-      return res.type === RESOURCE_TYPES.PDF 
+      return res.type === RESOURCE_TYPES.PDF
         ? `Please upload the PDF document for "${res.title}" in Step ${stepIndex + 1}.`
         : `Please paste a URL for "${res.title}" in Step ${stepIndex + 1}.`;
     }
@@ -502,7 +494,8 @@ const ReviewerPathwayEdit = () => {
   };
 
   const validateStep = (step, index) => {
-    if (!step.title.trim() || !step.description.trim()) return `Please fill out both the Title and Description for Step ${index + 1}.`;
+    if (!step.title.trim() || !step.description.trim()) 
+      return `Please fill out both the Title and Description for Step ${index + 1}.`;
     
     const resources = step.resources || [];
     for (let j = 0; j < resources.length; j++) {
@@ -516,7 +509,8 @@ const ReviewerPathwayEdit = () => {
     if (!pathway.pathName?.trim() || pathway.pathName === "Loading specialization..." || pathway.pathName === "Specialization Not Found") {
         return "Valid Specialization required.";
     }
-    if (steps.length === 0) return "You must add at least one step to the curriculum.";
+    if (steps.length === 0) 
+      return "You must add at least one step to the curriculum.";
 
     for (let i = 0; i < steps.length; i++) {
       const err = validateStep(steps[i], i);
@@ -536,7 +530,7 @@ const ReviewerPathwayEdit = () => {
         return;
     }
 
-    // 🟢 ADAPTER PATTERN: Formats UI Objects back to DB Schema before saving
+    // Formats UI Objects back to DB Schema before saving
     const formattedSteps = steps.map(transformStepForDB);
 
     try {
@@ -589,7 +583,7 @@ const ReviewerPathwayEdit = () => {
               <label htmlFor="pathName" className="mb-1 block text-sm font-medium text-text-dark">
                 Assigned Specialization
               </label>
-              {/* 🟢 RBAC: Locked Input - Reviewers cannot alter their assignment */}
+              {/* Locked Input - Reviewers cannot alter their Specialization */}
               <input
                 id="pathName"
                 type="text"

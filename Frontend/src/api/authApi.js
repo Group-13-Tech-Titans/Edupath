@@ -1,5 +1,6 @@
 import { apiRequest, setToken } from "./client.js";
 
+
 export async function login(email, password) {
   const data = await apiRequest("/api/auth/login", {
     method: "POST",

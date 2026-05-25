@@ -1,7 +1,6 @@
 /**
  * STUDENT PATHWAY COMPONENT (THE LEARNING MAP)
  * Renders the student's interactive learning journey.
- * Design Patterns: Container/Presentational Pattern, Component Extraction.
  */
 
 import React, { useState, useEffect } from "react";
@@ -14,10 +13,10 @@ import PageShell from "../../components/PageShell.jsx";
 // --- CONFIGURATION CONSTANTS ---
 const API_BASE_URL = "http://localhost:5000/api";
 
-// 🟢 HELPER: Strips MongoDB _id to accurately compare arrays
+// Strips MongoDB _id to accurately compare arrays
 const cleanForSync = (arr) => (Array.isArray(arr) ? arr.map(({ _id, id, ...rest }) => rest) : []);
 
-// 🟢 HELPER: Determines the visual theme of the nodes
+// Determines the visual theme of the nodes
 const getStepTheme = (isEven, isCompleted, isLocked) => {
   if (isCompleted) return { bg: "bg-amber-500", text: "text-amber-500", stroke: "#f59e0b" };
   if (isLocked) return { bg: "bg-gray-300", text: "text-gray-300", stroke: "#cbd5e0" }; 
@@ -27,11 +26,15 @@ const getStepTheme = (isEven, isCompleted, isLocked) => {
     : { bg: "bg-slate-700", text: "text-slate-700", stroke: "#334155" };
 };
 
-// 🟢 HELPER: Returns dynamic text to resolve nested ternaries
+// Returns dynamic text to resolve nested ternaries
 const getStepIcon = (isCompleted, isLocked) => {
-  if (isCompleted) return "⭐";
-  if (isLocked) return "🔒";
-  return "💡";
+  if (isCompleted) {
+    return "⭐";
+  } else if (isLocked) {
+    return "🔒";
+  } else {
+    return "💡";
+  }
 };
 
 const getButtonText = (isCompleted) => {
@@ -46,17 +49,18 @@ const checkStepNeedsUpdate = (studentStep, templateStep) => {
   return (
     studentStep.title !== templateStep.title ||
     studentStep.description !== templateStep.description ||
+    // Strip database IDs and compare nested arrays as flat JSON strings
     JSON.stringify(cleanForSync(studentStep.resources)) !== JSON.stringify(cleanForSync(templateStep.resources)) ||
     JSON.stringify(cleanForSync(studentStep.linkedCourses)) !== JSON.stringify(cleanForSync(templateStep.linkedCourses)) ||
     JSON.stringify(cleanForSync(studentStep.quiz)) !== JSON.stringify(cleanForSync(templateStep.quiz))
   );
 };
 
+// update an existing matching step with fresh content by getting master templateStep and checks it against an existing array of a student's progress (syncedSteps)
 const processTemplateStep = (templateStep, syncedSteps) => {
   const existingIndex = syncedSteps.findIndex((s) => s.order === templateStep.order);
   let updated = false;
 
-  // 🟢 FIXED S7735: Changed "existingIndex !== -1" to "existingIndex >= 0"
   if (existingIndex >= 0) {
     const studentStep = syncedSteps[existingIndex];
     
@@ -75,6 +79,7 @@ const processTemplateStep = (templateStep, syncedSteps) => {
     const isFullyComplete = syncedSteps.length > 0 && syncedSteps.every((s) => s.isCompleted);
     const isUnlockable = isFullyComplete && templateStep.order === syncedSteps.length + 1;
 
+    // Append new step with default completion values
     syncedSteps.push({
       title: templateStep.title,
       description: templateStep.description,
@@ -92,7 +97,6 @@ const processTemplateStep = (templateStep, syncedSteps) => {
   return updated;
 };
 
-// Extracted to reduce complexity score
 const findMatchingTemplate = (studentPathway, templates) => {
   return templates.find((t) => {
     if (studentPathway.originalTemplateId) {
@@ -101,6 +105,8 @@ const findMatchingTemplate = (studentPathway, templates) => {
     return t.pathName === studentPathway.pathName && t.level === studentPathway.level;
   });
 };
+
+// Synchronizes a student's personal progress tracking pathway with the global master template.
 
 const syncStudentPathwayWithTemplate = async (currentStudentPathway, templateData, config) => {
   const pathwayTemplate = findMatchingTemplate(currentStudentPathway, templateData.templates);
@@ -116,8 +122,10 @@ const syncStudentPathwayWithTemplate = async (currentStudentPathway, templateDat
   });
 
   if (hasUpdates) {
+    // Sort steps in ascending numerical order (e.g., Step 1, Step 2, Step 3)
     syncedSteps.sort((a, b) => a.order - b.order);
     currentStudentPathway.steps = syncedSteps;
+    // Silently persist changes to the backend in the background to ensure an uninterrupted user experience
     axios.put(`${API_BASE_URL}/pathway/my/sync`, { pathwayId: currentStudentPathway._id, steps: syncedSteps }, config)
          .catch((err) => console.error("Silent sync failed:", err));
   }
@@ -125,9 +133,6 @@ const syncStudentPathwayWithTemplate = async (currentStudentPathway, templateDat
   return currentStudentPathway;
 };
 
-// ==========================================
-// EXTRACTED UI COMPONENTS
-// ==========================================
 
 const StepCard = ({ step, theme, isActive, isCompleted, pathwayId, navigate, pointerDir }) => (
   <motion.div whileHover={{ y: -4 }} className={`relative w-full max-w-[360px] rounded-[30px] p-6 sm:p-8 text-white shadow-xl ${theme.bg}`}>
@@ -170,14 +175,13 @@ StepNumber.propTypes = {
   align: PropTypes.oneOf(['left', 'right']).isRequired,
 };
 
-// ==========================================
-// PRESENTATIONAL COMPONENT: PATHWAY NODE
-// ==========================================
+
+// Middle PATHWAY NODE
 const PathwayStepNode = ({ step, index, pathwayId, navigate }) => {
   const isEven = index % 2 === 0;
   const isCompleted = step.isCompleted;
   const isUnlocked = step.isUnlocked;
-  const isLocked = !isUnlocked; 
+  const isLocked = !isUnlocked;
   const isActive = isUnlocked && !isCompleted;
   
   const theme = getStepTheme(isEven, isCompleted, isLocked);
@@ -257,9 +261,7 @@ PathwayStepNode.propTypes = {
   navigate: PropTypes.func.isRequired,
 };
 
-// ==========================================
-// MAIN CONTAINER COMPONENT
-// ==========================================
+
 const StudentPathway = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -288,11 +290,12 @@ const StudentPathway = () => {
       const pathwayData = pathwayRes.data;
 
       if (pathwayData.hasPathway && pathwayData.pathways?.length > 0) {
-        let currentStudentPathway = targetPathwayId 
-            ? pathwayData.pathways.find(p => p._id === targetPathwayId) 
-            : pathwayData.pathways[0]; 
+        let currentStudentPathway = targetPathwayId
+            ? pathwayData.pathways.find(p => p._id === targetPathwayId)
+            : pathwayData.pathways[0];
 
-        if (!currentStudentPathway) currentStudentPathway = pathwayData.pathways[0];
+        if (!currentStudentPathway)
+          currentStudentPathway = pathwayData.pathways[0];
 
         try {
           const { data: templateData } = await axios.get(`${API_BASE_URL}/pathway/published`, config);
@@ -318,8 +321,7 @@ const StudentPathway = () => {
     const found = specializations.find(s => s.slug === val || s.name === val);
     if (found) return found.name;
     
-    if (val.includes(" ")) return val; 
-    if (val.toLowerCase() === "ui-ux") return "UI/UX Design";
+    if (val.includes(" ")) return val;
     return val.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
   };
 

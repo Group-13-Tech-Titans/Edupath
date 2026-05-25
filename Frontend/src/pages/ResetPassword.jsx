@@ -2,7 +2,6 @@
  * RESET PASSWORD COMPONENT
  * Captures a new password from the user and submits it along with the
  * URL token to securely update the user's credentials.
- * Design Patterns: URL Parameter Extraction, Controlled Form, Client Validation.
  */
 
 import { useState } from "react";
@@ -22,7 +21,7 @@ export default function ResetPassword() {
   const [errors, setErrors] = useState({});
 
   // Grab the backend URL from environment variables
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const API_URL = import.meta.env.BACKEND_URL || "http://localhost:5000";
 
   const submit = async (e) => {
     e.preventDefault();

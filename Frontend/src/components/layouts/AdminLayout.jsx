@@ -25,7 +25,7 @@ const AdminLayout = () => {
     { to: "/admin/verify-educators", label: "Verify Educators" },
     { to: "/admin/approvals", label: "Reviews Course" },
     { to: "/admin/reviewers", label: "Create Reviewer" },
-    
+    { to: "/admin/pathways", label: "Create Pathway" },
   ];
 
   return (
@@ -59,11 +59,10 @@ const AdminLayout = () => {
 
             {/* Right actions */}
             <div className="flex items-center gap-3">
-              
 
               {/* Profile icon */}
               <button
-                onClick={() => window.location.href = "/admin/profile"}
+                onClick={() => globalThis.location.href = "/admin/profile"}
                 className="hidden sm:inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary font-semibold shadow-sm"
                 title="Go to profile"
               >
@@ -124,7 +123,7 @@ const AdminLayout = () => {
                     {currentUser?.email}
                   </span>
                   <div className="flex items-center gap-2">
-              <button onClick={() => window.location.href = "/admin/profile"} className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-semibold">
+              <button onClick={() => globalThis.location.href = "/admin/profile"} className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-semibold">
                 {currentUser?.email?.charAt(0).toUpperCase()}
               </button>
                     <button
