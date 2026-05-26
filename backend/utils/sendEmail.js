@@ -27,7 +27,7 @@ const sendEmail = async ({ to, subject, text, html }) => {
     return info;
 
   } catch (error) {
-    // 🟢 FIXED: Catch email-specific errors and log them before throwing
+    // Catch email-specific errors and log them before throwing
     console.error(`FAILED to send email to ${to}. Error:`, error.message);
     throw new Error("Email service is currently unavailable.");
   }

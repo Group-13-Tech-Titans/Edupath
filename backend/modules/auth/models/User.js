@@ -32,7 +32,7 @@ const userSchema = new mongoose.Schema(
     avatar: { type: String },
     isVerified: { type: Boolean, default: false },
   },
-  { timestamps: true },
+  { timestamps: true }, //automatically add createdAt and updatedAt fields
 );
 
 module.exports = mongoose.model("User", userSchema);

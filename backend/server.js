@@ -1,30 +1,32 @@
-require("dotenv").config();
+require("dotenv").config(); // Load environment variables from .env file
 const express = require("express");
-const cors = require("cors");
-const connectDB = require("./config/db");
+const cors = require("cors"); //import cors package to handle Cross-Origin Resource Sharing 
+const connectDB = require("./config/db"); // Import the connectDB function
 
-
+// Import the http module and the Server class from socket.io
 const http = require("http");
 const  {Server}= require("socket.io");
 
+//use to fix ISP dns issue... 
 const dns = require('dns');
-dns.setServers(['8.8.8.8', '1.1.1.1']);
+dns.setServers(['8.8.8.8', '1.1.1.1']); // Set custom DNS servers (Google DNS and Cloudflare DNS)
 
 const app = express();
-connectDB();
+connectDB(); // Connect to the database
 
 app.use(cors());
 app.use(express.json());
 
 
 app.use("/api/auth", require("./modules/auth/routes/authRoutes"));
-app.use("/api/admin", require("./modules/admin/routes/adminRoutes"));
+app.use("/api/admin", require("./modules/admin/routes/adminRoutes")); //admin related routes
 app.use("/api/pathway", require("./modules/pathway/routes/pathwayRoutes"));
 app.use("/api/step-quiz", require("./modules/quiz/routes/stepQuizRoutes"));
 app.use("/api/courses", require("./modules/courses/routes/courseRoutes"));
 app.use("/api/upload", require("./modules/upload/routes/uploadRoutes"));
-app.use("/api/specializations", require("./modules/specializations/routes/specializationRoutes"));
+app.use("/api/specializations", require("./modules/specializations/routes/specializationRoutes")); //specialization related routes
 
+// Create an HTTP server and wrap the Express app
 const server = http.createServer(app);
 
 const io = new Server(server, {
@@ -49,7 +51,7 @@ socket.on("send_message", (data) => {
   });
 });
 
-
+// Test route to verify server is working
 app.get("/test", (req, res) => {
   res.send("Working");
 });

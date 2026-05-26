@@ -63,7 +63,7 @@ const infoBox = (rows) => {
 };
 
 // ─────────────────────────────────────────────
-// 1. Welcome — new account created
+//  Welcome — new account created
 // ─────────────────────────────────────────────
 exports.welcomeEmail = ({ name, email, role }) => {
   const roleLabel = role === "educator" ? "Educator" : role === "reviewer" ? "Reviewer" : "Student";
@@ -85,7 +85,7 @@ exports.welcomeEmail = ({ name, email, role }) => {
 };
 
 // ─────────────────────────────────────────────
-// 2. Password changed
+//  Password changed
 // ─────────────────────────────────────────────
 exports.passwordChangedEmail = ({ name, email }) => ({
   subject: "Your EduPath password was changed",
@@ -104,9 +104,7 @@ exports.passwordChangedEmail = ({ name, email }) => ({
   text: `Hi ${name || email}, your EduPath password was changed. If this wasn't you, visit ${BASE_URL}/forgot-password`
 });
 
-// ─────────────────────────────────────────────
-// 3. Course submitted for review
-// ─────────────────────────────────────────────
+// Course submitted for review
 exports.loginOtpEmail = ({ name, email, otp }) => ({
   subject: "Your EduPath login verification code",
   html: wrapper(`
