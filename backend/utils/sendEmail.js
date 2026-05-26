@@ -2,7 +2,7 @@
 
 const nodemailer = require("nodemailer");
 
-// This transporter function acts as a Singleton. The connection pool is created once when the server starts and is reused, making email sending significantly faster.
+
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
