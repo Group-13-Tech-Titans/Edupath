@@ -1,6 +1,7 @@
 import React from "react";
 import EducatorRequestCard from "./EducatorRequestCard";
 
+// List component for pending educator requests
 export default function VerifyEducatorsList({ isLoading, error, sortedRequests, onVerifyClick }) {
   return (
     <div className="rounded-[28px] border border-black/5 bg-white/70 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">

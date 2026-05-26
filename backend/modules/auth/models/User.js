@@ -6,9 +6,7 @@ const userSchema = new mongoose.Schema(
     email: { type: String, unique: true }, //user's email address, must be unique
     password: {
       type: String, //hashed password for local auth users
-
-      required: function () {
-        return this.authProvider === "local";
+      required: function () {return this.authProvider === "local";
       },
     },
     //roles

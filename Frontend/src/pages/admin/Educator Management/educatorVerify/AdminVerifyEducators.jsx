@@ -17,10 +17,12 @@ export default function AdminVerifyEducators() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  // Helper function to get auth header with token
   const getAuthHeader = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem("edupath_token")}` }
   });
 
+  // Fetch pending educator requests on component mount
   useEffect(() => {
     const fetchPendingEducators = async () => {
       try {
@@ -39,6 +41,7 @@ export default function AdminVerifyEducators() {
     fetchPendingEducators();
   }, []);
 
+  // Sort requests by submission date (newest first)
   const sorted = useMemo(() => {
     return [...requests].sort(
       (a, b) => {
@@ -59,17 +62,17 @@ export default function AdminVerifyEducators() {
     <PageShell>
       <div className="space-y-6">
         
-        
+        {/* Header with title and description */}
         <VerifyEducatorsHeader />
 
-        
+        {/* List of pending educator requests */}
         <VerifyEducatorsList 
           isLoading={isLoading} 
           error={error} 
           sortedRequests={sorted} 
           onVerifyClick={handleNavigateToReview} 
         />
-
+        {/* Admin footer */}
         <AdminFooter />
       </div>
     </PageShell>

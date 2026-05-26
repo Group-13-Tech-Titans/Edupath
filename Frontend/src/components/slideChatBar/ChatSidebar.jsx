@@ -58,13 +58,13 @@ export default function ChatSidebar({ isOpen, onClose, currentUser }) {
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        {/* 1. Header Component */}
+        {/*  Header Component */}
         <ChatHeader onClose={onClose} />
 
-        {/* 2. Message List Component */}
+        {/* Message List Component */}
         <MessageList messages={messages} currentUser={currentUser} />
 
-        {/* 3. Message Input Component */}
+        {/* Message Input Component */}
         <MessageInput 
           currentMessage={currentMessage} 
           setCurrentMessage={setCurrentMessage} 

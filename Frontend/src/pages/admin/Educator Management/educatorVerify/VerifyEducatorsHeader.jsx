@@ -1,5 +1,6 @@
 import React from "react";
 
+//header component for educator verification page
 export default function VerifyEducatorsHeader() {
   return (
     <div className="rounded-[28px] border border-black/5 bg-white/70 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
