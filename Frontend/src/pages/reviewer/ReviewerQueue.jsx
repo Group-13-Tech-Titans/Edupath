@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 
+// Shows the course image or a fallback thumbnail
 const CourseThumbnail = ({ course }) => {
   if (course.thumbnailUrl) {
     return (
@@ -24,12 +25,14 @@ const CourseThumbnail = ({ course }) => {
   );
 };
 
+// Builds the reviewer queue page
 const ReviewerQueue = () => {
   const { currentUser, courses, fetchReviewerQueue } = useApp();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
 
+  // Loads courses waiting for review
   useEffect(() => {
     let alive = true;
     setLoading(true);
@@ -43,11 +46,13 @@ const ReviewerQueue = () => {
     return () => { alive = false; };
   }, [fetchReviewerQueue]);
 
+  // Keeps only pending courses
   const pending = useMemo(
     () => courses.filter((c) => c.status === "pending"),
     [courses]
   );
 
+  // Filters pending courses by the search text
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return pending;
@@ -59,6 +64,7 @@ const ReviewerQueue = () => {
     );
   }, [pending, query]);
 
+  // Collects reviewer specialization tags
   const reviewerTags = useMemo(() => {
     const profile = currentUser?.profile || {};
     return [
@@ -74,10 +80,13 @@ const ReviewerQueue = () => {
 
   return (
     <PageShell>
+      {/* Holds all queue sections */}
       <div className="space-y-6">
 
         {/* Header */}
+        {/* Shows queue title and reviewer tags */}
         <div className="glass-card p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          {/* Shows the queue heading */}
           <div>
             <h1 className="text-lg font-semibold text-text-dark">Review Queue</h1>
             <p className="mt-1 text-xs text-muted">
@@ -86,6 +95,7 @@ const ReviewerQueue = () => {
           </div>
 
           {/* Specialization tags */}
+          {/* Shows the reviewer specialization chips */}
           <div className="flex flex-wrap gap-2">
             {reviewerTags.length > 0 ? (
               reviewerTags.map((tag) => (
@@ -106,13 +116,16 @@ const ReviewerQueue = () => {
 
         {/* Error */}
         {error && (
+          /* Shows queue loading errors */
           <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-600">
             {error}
           </div>
         )}
 
         {/* Search + count */}
+        {/* Holds search input and pending count */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          {/* Searches courses by title or category */}
           <div className="flex items-center gap-2 rounded-2xl border border-black/10 bg-white/80 px-4 py-2.5 sm:w-80">
             <svg className="h-3.5 w-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
@@ -133,6 +146,7 @@ const ReviewerQueue = () => {
 
         {/* Loading skeleton */}
         {loading && (
+          /* Shows placeholder cards while loading */
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="glass-card p-5 animate-pulse">
@@ -147,7 +161,9 @@ const ReviewerQueue = () => {
 
         {/* Empty state */}
         {!loading && filtered.length === 0 && (
+          /* Shows when there are no matching courses */
           <div className="glass-card px-6 py-16 text-center">
+            {/* Shows the empty queue icon */}
             <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-primary/10">
               <svg className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-3-3v6M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
@@ -162,8 +178,10 @@ const ReviewerQueue = () => {
 
         {/* Course cards */}
         {!loading && filtered.length > 0 && (
+          /* Holds the courses waiting for review */
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((course) => (
+              /* Shows one course ready for review */
               <div
                 key={course.id}
                 className="glass-card flex flex-col p-5 transition hover:-translate-y-1 hover:shadow-2xl"

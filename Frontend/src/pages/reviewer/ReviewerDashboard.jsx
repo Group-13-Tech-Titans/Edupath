@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
-import * as authApi from "../../api/authApi.js";
 import { uploadAvatarFile } from "../../api/uploadApi.js";
+import { passwordRegex } from "../../utils/validation.js";
 
 const TYPES = [
   { value: "all", label: "All Types" },
@@ -20,6 +20,7 @@ const STATUSES = [
   { value: "rejected", label: "Rejected" },
 ];
 
+// Turns review item types into readable labels
 const typeLabel = (t) => {
   if (t === "course") return "Course";
   if (t === "educator_credentials") return "Educator Credentials";
@@ -27,6 +28,7 @@ const typeLabel = (t) => {
   return "Item";
 };
 
+// Shows the status badge for a review item
 const StatusPill = ({ status }) => {
   const s = (status || "").toLowerCase();
   const map = {
@@ -44,6 +46,7 @@ const StatusPill = ({ status }) => {
   );
 };
 
+// Shows a reusable modal wrapper
 const ModalShell = ({ open, title, children, onClose }) => {
   if (!open) return null;
   return (
@@ -74,14 +77,24 @@ const ModalShell = ({ open, title, children, onClose }) => {
   );
 };
 
+// Builds the reviewer dashboard page
 const ReviewerDashboard = () => {
-  const { currentUser, courses, fetchReviewerQueue } = useApp();
+  const {
+    currentUser,
+    courses,
+    reviewHistory,
+    fetchReviewerQueue,
+    fetchReviewerHistory,
+    updateUserProfile,
+  } = useApp();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // Loads reviewer queue and history
   useEffect(() => {
     fetchReviewerQueue();
-  }, [fetchReviewerQueue]);
+    fetchReviewerHistory();
+  }, [fetchReviewerQueue, fetchReviewerHistory]);
 
   // ---------------- Reviewer Profile ----------------
   const fileInputRef = useRef(null);
@@ -95,14 +108,21 @@ const ReviewerDashboard = () => {
     fullName: currentUser?.name || "Reviewer",
     email: currentUser?.email || "",
     photoUrl: initialPhoto,
-    domains: Array.isArray(currentUser?.profile?.domains)
+    specializations: Array.isArray(currentUser?.specializationTags)
+      ? currentUser.specializationTags
+      : currentUser?.specializationTag
+      ? [currentUser.specializationTag]
+      : Array.isArray(currentUser?.profile?.specializationTags)
+      ? currentUser.profile.specializationTags
+      : Array.isArray(currentUser?.profile?.specializations)
+      ? currentUser.profile.specializations.map((item) => item?.name || item?.slug || item)
+      : Array.isArray(currentUser?.profile?.domains)
       ? currentUser.profile.domains
       : Array.isArray(currentUser?.domains || currentUser?.subjects)
       ? currentUser?.domains || currentUser?.subjects
       : ["General"],
   });
 
-  const [isReviewerActive, setIsReviewerActive] = useState(true);
   const [saveError, setSaveError] = useState("");
   const [saving, setSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -110,21 +130,22 @@ const ReviewerDashboard = () => {
   const [profileDraft, setProfileDraft] = useState({
     fullName: profileSaved.fullName,
     photoUrl: profileSaved.photoUrl,
-    domains: [...profileSaved.domains],
     password: "",
     confirmPassword: "",
   });
 
+  // Resets the profile draft from saved profile data
   const resetDraftFromSaved = () =>
     setProfileDraft({
       fullName: profileSaved.fullName,
       photoUrl: profileSaved.photoUrl,
-      domains: [...profileSaved.domains],
       password: "",
       confirmPassword: "",
     });
 
+  // Opens the profile editor
   const openEdit = () => { resetDraftFromSaved(); setIsEditOpen(true); };
+  // Closes the profile editor
   const closeEdit = () => {
     setIsEditOpen(false);
     if (searchParams.get("profile") === "1") {
@@ -133,15 +154,19 @@ const ReviewerDashboard = () => {
       setSearchParams(next, { replace: true });
     }
   };
+  // Discards profile edits
   const discardChanges = () => { resetDraftFromSaved(); closeEdit(); };
 
+  // Opens the profile editor from the URL query
   useEffect(() => {
     if (searchParams.get("profile") === "1") {
       openEdit();
     }
   }, [searchParams]);
 
+  // Opens the avatar file picker
   const onPickAvatar = () => fileInputRef.current?.click();
+  // Uploads the selected avatar
   const onAvatarSelected = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -168,30 +193,20 @@ const ReviewerDashboard = () => {
     }
   };
 
-  const removeDomain = (d) =>
-    setProfileDraft((p) => ({ ...p, domains: p.domains.filter((x) => x !== d) }));
-  const addDomain = (d) => {
-    const v = d.trim();
-    if (!v) return;
-    setProfileDraft((p) => {
-      if (p.domains.some((x) => x.toLowerCase() === v.toLowerCase())) return p;
-      return { ...p, domains: [...p.domains, v] };
-    });
-  };
-
+  // Checks if profile edits can be saved
   const isDirty = useMemo(() => {
-    const domainsSame =
-      profileDraft.domains.length === profileSaved.domains.length &&
-      profileDraft.domains.every((d) => profileSaved.domains.includes(d));
     const photoSame = profileDraft.photoUrl === profileSaved.photoUrl;
     const nameSame = profileDraft.fullName.trim() === profileSaved.fullName.trim();
-    const pw = profileDraft.password.trim();
-    const cpw = profileDraft.confirmPassword.trim();
+    const pw = profileDraft.password;
+    const cpw = profileDraft.confirmPassword;
     const passwordTouched = pw.length > 0 || cpw.length > 0;
-    const passwordValid = !passwordTouched || (pw.length >= 6 && pw === cpw);
-    return { changed: !(domainsSame && photoSame && nameSame) || passwordTouched, passwordValid };
+    const passwordStrong = !passwordTouched || passwordRegex.test(pw);
+    const passwordMatches = !passwordTouched || pw === cpw;
+    const passwordValid = passwordStrong && passwordMatches;
+    return { changed: !(photoSame && nameSame) || passwordTouched, passwordValid, passwordStrong, passwordMatches };
   }, [profileDraft, profileSaved]);
 
+  // Saves reviewer profile changes
   const updateChanges = async () => {
     if (!isDirty.changed || !isDirty.passwordValid) return;
     setSaveError("");
@@ -199,15 +214,17 @@ const ReviewerDashboard = () => {
     try {
       const payload = {
         name: profileDraft.fullName.trim() || profileSaved.fullName,
-        profile: { photoUrl: profileDraft.photoUrl, domains: profileDraft.domains },
+        profile: { ...(currentUser?.profile || {}), photoUrl: profileDraft.photoUrl },
       };
-      if (profileDraft.password.trim().length >= 6) payload.password = profileDraft.password.trim();
-      await authApi.updateProfile(payload);
+      if (passwordRegex.test(profileDraft.password)) payload.password = profileDraft.password;
+      const result = await updateUserProfile(payload);
+      if (!result.success) {
+        throw new Error(result.message || "Failed to save profile.");
+      }
       setProfileSaved((prev) => ({
         ...prev,
         fullName: profileDraft.fullName.trim() || prev.fullName,
         photoUrl: profileDraft.photoUrl,
-        domains: profileDraft.domains.length ? profileDraft.domains : prev.domains,
       }));
       closeEdit();
     } catch (err) {
@@ -218,8 +235,11 @@ const ReviewerDashboard = () => {
   };
 
   // ---------------- Queue Items (real courses only) ----------------
+  // Builds queue items from pending courses
   const queueItems = useMemo(() => {
-    return (courses || []).map((c) => ({
+    return (courses || [])
+      .filter((c) => (c.status || "pending").toLowerCase() === "pending")
+      .map((c) => ({
       id: c._id || c.id,
       type: "course",
       title: c.title || c.name || "Untitled course",
@@ -232,7 +252,7 @@ const ReviewerDashboard = () => {
         duration: c.duration || "—",
       },
       flagReason: c.flagReason || "",
-    }));
+      }));
   }, [courses]);
 
   // ---------------- Filters ----------------
@@ -240,6 +260,7 @@ const ReviewerDashboard = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
 
+  // Filters queue items by search and dropdowns
   const filteredItems = useMemo(() => {
     const q = query.trim().toLowerCase();
     return queueItems.filter((item) => {
@@ -255,48 +276,45 @@ const ReviewerDashboard = () => {
   }, [queueItems, query, statusFilter, typeFilter]);
 
   const pendingCount = queueItems.filter((i) => i.status === "pending").length;
+  const myReviewHistory = useMemo(
+    () =>
+      (reviewHistory || []).filter(
+        (item) => !currentUser?.email || item.reviewerEmail === currentUser.email,
+      ),
+    [reviewHistory, currentUser],
+  );
+  const approvedCount = myReviewHistory.filter(
+    (item) => (item.course?.status || item.decision || "").toLowerCase() === "approved",
+  ).length;
+  const rejectedCount = myReviewHistory.filter(
+    (item) => (item.course?.status || item.decision || "").toLowerCase() === "rejected",
+  ).length;
 
   return (
     <PageShell>
+      {/* Holds all reviewer dashboard sections */}
       <div className="space-y-6">
 
         {/* Header */}
-        <div className="glass-card p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        {/* Shows the reviewer panel title */}
+        <div className="glass-card p-6">
+          {/* Shows the dashboard heading */}
           <div>
             <h1 className="text-lg font-semibold text-text-dark">Review Panel</h1>
             <p className="mt-1 text-xs text-muted">
               Manage your review queue and track course approvals.
             </p>
           </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <span className="text-xs font-semibold text-muted">
-              {isReviewerActive ? "Active" : "Offline"}
-            </span>
-            <button
-              type="button"
-              onClick={() => setIsReviewerActive((v) => !v)}
-              className={`relative h-6 w-11 rounded-full transition-colors shadow-inner ${
-                isReviewerActive ? "bg-primary" : "bg-slate-300"
-              }`}
-              aria-label="Toggle active status"
-            >
-              <span
-                className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-all ${
-                  isReviewerActive ? "left-6" : "left-1"
-                }`}
-              />
-            </button>
-          </div>
         </div>
 
         {/* Stats row */}
+        {/* Shows review queue and history counts */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[
             { label: "In Queue", value: queueItems.length },
             { label: "Pending", value: pendingCount },
-            { label: "Approved", value: queueItems.filter(i => i.status === "approved").length },
-            { label: "Rejected", value: queueItems.filter(i => i.status === "rejected").length },
+            { label: "Approved", value: approvedCount },
+            { label: "Rejected", value: rejectedCount },
           ].map((s) => (
             <div key={s.label} className="glass-card p-4 text-center">
               <p className="text-2xl font-semibold text-text-dark">{s.value}</p>
@@ -306,7 +324,9 @@ const ReviewerDashboard = () => {
         </div>
 
         {/* Reviewer Profile */}
+        {/* Shows the saved reviewer profile */}
         <div className="glass-card p-6">
+          {/* Holds profile heading and edit button */}
           <div className="flex items-start justify-between gap-4">
             <h2 className="font-semibold text-text-dark">Reviewer Profile</h2>
             <button
@@ -318,6 +338,7 @@ const ReviewerDashboard = () => {
             </button>
           </div>
 
+          {/* Shows reviewer photo, email and specializations */}
           <div className="mt-5 flex flex-wrap items-center gap-5">
             <img
               src={profileSaved.photoUrl}
@@ -328,7 +349,7 @@ const ReviewerDashboard = () => {
               <p className="text-base font-semibold text-text-dark">{profileSaved.fullName}</p>
               <p className="text-xs text-muted mt-0.5">{profileSaved.email}</p>
               <div className="mt-2 flex flex-wrap gap-2">
-                {profileSaved.domains.map((d) => (
+                {profileSaved.specializations.map((d) => (
                   <span
                     key={d}
                     className="rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-[11px] font-semibold text-primary"
@@ -342,7 +363,9 @@ const ReviewerDashboard = () => {
         </div>
 
         {/* Review Queue */}
+        {/* Shows queue filters and review items */}
         <div className="glass-card p-6">
+          {/* Holds queue heading and refresh button */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="font-semibold text-text-dark">
               Review Queue
@@ -362,6 +385,7 @@ const ReviewerDashboard = () => {
           </div>
 
           {/* Filters */}
+          {/* Filters the queue by search, type and status */}
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <div className="flex items-center gap-2 rounded-2xl border border-black/10 bg-white/70 px-4 py-2.5">
               <svg className="h-3.5 w-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -393,8 +417,10 @@ const ReviewerDashboard = () => {
           </div>
 
           {/* Queue list */}
+          {/* Shows matching queue items */}
           <div className="mt-4 space-y-3">
             {filteredItems.length === 0 ? (
+              /* Shows when no queue items match filters */
               <div className="rounded-2xl border border-dashed border-black/10 bg-white/50 px-6 py-12 text-center">
                 <p className="text-sm font-medium text-muted">No review items match your filters.</p>
                 <p className="mt-1 text-xs text-muted">Try adjusting your search or filters above.</p>
@@ -410,10 +436,12 @@ const ReviewerDashboard = () => {
                     : `Student: ${meta.student || "—"} · Submitted: ${meta.submitted || "—"} · Credential: ${meta.credential || "—"}`;
 
                 return (
+                  /* Shows one review item */
                   <div
                     key={item.id}
                     className="rounded-2xl bg-white/80 border border-black/5 shadow-sm px-4 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between transition hover:-translate-y-0.5 hover:shadow-md"
                   >
+                    {/* Shows the review item details */}
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="text-sm font-semibold text-text-dark truncate">{item.title}</p>
@@ -432,6 +460,7 @@ const ReviewerDashboard = () => {
                       </div>
                     </div>
 
+                    {/* Holds status and open action */}
                     <div className="flex items-center gap-3 shrink-0">
                       <StatusPill status={item.status} />
                       <button
@@ -455,9 +484,11 @@ const ReviewerDashboard = () => {
       </div>
 
       {/* Edit Profile Modal */}
+      {/* Lets the reviewer edit profile details */}
       <ModalShell open={isEditOpen} title="Edit Profile" onClose={discardChanges}>
         <div className="space-y-4">
           {/* Avatar */}
+          {/* Lets the reviewer upload a profile photo */}
           <div className="flex items-center gap-4">
             <div className="relative">
               <img src={profileDraft.photoUrl} alt="Draft" className="h-16 w-16 rounded-full object-cover ring-2 ring-primary/20" />
@@ -485,6 +516,7 @@ const ReviewerDashboard = () => {
           </div>
 
           {/* Full name */}
+          {/* Lets the reviewer edit their name */}
           <div>
             <label className="field-label">Full Name</label>
             <input
@@ -496,12 +528,14 @@ const ReviewerDashboard = () => {
           </div>
 
           {/* Email (read-only) */}
+          {/* Shows reviewer email as read only */}
           <div>
             <label className="field-label">Email Address</label>
             <input value={profileSaved.email} disabled className="field-input mt-1 cursor-not-allowed bg-slate-50 text-muted" />
           </div>
 
           {/* Password */}
+          {/* Lets the reviewer change password */}
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className="field-label">New Password</label>
@@ -510,7 +544,7 @@ const ReviewerDashboard = () => {
                 value={profileDraft.password}
                 onChange={(e) => setProfileDraft((p) => ({ ...p, password: e.target.value }))}
                 className="field-input mt-1"
-                placeholder="Min 6 characters"
+                placeholder="8+ chars with uppercase, lowercase, number and symbol"
               />
             </div>
             <div>
@@ -526,28 +560,31 @@ const ReviewerDashboard = () => {
           </div>
           {!isDirty.passwordValid && (profileDraft.password || profileDraft.confirmPassword) && (
             <p className="rounded-xl bg-rose-50 px-4 py-2.5 text-xs font-semibold text-rose-600">
-              Passwords must match and be at least 6 characters.
+              Password must be 8+ characters with uppercase, lowercase, number and special character, and both fields must match.
             </p>
           )}
 
-          {/* Subject Domains */}
+          {/* Specialization */}
+          {/* Shows assigned specializations */}
           <div>
-            <label className="field-label">Subject Domains</label>
+            <label className="field-label">Specialization</label>
             <div className="mt-2 flex flex-wrap gap-2">
-              {profileDraft.domains.map((d) => (
+              {profileSaved.specializations.map((d) => (
                 <span key={d} className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-[11px] font-semibold text-primary">
                   {d}
-                  <button type="button" onClick={() => removeDomain(d)} className="hover:opacity-70">×</button>
                 </span>
               ))}
             </div>
-            <AddDomainRow onAdd={addDomain} />
+            <p className="mt-2 text-[11px] text-muted">
+              Please contact admin to amend specialization
+            </p>
           </div>
 
           {saveError && (
             <p className="rounded-xl bg-rose-50 px-4 py-2.5 text-xs font-semibold text-rose-600">{saveError}</p>
           )}
 
+          {/* Holds discard and save buttons */}
           <div className="flex justify-end gap-3 pt-1">
             <button type="button" onClick={discardChanges} className="btn-outline px-5 py-2 text-xs">
               Discard
@@ -564,28 +601,6 @@ const ReviewerDashboard = () => {
         </div>
       </ModalShell>
     </PageShell>
-  );
-};
-
-const AddDomainRow = ({ onAdd }) => {
-  const [value, setValue] = useState("");
-  return (
-    <div className="mt-3 flex gap-2">
-      <input
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter") { onAdd(value); setValue(""); } }}
-        className="field-input flex-1"
-        placeholder="Add a domain (e.g., Networking)"
-      />
-      <button
-        type="button"
-        onClick={() => { onAdd(value); setValue(""); }}
-        className="btn-soft px-4 py-2 text-xs"
-      >
-        Add
-      </button>
-    </div>
   );
 };
 

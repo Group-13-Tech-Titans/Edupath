@@ -152,7 +152,14 @@ const CourseInnerPage = ({ mode }) => {
     markLessonCompleted(studentEmail, id, activeItemId);
   };
 
-  const backHref = mode === "educator" ? "/educator/courses" : "/student/courses";
+  const backHref =
+    mode === "educator"
+      ? "/educator/courses"
+      : mode === "reviewer"
+      ? "/reviewer/queue"
+      : mode === "admin"
+      ? "/admin/queue"
+      : "/student/courses";
 
   return (
     <PageShell>
@@ -416,4 +423,3 @@ const CourseInnerPage = ({ mode }) => {
 };
 
 export default CourseInnerPage;
-

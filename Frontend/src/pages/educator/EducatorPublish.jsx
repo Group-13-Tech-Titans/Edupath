@@ -5,21 +5,27 @@ import { useApp } from "../../context/AppProvider.jsx";
 import { getSpecializations } from "../../api/specializationApi.js";
 import { deleteContentFile, uploadThumbnailFile } from "../../api/uploadApi.js";
 
+// Removes a content item and saves the updated list
 const removeContentItem = (items, id, storageKey) => {
   const updated = items.filter((i) => i.id !== id);
   try { localStorage.setItem(storageKey, JSON.stringify(updated)); } catch { /* ignore */ }
   return updated;
 };
 
+const decimalPattern = /^\d+(?:\.\d+)?$/;
+
+// Builds the new course publishing page
 const EducatorPublish = () => {
   const { currentUser, createCourse } = useApp();
   const navigate = useNavigate();
 
+  // Builds the storage key for content items
   const storageKey = useMemo(() => {
     const email = currentUser?.email || "unknown";
     return `edupath_publish_content_${email}`;
   }, [currentUser?.email]);
 
+  // Builds the storage key for saved form data
   const formStorageKey = useMemo(() => {
     const email = currentUser?.email || "unknown";
     return `edupath_publish_form_${email}`;
@@ -27,6 +33,7 @@ const EducatorPublish = () => {
 
   const [contentItems, setContentItems] = useState([]);
 
+  // Restores saved content items
   useEffect(() => {
     try {
       const raw = localStorage.getItem(storageKey);
@@ -52,7 +59,29 @@ const EducatorPublish = () => {
     thumbnailResourceType: "image"
   });
 
-  // Restore saved form data on mount (survives navigating to Add Content and back)
+  // Saves the current form to local storage
+  const persistFormData = (nextForm = form) => {
+    try {
+      const toSave = {
+        title: nextForm.title,
+        description: nextForm.description,
+        category: nextForm.category,
+        level: nextForm.level,
+        price: nextForm.price,
+        duration: nextForm.duration,
+        specializationTags: nextForm.specializationTags,
+        thumbnailUrl: nextForm.thumbnailFile ? "" : nextForm.thumbnailUrl,
+        thumbnailName: nextForm.thumbnailFile ? "" : (nextForm.thumbnailName || ""),
+        thumbnailPublicId: nextForm.thumbnailPublicId || "",
+        thumbnailResourceType: nextForm.thumbnailResourceType || "image"
+      };
+      localStorage.setItem(formStorageKey, JSON.stringify(toSave));
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  // Restores saved form data when returning from Add Content
   useEffect(() => {
     try {
       const raw = localStorage.getItem(formStorageKey);
@@ -78,34 +107,19 @@ const EducatorPublish = () => {
     }
   }, [formStorageKey]);
 
-  // Persist form to localStorage whenever it changes
+  // Saves form changes to local storage
   useEffect(() => {
-    try {
-      const toSave = {
-        title: form.title,
-        description: form.description,
-        category: form.category,
-        level: form.level,
-        price: form.price,
-        duration: form.duration,
-        specializationTags: form.specializationTags,
-        thumbnailUrl: form.thumbnailFile ? "" : form.thumbnailUrl,
-        thumbnailName: form.thumbnailFile ? "" : (form.thumbnailName || ""),
-        thumbnailPublicId: form.thumbnailPublicId || "",
-        thumbnailResourceType: form.thumbnailResourceType || "image"
-      };
-      localStorage.setItem(formStorageKey, JSON.stringify(toSave));
-    } catch {
-      // ignore storage errors
-    }
+    persistFormData(form);
   }, [form, formStorageKey]);
 
   const [specializations, setSpecializations] = useState([]);
   const [specializationsLoading, setSpecializationsLoading] = useState(true);
   const [tagSearch, setTagSearch] = useState("");
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
+  // Loads specialization options
   useEffect(() => {
     let alive = true;
     getSpecializations()
@@ -126,16 +140,72 @@ const EducatorPublish = () => {
   const isVerified = currentUser?.status === "VERIFIED";
   const hasContent = contentItems.length > 0;
 
+  // Validates price and duration fields
+  const validateNumericFields = (nextForm = form, { requireValues = false } = {}) => {
+    const errors = {};
+    const priceText = String(nextForm.price).trim();
+    const durationText = String(nextForm.duration).trim();
+
+    if (requireValues && !priceText) {
+      errors.price = "Enter a numeric price, e.g., 0, 1200, or 4999.50.";
+    } else if (priceText) {
+      if (!decimalPattern.test(priceText)) {
+        errors.price = "Use numbers only, with an optional decimal point, e.g., 1200 or 1200.50.";
+      } else {
+        const price = Number(priceText);
+        if (price < 0 || price >= 5000) {
+          errors.price = "Price must be 0 or more and less than 5000.";
+        }
+      }
+    }
+
+    if (requireValues && !durationText) {
+      errors.duration = "Enter duration as a number of hours, e.g., 6 or 6.5.";
+    } else if (durationText) {
+      if (!decimalPattern.test(durationText)) {
+        errors.duration = "Use numbers only, with an optional decimal point, e.g., 6 or 6.5.";
+      } else if (Number(durationText) <= 0) {
+        errors.duration = "Duration must be greater than 0.";
+      }
+    }
+
+    return errors;
+  };
+
+  // Updates normal text fields
   const handleChange = (e) => {
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
   };
 
-  const handleNumberChange = (e) => {
+  // Updates decimal fields and shows format errors
+  const handleDecimalChange = (e) => {
     const { name, value } = e.target;
-    const digitsOnly = String(value).replace(/[^\d]/g, "");
-    setForm((p) => ({ ...p, [name]: digitsOnly }));
+    const nextValue = String(value);
+
+    if (!/^\d*\.?\d*$/.test(nextValue)) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        [name]: name === "price"
+          ? "Use numbers only, with an optional decimal point, e.g., 1200 or 1200.50."
+          : "Use numbers only, with an optional decimal point, e.g., 6 or 6.5."
+      }));
+      return;
+    }
+
+    setForm((prev) => {
+      const nextForm = { ...prev, [name]: nextValue };
+      const nextErrors = validateNumericFields(nextForm);
+      setFieldErrors((errors) => {
+        const updated = { ...errors };
+        if (nextErrors[name]) updated[name] = nextErrors[name];
+        else delete updated[name];
+        return updated;
+      });
+      return nextForm;
+    });
   };
 
+  // Stores the selected thumbnail file
   const handleThumbnail = (e) => {
     const file = e.target.files?.[0] || null;
     if (!file) return;
@@ -143,6 +213,7 @@ const EducatorPublish = () => {
     setForm((p) => ({ ...p, thumbnailFile: file, thumbnailName: file.name, thumbnailUrl: previewUrl }));
   };
 
+  // Adds or removes a specialization tag
   const toggleTag = (tag) => {
     setForm((p) => {
       const exists = p.specializationTags.includes(tag);
@@ -155,6 +226,7 @@ const EducatorPublish = () => {
     });
   };
 
+  // Filters specialization tags by search text
   const filteredTags = useMemo(() => {
     const tags = specializations.map((item) => item.slug || item.name).filter(Boolean);
     const q = tagSearch.trim().toLowerCase();
@@ -162,8 +234,7 @@ const EducatorPublish = () => {
     return tags.filter((tag) => tag.toLowerCase().includes(q));
   }, [specializations, tagSearch]);
 
-  // Full form complete check (for Publish)
-  // thumbnailUrl covers the case where a thumbnail was picked before navigating away and back
+  // Checks if the publish form is complete
   const isFormComplete = useMemo(() => {
     return Boolean(
       form.title.trim() &&
@@ -176,15 +247,23 @@ const EducatorPublish = () => {
     );
   }, [form]);
 
-  const canPublish = isVerified && isFormComplete && hasContent;
+  // Checks current numeric field errors
+  const numericErrors = useMemo(() => validateNumericFields(form), [form]);
+  // Checks if any numeric errors exist
+  const hasNumericErrors = Object.keys(numericErrors).length > 0;
 
-  // Draft only needs a title
-  const canDraft = isVerified && form.title.trim().length > 0;
+  // Checks if the course can be published
+  const canPublish = isVerified && isFormComplete && hasContent && !hasNumericErrors;
 
+  // Checks if the course can be saved as a draft
+  const canDraft = isVerified && form.title.trim().length > 0 && !hasNumericErrors;
+
+  // Finds the selected specialization
   const selectedSpecialization = useMemo(() => {
     return specializations.find((item) => item.name === form.category);
   }, [specializations, form.category]);
 
+  // Builds the course data sent to the API
   const buildCoursePayload = (status) => ({
     title: form.title.trim(),
     description: form.description.trim(),
@@ -207,6 +286,7 @@ const EducatorPublish = () => {
     }
   });
 
+  // Uploads the thumbnail before saving if needed
   const ensureUploadedThumbnail = async () => {
     if (!form.thumbnailFile) {
       return {
@@ -234,11 +314,13 @@ const EducatorPublish = () => {
     };
   };
 
+  // Goes to the add content page
   const goAddContent = () => {
+    persistFormData(form);
     navigate("/educator/add-content/new", { state: { backTo: "/educator/publish" } });
   };
 
-  // Warn the user if they try to close/refresh the tab with unsaved form data
+  // Warns before closing the tab with unsaved data
   const formIsDirty = form.title.trim().length > 0 || contentItems.length > 0;
   const formIsDirtyRef = useRef(formIsDirty);
   useEffect(() => { formIsDirtyRef.current = formIsDirty; }, [formIsDirty]);
@@ -252,7 +334,7 @@ const EducatorPublish = () => {
     return () => window.removeEventListener("beforeunload", handler);
   }, []);
 
-  // Draft - only needs title, saves with status "draft"
+  // Saves the course as a draft
   const handleSaveDraft = async (e) => {
     e?.preventDefault?.();
     if (submitting) return;
@@ -263,6 +345,12 @@ const EducatorPublish = () => {
     }
     if (!form.title.trim()) {
       setError("Please enter at least a course title to save a draft.");
+      return;
+    }
+    const errors = validateNumericFields(form);
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      setError("Please fix the highlighted course setup fields before saving a draft.");
       return;
     }
     setSubmitting(true);
@@ -281,7 +369,7 @@ const EducatorPublish = () => {
     }
   };
 
-  // Publish - needs everything
+  // Publishes the course for review
   const handlePublish = async (e) => {
     e.preventDefault();
     if (submitting) return;
@@ -292,6 +380,12 @@ const EducatorPublish = () => {
     }
     if (!isFormComplete) {
       setError("Please fill all fields, including category and thumbnail, before publishing.");
+      return;
+    }
+    const errors = validateNumericFields(form, { requireValues: true });
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      setError("Please fix the highlighted course setup fields before publishing.");
       return;
     }
     if (!hasContent) {
@@ -316,8 +410,10 @@ const EducatorPublish = () => {
 
   return (
     <PageShell>
+      {/* Holds the publish course sections */}
       <div className="space-y-6">
         {/* Header */}
+        {/* Shows the publish page title and alerts */}
         <div className="glass-card p-6">
           <h1 className="text-xl font-semibold text-text-dark">Publish New Course</h1>
           <p className="mt-1 text-xs text-muted">
@@ -335,13 +431,16 @@ const EducatorPublish = () => {
           )}
         </div>
 
+        {/* Holds course details and setup fields */}
         <form onSubmit={handlePublish} className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* LEFT: Course Details */}
+          {/* Collects the main course information */}
           <div className="rounded-3xl bg-white/80 border border-black/5 shadow-lg p-6">
             <h2 className="text-base font-semibold text-text-dark">Course Details</h2>
             <p className="mt-1 text-xs text-muted">Basic course information visible to students.</p>
 
             <div className="mt-5 space-y-4 text-xs">
+              {/* Lets the educator enter the course title */}
               <div>
                 <label className="font-semibold text-text-dark">Course Title</label>
                 <input
@@ -354,6 +453,7 @@ const EducatorPublish = () => {
                 />
               </div>
 
+              {/* Lets the educator write the course description */}
               <div>
                 <label className="font-semibold text-text-dark">Description</label>
                 <textarea
@@ -368,7 +468,9 @@ const EducatorPublish = () => {
               </div>
 
               {/* Course Content */}
+              {/* Shows added content and the add content button */}
               <div>
+                {/* Holds the content section heading and add button */}
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-semibold text-text-dark">Course Content</p>
@@ -385,10 +487,12 @@ const EducatorPublish = () => {
                 </div>
 
                 {contentItems.length === 0 ? (
+                  /* Shows when no content has been added */
                   <div className="mt-3 rounded-2xl border border-black/10 bg-white/70 px-4 py-4 text-[11px] text-muted text-center">
                     No content added yet. Click Add Course Content to begin.
                   </div>
                 ) : (
+                  /* Lists the added course content */
                   <div className="mt-3 rounded-2xl border border-black/10 bg-white/70 px-4 py-3">
                     <ul className="space-y-2">
                       {contentItems.map((item) => (
@@ -426,12 +530,14 @@ const EducatorPublish = () => {
           </div>
 
           {/* RIGHT: Course Setup */}
+          {/* Collects course settings */}
           <div className="rounded-3xl bg-white/80 border border-black/5 shadow-lg p-6">
             <h2 className="text-base font-semibold text-text-dark">Course Setup</h2>
             <p className="mt-1 text-xs text-muted">Quick settings for your course.</p>
 
             <div className="mt-5 space-y-4 text-xs">
               {/* Category */}
+              {/* Lets the educator choose a category */}
               <div>
                 <label className="font-semibold text-text-dark">Category</label>
                 <select
@@ -458,6 +564,7 @@ const EducatorPublish = () => {
               </div>
 
               {/* Difficulty */}
+              {/* Lets the educator choose difficulty */}
               <div>
                 <label className="font-semibold text-text-dark">Difficulty</label>
                 <select
@@ -475,35 +582,51 @@ const EducatorPublish = () => {
               </div>
 
               {/* Price */}
+              {/* Lets the educator enter the price */}
               <div>
                 <label className="font-semibold text-text-dark">Price (LKR)</label>
                 <input
                   name="price"
                   value={form.price}
-                  onChange={handleNumberChange}
+                  onChange={handleDecimalChange}
                   disabled={!isVerified}
-                  inputMode="numeric"
-                  placeholder="Eg: 5000"
-                  className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-4 py-2.5 outline-none ring-primary/40 focus:ring disabled:cursor-not-allowed disabled:bg-gray-100"
+                  inputMode="decimal"
+                  placeholder="Eg: 1200 or 1200.50"
+                  className={`mt-2 w-full rounded-2xl border bg-white px-4 py-2.5 outline-none ring-primary/40 focus:ring disabled:cursor-not-allowed disabled:bg-gray-100 ${
+                    fieldErrors.price ? "border-rose-300 ring-rose-200" : "border-black/10"
+                  }`}
                 />
+                {fieldErrors.price ? (
+                  <p className="mt-1 text-[11px] font-medium text-rose-500">{fieldErrors.price}</p>
+                ) : (
+                  <p className="mt-1 text-[11px] text-muted">Use numbers only. Price must be less than 5000.</p>
+                )}
               </div>
 
               {/* Duration */}
+              {/* Lets the educator enter the duration */}
               <div>
                 <label className="font-semibold text-text-dark">Estimated Duration</label>
                 <input
                   name="duration"
                   value={form.duration}
-                  onChange={handleNumberChange}
+                  onChange={handleDecimalChange}
                   disabled={!isVerified}
-                  inputMode="numeric"
-                  placeholder="Eg: 12"
-                  className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-4 py-2.5 outline-none ring-primary/40 focus:ring disabled:cursor-not-allowed disabled:bg-gray-100"
+                  inputMode="decimal"
+                  placeholder="Eg: 6 or 6.5"
+                  className={`mt-2 w-full rounded-2xl border bg-white px-4 py-2.5 outline-none ring-primary/40 focus:ring disabled:cursor-not-allowed disabled:bg-gray-100 ${
+                    fieldErrors.duration ? "border-rose-300 ring-rose-200" : "border-black/10"
+                  }`}
                 />
-                <p className="mt-1 text-[11px] text-muted">Enter hours as a number (e.g., 12).</p>
+                {fieldErrors.duration ? (
+                  <p className="mt-1 text-[11px] font-medium text-rose-500">{fieldErrors.duration}</p>
+                ) : (
+                  <p className="mt-1 text-[11px] text-muted">Enter hours as a number, e.g., 6 or 6.5. Must be greater than 0.</p>
+                )}
               </div>
 
               {/* Thumbnail */}
+              {/* Lets the educator upload a thumbnail */}
               <div>
                 <label className="font-semibold text-text-dark">Thumbnail</label>
                 <input
@@ -519,11 +642,13 @@ const EducatorPublish = () => {
               </div>
 
               {/* Specialization Tags - searchable multi-select */}
+              {/* Lets the educator select related specialization tags */}
               <div>
                 <label className="font-semibold text-text-dark">Related Specialization Tags</label>
                 <p className="mt-1 text-[11px] text-muted">Optional tags loaded from the specialization database.</p>
 
                 {/* Search input */}
+                {/* Filters available tags */}
                 <input
                   type="text"
                   value={tagSearch}
@@ -534,6 +659,7 @@ const EducatorPublish = () => {
                 />
 
                 {/* Selected tags shown as removable chips */}
+                {/* Shows selected tags as chips */}
                 {form.specializationTags.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {form.specializationTags.map((tag) => (
@@ -556,6 +682,7 @@ const EducatorPublish = () => {
                 )}
 
                 {/* Filtered tag options */}
+                {/* Shows matching tag options */}
                 <div className="mt-2 flex flex-wrap gap-2">
                   {filteredTags.length === 0 ? (
                     <p className="text-[11px] text-muted">No tags match your search.</p>
@@ -587,6 +714,7 @@ const EducatorPublish = () => {
               </div>
 
               {/* Buttons */}
+              {/* Holds discard, draft and publish buttons */}
               <div className="pt-1 flex gap-3 justify-end flex-wrap">
                 <button
                   type="button"
@@ -596,7 +724,7 @@ const EducatorPublish = () => {
                     }
                     localStorage.removeItem(storageKey);
                     localStorage.removeItem(formStorageKey);
-                    navigate("/educator");
+                    navigate("/educator/courses");
                   }}
                   className="rounded-full border border-red-300 bg-white px-7 py-2 text-xs font-semibold text-red-500 hover:bg-red-50 transition"
                 >

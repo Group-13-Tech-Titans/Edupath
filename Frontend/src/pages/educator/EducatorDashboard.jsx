@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 
+// Turns different course status values into one clean status
 const normalizeStatus = (status) => {
   const s = String(status ?? "").toLowerCase().trim();
   if (s === "draft") return "draft";
@@ -12,6 +13,7 @@ const normalizeStatus = (status) => {
   return "approved";
 };
 
+// Picks the label and colors for each course status
 const statusMeta = (st) => {
   if (st === "draft")    return { label: "Draft",           cls: "bg-slate-100 text-slate-600 border-slate-200" };
   if (st === "approved") return { label: "Published",       cls: "bg-primary/10 text-primary border-primary/20" };
@@ -19,6 +21,7 @@ const statusMeta = (st) => {
   return                        { label: "Rejected",        cls: "bg-rose-50 text-rose-600 border-rose-200" };
 };
 
+// Creates a reusable card for statistics
 const StatCard = ({ label, value }) => (
   <div className="glass-card p-5">
     <div>
@@ -28,28 +31,34 @@ const StatCard = ({ label, value }) => (
   </div>
 );
 
+// Builds the educator dashboard page
 const EducatorDashboard = () => {
   const { currentUser, courses, fetchMyCourses } = useApp();
 
+  // Loads this educator's courses when the dashboard opens
   useEffect(() => {
     fetchMyCourses();
   }, [fetchMyCourses]);
 
+  // Filters courses to only the current educator
   const myCourses = useMemo(
     () => courses.filter((c) => c.createdByEducatorEmail === currentUser?.email),
     [courses, currentUser?.email]
   );
 
+  // Counts published courses
   const publishedCount = useMemo(
     () => myCourses.filter((c) => !c.trashedAt && normalizeStatus(c.status) === "approved").length,
     [myCourses]
   );
 
+  // Counts courses still waiting for review
   const pendingCount = useMemo(
     () => myCourses.filter((c) => !c.trashedAt && normalizeStatus(c.status) === "pending").length,
     [myCourses]
   );
 
+  // Picks the recent course rows shown on the dashboard
   const courseRows = useMemo(() => {
     return myCourses
       .filter((c) => !c.trashedAt)
@@ -87,33 +96,37 @@ const EducatorDashboard = () => {
 
   return (
     <PageShell>
+      {/* Holds all dashboard sections */}
       <div className="space-y-6">
 
         {/* Header */}
+        {/* Shows the dashboard title and main action */}
         <div className="glass-card p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          {/* Shows the page title and subtitle */}
           <div>
             <h1 className="text-lg font-semibold text-text-dark">Educator Dashboard</h1>
             <p className="mt-1 text-xs text-muted">Track your courses, earnings and performance.</p>
           </div>
+          {/* Holds the mentor portal switch button */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <button className="btn-soft px-6 py-2 text-sm">Register as Mentor</button>
-            <Link to="/educator/publish" className="btn-primary px-6 py-2 text-sm text-center">
-              Publish New Course
+            <Link to="/mentor" className="btn-soft px-6 py-2 text-sm">
+              Switch to Mentor Portal
             </Link>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Statistics */}
+        {/* Shows the three dashboard stat cards */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <StatCard label="Published Courses" value={publishedCount} />
-          <StatCard label="Active Students"   value="1,248" />
           <StatCard label="Monthly Earnings"  value="Rs 182,000" />
           <StatCard label="Pending Reviews"   value={pendingCount} />
         </div>
 
-        {/* Your Courses */}
+        {/* My Courses */}
         <div className="glass-card p-6">
           <div className="flex items-center justify-between mb-4">
+            {/* Recent Courses */}
             <div>
               <h2 className="font-semibold text-text-dark">Recent Courses</h2>
               <p className="mt-0.5 text-xs text-muted">Your 5 most recently created courses.</p>
@@ -124,6 +137,7 @@ const EducatorDashboard = () => {
           </div>
 
           {courseRows.length === 0 ? (
+            /* Shows when the educator has no courses yet */
             <div className="rounded-2xl border border-dashed border-black/10 bg-white/50 px-6 py-12 text-center">
               <p className="text-sm font-medium text-muted">No courses yet.</p>
               <p className="mt-1 text-xs text-muted">Create your first course to get started.</p>
@@ -132,17 +146,22 @@ const EducatorDashboard = () => {
               </Link>
             </div>
           ) : (
+            /* Holds the recent course cards */
             <div className="space-y-3">
               {courseRows.map((c) => (
+                /* Shows one recent course row */
                 <div
                   key={c.id}
                   className="rounded-2xl bg-white/80 border border-black/5 px-4 py-4 shadow-sm flex flex-col gap-2 transition hover:-translate-y-0.5 hover:shadow-md"
                 >
+                  {/* Holds the course details and action button */}
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    {/* Shows the course title and short status text */}
                     <div className="min-w-0">
                       <p className="font-semibold text-sm text-text-dark truncate">{c.title}</p>
                       <p className="text-xs text-muted mt-0.5">{c.meta}</p>
                     </div>
+                    {/* Shows the course status badge and manage button */}
                     <div className="flex items-center gap-3 shrink-0">
                       <span className={`px-3 py-1 text-[11px] font-semibold rounded-full border ${c.statusCls}`}>
                         {c.statusLabel}
@@ -157,11 +176,13 @@ const EducatorDashboard = () => {
                   </div>
 
                   {c.hasReview && (
+                    /* Shows reviewer feedback when a review exists */
                     <div className={`rounded-xl border px-4 py-3 space-y-1 ${
                       c.isRejected
                         ? "border-rose-200 bg-rose-50"
                         : "border-primary/20 bg-primary/5"
                     }`}>
+                      {/* Holds the reviewer label and rating */}
                       <div className="flex items-center justify-between gap-2">
                         <p className={`text-xs font-semibold ${c.isRejected ? "text-rose-700" : "text-primary"}`}>
                           Reviewer Feedback
@@ -187,14 +208,19 @@ const EducatorDashboard = () => {
         </div>
 
         {/* Course Performance */}
+        {/* Shows the course performance preview area */}
         <div className="glass-card p-6">
+          {/* Holds the course performance heading */}
           <div className="flex items-center justify-between mb-4">
+            {/* Shows the performance title and subtitle */}
             <div>
               <h2 className="font-semibold text-text-dark">Course Performance</h2>
               <p className="mt-0.5 text-xs text-muted">Revenue and enrollment trends.</p>
             </div>
           </div>
+          {/* Shows the empty analytics placeholder */}
           <div className="rounded-2xl border border-dashed border-black/10 bg-white/50 px-4 py-20 text-center">
+            {/* Shows the chart placeholder icon */}
             <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-xl">
               Chart
             </div>

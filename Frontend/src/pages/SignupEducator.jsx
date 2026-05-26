@@ -1,9 +1,5 @@
-/**
- * SIGNUP EDUCATOR COMPONENT
- * Final step in the educator onboarding funnel. Collects professional
- * credentials and upgrades their role, setting status to PENDING_VERIFICATION.
- * Design Patterns: Controlled Form Object, Auto-filling Context Data.
- */
+// Complete educator registration by acquiring professional details
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useApp } from "../context/AppProvider.jsx";

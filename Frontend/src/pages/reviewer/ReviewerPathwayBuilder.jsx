@@ -3,9 +3,11 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 
+// Creates a temporary id for new steps
 const generateId = () =>
   Date.now().toString(36) + Math.random().toString(36).substring(2);
 
+// Builds the reviewer pathway creation page
 const ReviewerPathwayBuilder = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -27,6 +29,7 @@ const ReviewerPathwayBuilder = () => {
   ]);
 
   // 🔥 FETCH REVIEWER'S SPECIALIZATION ON LOAD
+  // Loads the reviewer's assigned specialization
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -48,15 +51,18 @@ const ReviewerPathwayBuilder = () => {
     fetchProfile();
   }, []);
 
+  // Updates pathway fields
   const handlePathwayChange = (e) =>
     setPathway({ ...pathway, [e.target.name]: e.target.value });
 
+  // Updates one curriculum step field
   const handleStepChange = (index, field, value) => {
     const newSteps = [...steps];
     newSteps[index][field] = value;
     setSteps(newSteps);
   };
 
+  // Adds a new curriculum step
   const addStep = () =>
     setSteps([
       ...steps,
@@ -70,9 +76,11 @@ const ReviewerPathwayBuilder = () => {
       },
     ]);
 
+  // Removes a curriculum step
   const removeStep = (index) => setSteps(steps.filter((_, i) => i !== index));
 
   // 🟢 NEW HELPER FUNCTIONS FOR MULTIPLE RESOURCES
+  // Adds a resource link to a step
   const addResourceToStep = (stepIndex) => {
     const newSteps = [...steps];
     if (!newSteps[stepIndex].resources) newSteps[stepIndex].resources = [];
@@ -81,18 +89,21 @@ const ReviewerPathwayBuilder = () => {
     setSteps(newSteps);
   };
 
+  // Updates a resource link field
   const handleResourceChange = (stepIndex, resIndex, field, value) => {
     const newSteps = [...steps];
     newSteps[stepIndex].resources[resIndex][field] = value;
     setSteps(newSteps);
   };
 
+  // Removes a resource link from a step
   const removeResourceFromStep = (stepIndex, resIndex) => {
     const newSteps = [...steps];
     newSteps[stepIndex].resources.splice(resIndex, 1);
     setSteps(newSteps);
   };
 
+  // Adds a quiz question to a step
   const addQuizQuestion = (stepIndex) => {
     const newSteps = [...steps];
     if (!newSteps[stepIndex].quiz) newSteps[stepIndex].quiz = [];
@@ -100,24 +111,28 @@ const ReviewerPathwayBuilder = () => {
     setSteps(newSteps);
   };
 
+  // Updates a quiz question field
   const handleQuizChange = (stepIndex, qIndex, field, value) => {
     const newSteps = [...steps];
     newSteps[stepIndex].quiz[qIndex][field] = value;
     setSteps(newSteps);
   };
 
+  // Updates one quiz answer option
   const handleQuizOptionChange = (stepIndex, qIndex, optIndex, value) => {
     const newSteps = [...steps];
     newSteps[stepIndex].quiz[qIndex].options[optIndex] = value;
     setSteps(newSteps);
   };
 
+  // Removes a quiz question from a step
   const removeQuizQuestion = (stepIndex, qIndex) => {
     const newSteps = [...steps];
     newSteps[stepIndex].quiz.splice(qIndex, 1);
     setSteps(newSteps);
   };
 
+  // Saves the pathway template
   const handleSavePathway = async () => {
     setError("");
     if (!pathway.pathName || pathway.pathName === "Loading specialization...")
@@ -167,31 +182,36 @@ const ReviewerPathwayBuilder = () => {
 
   return (
     <PageShell>
+      {/* Holds the pathway builder page */}
       <div className="mx-auto max-w-4xl space-y-6 pb-12">
+        {/* Shows the create curriculum heading */}
         <div className="rounded-[28px] border border-black/5 bg-white/70 p-6 shadow-sm backdrop-blur">
-          <h1 className="text-2xl font-semibold text-text-dark">
+          <h1 className="text-lg font-semibold text-text-dark">
             Create Curriculum
           </h1>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-xs text-muted">
             Build a master course for your assigned specialization.
           </p>
         </div>
 
         {error && (
+          /* Shows pathway save errors */
           <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-600 border border-red-100">
             {error}
           </div>
         )}
 
+        {/* Collects pathway details */}
         <div className="rounded-[28px] border border-black/5 bg-white/70 p-6 shadow-sm backdrop-blur">
-          <h2 className="text-lg font-semibold text-text-dark mb-4">
+          <h2 className="mb-4 text-sm font-semibold text-text-dark">
             1. Pathway Details
           </h2>
+          {/* Holds specialization and level fields */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label
                 htmlFor="pathName"
-                className="mb-1 block text-sm font-medium text-text-dark"
+                className="mb-1 block text-xs font-medium text-text-dark"
               >
                 Assigned Specialization
               </label>
@@ -207,7 +227,7 @@ const ReviewerPathwayBuilder = () => {
             <div>
               <label
                 htmlFor="level"
-                className="mb-1 block text-sm font-medium text-text-dark"
+                className="mb-1 block text-xs font-medium text-text-dark"
               >
                 Level
               </label>
@@ -226,17 +246,20 @@ const ReviewerPathwayBuilder = () => {
           </div>
         </div>
 
+        {/* Holds all curriculum steps */}
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-text-dark pl-2">
+          <h2 className="pl-2 text-sm font-semibold text-text-dark">
             2. Curriculum Steps
           </h2>
           {steps.map((step, index) => (
+            /* Shows one curriculum step */
             <div
               key={step.id}
               className="relative rounded-[22px] border border-black/5 bg-white/80 p-5 shadow-sm"
             >
+              {/* Holds step title and remove action */}
               <div className="mb-4 flex items-center justify-between border-b border-black/5 pb-3">
-                <span className="font-semibold text-primary">
+                <span className="text-sm font-semibold text-primary">
                   Step {index + 1}
                 </span>
                 {steps.length > 1 && (
@@ -248,6 +271,7 @@ const ReviewerPathwayBuilder = () => {
                   </button>
                 )}
               </div>
+              {/* Holds step fields, resources and quiz */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <label
@@ -285,7 +309,9 @@ const ReviewerPathwayBuilder = () => {
                 </div>
 
                 {/* 🟢 NEW: Multiple Resources UI */}
+                {/* Lets the reviewer add learning material links */}
                 <div className="sm:col-span-2 pt-2 border-t border-black/5 mt-2">
+                  {/* Holds materials heading and add button */}
                   <div className="flex items-center justify-between mb-2">
                     <label className="block text-xs font-bold text-text-dark uppercase tracking-wider">
                       Learning Materials
@@ -301,6 +327,7 @@ const ReviewerPathwayBuilder = () => {
 
                   <div className="space-y-2">
                     {(step.resources || []).map((res, resIndex) => (
+                      /* Shows one learning material link */
                       <div
                         key={resIndex}
                         className="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-100"
@@ -372,7 +399,9 @@ const ReviewerPathwayBuilder = () => {
                   </div>
                 </div>
                 {/* 🟢 NEW: QUIZ SECTION */}
+                  {/* Lets the reviewer add quiz questions */}
                   <div className="sm:col-span-2 pt-4 border-t border-black/10 mt-4">
+                    {/* Holds quiz heading and add button */}
                     <div className="flex items-center justify-between mb-3">
                       <label className="block text-xs font-bold text-text-dark uppercase tracking-wider">Step Assessment (Quiz)</label>
                       <button 
@@ -386,6 +415,7 @@ const ReviewerPathwayBuilder = () => {
 
                     <div className="space-y-4">
                       {(step.quiz || []).map((q, qIndex) => (
+                        /* Shows one quiz question */
                         <div key={qIndex} className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100 relative">
                           <button
                             type="button"
@@ -409,7 +439,7 @@ const ReviewerPathwayBuilder = () => {
                               <div key={optIndex} className="flex items-center gap-2">
                                 <input
                                   type="radio"
-                                  // 🔥 FIXED LINE BELOW: Using step.id
+                                  // Uses the step id for this question group
                                   name={`correct-ans-${step.id}-${qIndex}`}
                                   checked={q.correctAnswerIndex === optIndex}
                                   onChange={() => handleQuizChange(index, qIndex, "correctAnswerIndex", optIndex)}
@@ -444,11 +474,12 @@ const ReviewerPathwayBuilder = () => {
           </button>
         </div>
 
+        {/* Holds the publish button */}
         <div className="flex justify-end pt-4">
           <button
             onClick={handleSavePathway}
             disabled={loading}
-            className="rounded-full bg-primary px-8 py-3 font-semibold text-white shadow-md hover:brightness-95 disabled:opacity-70"
+            className="rounded-full bg-primary px-6 py-2.5 text-xs font-semibold text-white shadow-md hover:brightness-95 disabled:opacity-70"
           >
             {loading ? "Saving..." : "Publish Template"}
           </button>

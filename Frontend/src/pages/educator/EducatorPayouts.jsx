@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
+import { useApp } from "../../context/AppProvider.jsx";
 
 const mockHistory = [
   { date: "2026-02-06", ref: "#PAYOUT-1042", amount: "Rs 25,000", status: "Completed" },
@@ -8,6 +9,7 @@ const mockHistory = [
   { date: "2026-01-10", ref: "#PAYOUT-1031", amount: "Rs 12,000", status: "Completed" },
 ];
 
+// Payout statistic card
 const StatCard = ({ label, value, sub }) => (
   <div className="glass-card p-5">
     <div>
@@ -18,8 +20,14 @@ const StatCard = ({ label, value, sub }) => (
   </div>
 );
 
+// Builds the educator payout page
 const EducatorPayouts = () => {
   const navigate = useNavigate();
+  const { currentUser } = useApp();
+  const accountDigits = (currentUser?.profile?.payout?.accountNumber || "").replace(/\D/g, "");
+  const accountEndingText = accountDigits
+    ? `Account ending in ****${accountDigits.slice(-4)}`
+    : "No account number saved";
 
   return (
     <PageShell>
@@ -43,10 +51,11 @@ const EducatorPayouts = () => {
         </div>
 
         {/* Stats */}
+        {/* Shows the main earnings numbers */}
         <div className="grid gap-4 sm:grid-cols-3">
-          <StatCard label="Total Earnings"  value="Rs 1,245,000" sub="All-time revenue" />
-          <StatCard label="This Month"      value="Rs 182,000"   sub="February revenue" />
-          <StatCard label="Pending Payout"  value="Rs 55,500"    sub="Awaiting transfer" />
+          <StatCard label="Total Earnings"  value="Rs 1,245,000" />
+          <StatCard label="This Month"      value="Rs 182,000" />
+          <StatCard label="Pending Payout"  value="Rs 55,500" />
         </div>
 
         {/* Payout method */}
@@ -56,7 +65,7 @@ const EducatorPayouts = () => {
             <div className="flex items-center gap-4">
               <div>
                 <p className="text-sm font-semibold text-text-dark">Bank Transfer</p>
-                <p className="text-xs text-muted">Account ending **** 4481</p>
+                <p className="text-xs text-muted">{accountEndingText}</p>
               </div>
             </div>
             <button
@@ -77,10 +86,12 @@ const EducatorPayouts = () => {
           </div>
 
           {mockHistory.length === 0 ? (
+            /* Shows when there are no payouts yet */
             <div className="rounded-2xl border border-dashed border-black/10 bg-white/50 px-6 py-12 text-center">
               <p className="text-sm font-medium text-muted">No payout history yet.</p>
             </div>
           ) : (
+            /* Shows payout history in a table */
             <div className="overflow-x-auto rounded-2xl border border-black/5">
               <table className="min-w-full text-left text-xs">
                 <thead className="border-b border-black/5 bg-white/60">

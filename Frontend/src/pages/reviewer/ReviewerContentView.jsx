@@ -4,6 +4,7 @@ import PageShell from "../../components/PageShell.jsx";
 import { getCourseById } from "../../api/courseApi.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+// Formats file size for display
 const formatBytes = (bytes) => {
   if (!bytes) return "";
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -19,6 +20,7 @@ const TYPE_META = {
 };
 
 // ── Content item renderer ─────────────────────────────────────────────────────
+// Shows one course content item
 const ContentItem = ({ item, index }) => {
   const [videoError, setVideoError] = useState(false);
   const meta = TYPE_META[item.type] || TYPE_META.Document;
@@ -26,6 +28,7 @@ const ContentItem = ({ item, index }) => {
   return (
     <div className="glass-card overflow-hidden">
       {/* Item header */}
+      {/* Shows item number, type and download link */}
       <div className="flex items-center gap-3 px-5 py-4 border-b border-black/5">
         <span className="flex-shrink-0 w-6 h-6 rounded-full bg-black/5 text-[11px] font-bold text-muted grid place-items-center">
           {index + 1}
@@ -55,6 +58,7 @@ const ContentItem = ({ item, index }) => {
       </div>
 
       {/* Content preview */}
+      {/* Shows the right preview for the item type */}
       <div className="p-5">
         {/* ── Video ── */}
         {item.type === "Video" && item.url && !videoError && (
@@ -162,6 +166,7 @@ const ContentItem = ({ item, index }) => {
 };
 
 // ── Main component ────────────────────────────────────────────────────────────
+// Builds the reviewer course content viewer
 const ReviewerContentView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -170,6 +175,7 @@ const ReviewerContentView = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState("");
 
+  // Loads the course content by id
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -194,10 +200,13 @@ const ReviewerContentView = () => {
 
   return (
     <PageShell>
+      {/* Holds all content viewer sections */}
       <div className="space-y-6">
 
         {/* Header */}
+        {/* Shows course content title and back link */}
         <div className="glass-card p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          {/* Shows the course title and breadcrumb */}
           <div>
             <div className="flex items-center gap-2 mb-1">
               <button
@@ -232,6 +241,7 @@ const ReviewerContentView = () => {
 
         {/* Loading state */}
         {loading && (
+          /* Shows placeholders while content loads */
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
               <div key={i} className="glass-card p-5 animate-pulse">
@@ -251,6 +261,7 @@ const ReviewerContentView = () => {
 
         {/* Error state */}
         {!loading && error && (
+          /* Shows course content loading errors */
           <div className="glass-card px-6 py-10 text-center">
             <p className="text-2xl mb-3">⚠️</p>
             <p className="text-sm font-semibold text-rose-600">{error}</p>
@@ -266,6 +277,7 @@ const ReviewerContentView = () => {
 
         {/* Empty state */}
         {!loading && !error && items.length === 0 && (
+          /* Shows when the course has no content */
           <div className="glass-card px-6 py-12 text-center">
             <p className="text-3xl mb-3">📭</p>
             <p className="text-sm font-semibold text-text-dark">No content uploaded</p>
@@ -284,6 +296,7 @@ const ReviewerContentView = () => {
 
         {/* Content list */}
         {!loading && !error && items.length > 0 && (
+          /* Shows uploaded course content */
           <div className="space-y-4">
             {items.map((item, i) => (
               <ContentItem key={item.id || i} item={item} index={i} />
@@ -293,6 +306,7 @@ const ReviewerContentView = () => {
 
         {/* Footer back button */}
         {!loading && !error && items.length > 0 && (
+          /* Shows the back button after content list */
           <div className="flex justify-end">
             <button
               type="button"

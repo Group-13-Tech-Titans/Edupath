@@ -131,6 +131,25 @@ router.get("/reviewer/queue", authMiddleware, roleMiddleware(["reviewer", "admin
   }
 });
 
+// GET courses reviewed by the logged-in reviewer
+router.get("/reviewer/history", authMiddleware, roleMiddleware(["reviewer", "admin"]), async (req, res) => {
+  try {
+    const query = {
+      status: { $in: ["approved", "rejected"] },
+      "review.reviewedAt": { $exists: true, $ne: null }
+    };
+
+    if (req.user.role !== "admin") {
+      query["review.reviewerEmail"] = req.user.email;
+    }
+
+    const courses = await Course.find(query).sort({ "review.reviewedAt": -1, updatedAt: -1 });
+    res.json({ courses });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to fetch reviewer history" });
+  }
+});
+
 // GET all approved courses (public)
 router.get("/", async (req, res) => {
   try {

@@ -46,6 +46,7 @@ import AdminProfile from "./pages/admin/AdminProfile.jsx";
 import AdminPathwayBuilder from "./pages/admin/AdminPathwayBuilder.jsx";
 import AdminPathwayList from "./pages/admin/AdminPathwayList.jsx";
 import AdminPathwayEdit from "./pages/admin/AdminPathwayEdit.jsx";
+import CourseInnerPage from "./pages/course/CourseInnerPage.jsx";
 
 import ReviewerDashboard from "./pages/reviewer/ReviewerDashboard.jsx";
 import ReviewerQueue from "./pages/reviewer/ReviewerQueue.jsx";
@@ -122,6 +123,7 @@ const App = () => {
             <Route path="review-dashboard" element={<AdminReviewDashboard />} />
             <Route path="queue" element={<ReviewerQueue />} />
             <Route path="queue/:id" element={<ReviewerCourseReview />} />
+            <Route path="courses/:id" element={<CourseInnerPage mode="admin" />} />
             <Route path="profile" element={<AdminProfile />} />
             <Route path="pathway-builder" element={<AdminPathwayBuilder />} />
             <Route path="pathways" element={<AdminPathwayList />} />
@@ -134,6 +136,7 @@ const App = () => {
             <Route index element={<ReviewerDashboard />} />
             <Route path="queue" element={<ReviewerQueue />} />
             <Route path="queue/:id" element={<ReviewerCourseReview />} />
+            <Route path="courses/:id" element={<CourseInnerPage mode="reviewer" />} />
             <Route path="history" element={<ReviewerHistory />} />
             <Route path="/reviewer/pathways" element={<ReviewerPathwayList />} />
             <Route path="/reviewer/pathway-builder" element={<ReviewerPathwayBuilder />} />
@@ -142,7 +145,7 @@ const App = () => {
         </Route>
 
         {/* Mentor Protected Routes */}
-        <Route element={<ProtectedRoute allowedRoles={["mentor"]} />}>
+        <Route element={<ProtectedRoute allowedRoles={["mentor", "educator"]} />}>
           <Route path="/mentor" element={<MentorLayout />}>
             <Route index element={<MentorDashboard />} />
             <Route path="sessions" element={<MentorSessions />} />
@@ -168,4 +171,3 @@ const App = () => {
 };
 
 export default App;
-

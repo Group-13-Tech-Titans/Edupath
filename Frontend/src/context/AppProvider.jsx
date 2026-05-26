@@ -312,6 +312,51 @@ export const AppProvider = ({ children }) => {
     }
   }, []);
 
+  const toReviewHistoryItem = useCallback((course) => {
+    const reviewedAt = course.review?.reviewedAt || course.updatedAt || course.createdAt;
+    return {
+      id: `rh-${course._id || course.id}`,
+      courseId: course._id || course.id,
+      course: { ...course, id: course._id || course.id },
+      title: course.title || "Untitled course",
+      decision: course.review?.decision || course.status,
+      reviewerEmail: course.review?.reviewerEmail,
+      reviewerName: course.review?.reviewerName,
+      rating: course.review?.rating,
+      notes: course.review?.notes || "",
+      reviewedAt,
+      createdAt: reviewedAt,
+    };
+  }, []);
+
+  const fetchReviewerHistory = useCallback(async () => {
+    try {
+      const courses = await courseApi.getReviewerHistory();
+      const normalized = courses.map((c) => ({ ...c, id: c._id }));
+      const history = normalized.map(toReviewHistoryItem);
+      setState((prev) => ({
+        ...prev,
+        reviewHistory: history,
+        courses: [
+          ...normalized,
+          ...prev.courses.filter(
+            (existing) =>
+              !normalized.some(
+                (course) => course.id === existing.id || course._id === existing._id,
+              ),
+          ),
+        ],
+      }));
+      return { success: true, history };
+    } catch (err) {
+      console.error("Failed to fetch reviewer history", err);
+      return {
+        success: false,
+        message: err.message || "Failed to fetch reviewer history",
+      };
+    }
+  }, [toReviewHistoryItem]);
+
   const submitReviewDecision = useCallback(
     async ({ itemId, decision, rating, notes }) => {
       const status = decision === "approved" ? "approved" : "rejected";
@@ -330,6 +375,12 @@ export const AppProvider = ({ children }) => {
               ? { ...c, ...updatedCourse }
               : c,
           ),
+          reviewHistory: [
+            toReviewHistoryItem(updatedCourse),
+            ...prev.reviewHistory.filter(
+              (item) => item.courseId !== itemId && item.courseId !== updatedCourse._id,
+            ),
+          ],
         }));
         return { success: true };
       } catch (err) {
@@ -339,7 +390,7 @@ export const AppProvider = ({ children }) => {
         };
       }
     },
-    [],
+    [toReviewHistoryItem],
   );
 
   const updateCourse = useCallback((courseId, updatedData) => {
@@ -544,6 +595,7 @@ export const AppProvider = ({ children }) => {
       fetchAllCourses,
       fetchAllCoursesAdmin,
       fetchReviewerQueue,
+      fetchReviewerHistory,
       submitReviewDecision,
       updateCourse,
       moveCourseToTrash,
@@ -572,6 +624,7 @@ export const AppProvider = ({ children }) => {
       fetchAllCourses,
       fetchAllCoursesAdmin,
       fetchReviewerQueue,
+      fetchReviewerHistory,
       submitReviewDecision,
       updateCourse,
       moveCourseToTrash,

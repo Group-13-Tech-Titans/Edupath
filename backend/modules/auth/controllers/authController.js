@@ -17,6 +17,9 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const BCRYPT_SALT_ROUNDS = 10;
 const RESET_TOKEN_EXPIRY_MS = 15 * 60 * 1000; // Reset token expire time - 15 minutes
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+const PASSWORD_REQUIREMENT_MESSAGE =
+  "Password must be 8+ characters with uppercase, lowercase, number and special character";
 
 //  AUTH LOGIC
 
@@ -253,7 +256,10 @@ exports.updateProfile = async (req, res) => {
     if (status != null) updates.status = status;
     if (specializationTag != null) updates.specializationTag = specializationTag;
     if (profile != null) updates.profile = profile;
-    if (password && password.length >= 6) {
+    if (password != null && password !== "") {
+      if (!PASSWORD_REGEX.test(password)) {
+        return res.status(400).json({ message: PASSWORD_REQUIREMENT_MESSAGE });
+      }
       updates.password = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
     }
 
@@ -271,8 +277,8 @@ exports.changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
 
-    if (!newPassword || newPassword.length < 6) {
-      return res.status(400).json({ message: "New password must be at least 6 characters" });
+    if (!newPassword || !PASSWORD_REGEX.test(newPassword)) {
+      return res.status(400).json({ message: PASSWORD_REQUIREMENT_MESSAGE });
     }
 
     const user = await User.findById(req.user._id).select("+password");
