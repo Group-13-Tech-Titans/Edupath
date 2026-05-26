@@ -1,13 +1,15 @@
 const User = require("../../auth/models/User"); 
 
-// Generate student registration statistics for dashboard charts
+// Generate student cumulative growth statistics for dashboard charts
 exports.getStudentGrowthStats = async (req, res) => {
   try {
     const { range = "6m" } = req.query; 
-    const startDate = new Date();
+    
+    const endDate = new Date(); 
+    const startDate = new Date(); 
     let groupBy = "month"; 
 
-    // Determine the date range and grouping format based on the query parameter
+    // 1. Determine date ranges
     if (range === "1d") { startDate.setHours(startDate.getHours() - 24); groupBy = "hour"; }
     else if (range === "7d") { startDate.setDate(startDate.getDate() - 7); groupBy = "day"; }
     else if (range === "30d") { startDate.setDate(startDate.getDate() - 30); groupBy = "day"; }
@@ -15,43 +17,75 @@ exports.getStudentGrowthStats = async (req, res) => {
     else if (range === "6m") { startDate.setMonth(startDate.getMonth() - 6); }
     else if (range === "1y") { startDate.setFullYear(startDate.getFullYear() - 1); }
 
-    // Setup MongoDB aggregation group stage
     const groupStage = groupBy === "hour"
       ? { year: { $year: "$actualCreatedAt" }, month: { $month: "$actualCreatedAt" }, day: { $dayOfMonth: "$actualCreatedAt" }, hour: { $hour: "$actualCreatedAt" } }
       : groupBy === "day"
       ? { year: { $year: "$actualCreatedAt" }, month: { $month: "$actualCreatedAt" }, day: { $dayOfMonth: "$actualCreatedAt" } }
       : { year: { $year: "$actualCreatedAt" }, month: { $month: "$actualCreatedAt" } };
 
-    // Setup sorting stage to keep chart data chronological
-    const sortStage = groupBy === "hour" 
-      ? { "_id.year": 1, "_id.month": 1, "_id.day": 1, "_id.hour": 1 }
-      : groupBy === "day" 
-      ? { "_id.year": 1, "_id.month": 1, "_id.day": 1 } : { "_id.year": 1, "_id.month": 1 };
-
-    // Aggregate user data from the database
+    // 2. Aggregate user data
     const studentStats = await User.aggregate([
       { $addFields: { actualCreatedAt: { $ifNull: ["$createdAt", { $toDate: "$_id" }] } } },
-      { $match: { role: "student", actualCreatedAt: { $gte: startDate } } },
-      { $group: { _id: groupStage, count: { $sum: 1 } } },
-      { $sort: sortStage }
+      { $match: { role: "student", actualCreatedAt: { $gte: startDate, $lte: endDate } } },
+      { $group: { _id: groupStage, count: { $sum: 1 } } }
     ]);
 
-    // Format the data for the Recharts frontend component
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const formattedData = studentStats.map(stat => {
-      if (groupBy === "hour") {
-        const ampm = stat._id.hour >= 12 ? 'PM' : 'AM';
-        const hour12 = stat._id.hour % 12 || 12;
-        return { name: `${hour12} ${ampm}`, Students: stat.count };
-      } else if (groupBy === "day") {
-        return { name: `${monthNames[stat._id.month - 1]} ${stat._id.day}`, Students: stat.count };
-      } else {
-        return { name: monthNames[stat._id.month - 1], Students: stat.count };
-      }
+    // 3. Create Dictionary
+    const statsDict = {};
+    studentStats.forEach(stat => {
+      let key;
+      if (groupBy === "hour") key = `${stat._id.year}-${stat._id.month}-${stat._id.day}-${stat._id.hour}`;
+      else if (groupBy === "day") key = `${stat._id.year}-${stat._id.month}-${stat._id.day}`;
+      else key = `${stat._id.year}-${stat._id.month}`;
+      
+      statsDict[key] = stat.count; 
     });
+
+    // 4. Generate Cumulative Timeline
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const formattedData = [];
+    let currDate = new Date(startDate); 
+
+    //store total ongoing student count
+    let runningTotal = 0; 
+
+
+    while (currDate <= endDate) {
+      let key, name;
+
+      if (groupBy === "hour") {
+        key = `${currDate.getFullYear()}-${currDate.getMonth() + 1}-${currDate.getDate()}-${currDate.getHours()}`;
+        const ampm = currDate.getHours() >= 12 ? 'PM' : 'AM';
+        const hour12 = currDate.getHours() % 12 || 12;
+        name = `${hour12} ${ampm}`;
+        currDate.setHours(currDate.getHours() + 1); 
+      } 
+      else if (groupBy === "day") {
+        key = `${currDate.getFullYear()}-${currDate.getMonth() + 1}-${currDate.getDate()}`;
+        name = `${monthNames[currDate.getMonth()]} ${currDate.getDate()}`;
+        currDate.setDate(currDate.getDate() + 1); 
+      } 
+      else { 
+        key = `${currDate.getFullYear()}-${currDate.getMonth() + 1}`;
+        name = `${monthNames[currDate.getMonth()]}`;
+        currDate.setMonth(currDate.getMonth() + 1); 
+      }
+
+      //get number of student count for specific time period (hour/day/month) 
+      const newStudentsThatDay = statsDict[key] || 0; 
+      
+      //add new student count to the ongoing total
+      runningTotal += newStudentsThatDay; 
+
+      formattedData.push({
+        name: name,
+        Students: runningTotal 
+      });
+    }
 
     res.status(200).json({ success: true, data: formattedData });
   } catch (error) {
+    console.error("Chart Data Error: ", error);
     res.status(500).json({ message: "Failed to fetch student statistics." });
   }
 };
