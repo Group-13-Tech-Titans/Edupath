@@ -2,7 +2,7 @@ const Pathway = require("../models/Pathway");
 const Specialization = require("../../specializations/models/specialization");
 
 const MAX_ACTIVE_PATHWAYS = 3;
-const MIN_FUZZY_LENGTH = 4;
+const MIN_SUBSTRING_LENGTH = 4;
 const STATUS = {
   IN_PROGRESS: "in-progress",
   COMPLETED: "completed",
@@ -10,20 +10,17 @@ const STATUS = {
   PUBLISHED: "published",
 };
 
-/**
- * SMART FUZZY MATCH ENGINE
- * Normalizes strings to match specialized tags (e.g., "ui-ux" equals "UI/UX Design").
- * Prevents global duplicate creations.
- */
 
+// check and match template pathway name with specialization (Educator,Reviewer)
 const specializationMatch = (name1, name2) => {
-  // Edge case handling: Ensure inputs exist and are strictly strings
+  //Reject processing immediately if inputs are missing or are not strings
   if (!name1 || !name2 || typeof name1 !== "string" || typeof name2 !== "string") return false;
   
-  // Strip spaces, dashes, slashes, and make lowercase
+  // strip all non-alphanumeric characters (spaces, dashes, slashes) and make lowercase
   const n1 = name1.toLowerCase().replaceAll(/[^a-z0-9]/g, "");
   const n2 = name2.toLowerCase().replaceAll(/[^a-z0-9]/g, "");
   
+  // Ensure strings weren't completely made of stripped punctuation
   if (!n1 || !n2) return false;
   if (n1 === n2) return true; // Direct match
   
@@ -32,8 +29,9 @@ const specializationMatch = (name1, name2) => {
   if (n1.startsWith('fullstack') && n2.startsWith('fullstack')) return true;
 
   // General substring match (avoids matching tiny strings by using MIN_FUZZY_LENGTH)
-  if (n1.length > MIN_FUZZY_LENGTH && n2.includes(n1)) return true;
-  if (n2.length > MIN_FUZZY_LENGTH && n1.includes(n2)) return true;
+  // Match deep text containment while ensuring strings cross the length threshold
+  if (n1.length > MIN_SUBSTRING_LENGTH && n2.includes(n1)) return true;
+  if (n2.length > MIN_SUBSTRING_LENGTH && n1.includes(n2)) return true;
 
   return false;
 };

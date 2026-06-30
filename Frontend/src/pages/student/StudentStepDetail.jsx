@@ -404,8 +404,7 @@ const StudentStepDetail = () => {
         if (!currentStudentPathway)
           currentStudentPathway = data.pathways[0];
 
-        currentStudentPathway = await syncWithTemplate(currentStudentPathway, config);
-
+        // Render step immediately using existing pathway data
         setPathway(currentStudentPathway);
         
         const step = currentStudentPathway.steps.find((s) => s.order === Number.parseInt(stepOrder, 10));
@@ -417,6 +416,13 @@ const StudentStepDetail = () => {
         } else {
           setCurrentStep(step);
         }
+
+        // Run template sync silently in the background without blocking step rendering
+        syncWithTemplate(currentStudentPathway, config).then((syncedPathway) => {
+          if (syncedPathway && syncedPathway.steps !== currentStudentPathway.steps) {
+            setPathway({ ...syncedPathway });
+          }
+        });
       } catch (err) {
         console.error(err);
         setError("Failed to load step details.");

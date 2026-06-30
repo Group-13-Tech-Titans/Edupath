@@ -3,14 +3,15 @@
  * Handles sending transactional emails (like password resets).
  */
 
-const nodemailer = require("nodemailer");
+const nodemailer = require("nodemailer");// use to send emails
 
 // This transporter function acts as a Singleton. The connection pool is created once when the server starts and is reused, making email sending significantly faster.
+// Transporter uses SMTP (Simple Mail Transfer Protocol) to connect to an email service provider like Gmail
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: process.env.EMAIL_USER,// sender email address
+    pass: process.env.EMAIL_PASS, // Sender App Password or API Key
   },
 });
 

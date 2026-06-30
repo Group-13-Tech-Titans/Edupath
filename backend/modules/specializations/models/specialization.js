@@ -6,4 +6,7 @@ const specializationSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: true }
 }, { timestamps: true });
 
+// Performance index for fast dropdowns and pathway name resolution
+specializationSchema.index({ isActive: 1, name: 1 });
+
 module.exports = mongoose.model("Specialization", specializationSchema);

@@ -64,4 +64,8 @@ pathwaySchema.index(
   { unique: true, partialFilterExpression: { isTemplate: true } }
 );
 
+// Performance indexes for fast student journey and template queries
+pathwaySchema.index({ userId: 1, isTemplate: 1, updatedAt: -1 });
+pathwaySchema.index({ isTemplate: 1, status: 1 });
+
 module.exports = mongoose.model("Pathway", pathwaySchema);

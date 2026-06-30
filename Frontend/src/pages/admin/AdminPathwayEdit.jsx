@@ -16,35 +16,47 @@ const RESOURCE_TYPES = {
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substring(2);
 
-
+// Transforms a step entity retrieved from the database and ensure every item has unique Id
 const transformStepFromDB = (step) => ({
+  // Copy all existing properties from the database step
   ...step,
+  // Ensure the step has a frontend-friendly 'id'. If it has a MongoDB '_id', use it. Otherwise, generate a temporary one.
   id: step._id || generateId(),
+  // Map over resources. Ensure every resource has an 'id'. Default to an empty array [] if resources is undefined to prevent crash.
   resources: (step.resources || []).map(r => ({ ...r, id: r._id || generateId() })),
+  // Map over linked courses. Ensure every course has an 'id'.
   linkedCourses: (step.linkedCourses || []).map(lc => ({ ...lc, id: lc._id || generateId() })),
+  // Map over the quiz array. This requires deeper transformation.
   quiz: (step.quiz || []).map(q => ({
     ...q,
     id: q._id || generateId(),
+
+    // This transforms objects into: [{ id: "abc", text: "Apple" }, { id: "xyz", text: "Banana" }]
     options: q.options.map(opt => ({ id: generateId(), text: opt })) 
   }))
 });
 
+// Transform frontend step back into a backend schema structure
 const transformStepForDB = (step, index) => {
+  // Clean up the quiz options.
+  // The frontend has options as objects: eg:- [{ id: "test", text: "Test" }]
+  // The database schema expects simple strings: eg- ["Test"]
   const formattedQuiz = (step.quiz || []).map(q => ({
     ...q,
+    // Extract just the 'text' string, discarding the temporary frontend ID.
     options: q.options.map(opt => opt.text) 
   }));
+  // Strip out frontend-specific IDs.
+  // We use object destructuring to pull 'id' and '_id' OUT of the step object. 'stepData' now contains everything EXCEPT those IDs.
   const { id, _id, ...stepData } = step;
+  // Return the clean payload for the database.
   return { 
     ...stepData, 
     order: index + 1,
-    quiz: formattedQuiz 
+    quiz: formattedQuiz
   };
 };
 
-// ================
-// SUB-COMPONENTS
-// ===============
 
 const ResourceItem = ({ res, index, stepIndex, isUploading, onResourceChange, onRemove, onFileUpload }) => {
   return (

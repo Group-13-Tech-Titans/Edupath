@@ -297,14 +297,20 @@ const StudentPathway = () => {
         if (!currentStudentPathway)
           currentStudentPathway = pathwayData.pathways[0];
 
-        try {
-          const { data: templateData } = await axios.get(`${API_BASE_URL}/pathway/published`, config);
-          currentStudentPathway = await syncStudentPathwayWithTemplate(currentStudentPathway, templateData, config);
-        } catch (syncErr) {
-          console.error("Template sync check failed, loading local copy.", syncErr);
-        }
-
+        // Render immediately using existing pathway data for instant loading
         setPathway({ ...currentStudentPathway });
+
+        // Run template sync silently in the background without blocking UI rendering
+        axios.get(`${API_BASE_URL}/pathway/published`, config)
+          .then(async ({ data: templateData }) => {
+            const syncedPathway = await syncStudentPathwayWithTemplate(currentStudentPathway, templateData, config);
+            if (syncedPathway && syncedPathway.steps !== currentStudentPathway.steps) {
+              setPathway({ ...syncedPathway });
+            }
+          })
+          .catch((syncErr) => {
+            console.error("Template sync check failed, loading local copy.", syncErr);
+          });
       } else {
         const res = await axios.get(`${API_BASE_URL}/pathway/published`, config);
         setAvailableTemplates(res.data.templates);
