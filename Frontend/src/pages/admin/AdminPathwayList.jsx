@@ -28,7 +28,7 @@ const AdminPathwayList = () => {
 
       // Promise all allows us to fetch both endpoints simultaneously for better performance
       const [pathwayRes, specRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/pathway/template`, config),
+        axios.get(`${API_BASE_URL}/pathway/template?summary=true`, config),
         axios.get(`${API_BASE_URL}/specializations`, config).catch(() => ({ data: { specializations: [] } })) // Silently catch spec errors
       ]);
 

@@ -31,7 +31,7 @@ const ReviewerPathwayList = () => {
 
       // Promise.all fetches both endpoints simultaneously to halve network wait time
       const [pathwayRes, specRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/api/pathway/template`, config),
+        axios.get(`${API_BASE_URL}/api/pathway/template?summary=true`, config),
         axios.get(`${API_BASE_URL}/api/specializations`, config).catch(() => ({ data: { specializations: [] } }))
       ]);
 

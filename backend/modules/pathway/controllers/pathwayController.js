@@ -371,7 +371,11 @@ exports.getTemplatePathways = async (req, res) => {
       query.pathName = { $in: [officialName, req.user.specializationTag] };
     }
 
-    const templates = await Pathway.find(query).lean();
+    let dbQuery = Pathway.find(query);
+    if (req.query.summary === 'true') {
+      dbQuery = dbQuery.select('pathName level status isTemplate steps._id steps.order updatedAt createdAt');
+    }
+    const templates = await dbQuery.sort({ updatedAt: -1 }).lean();
     res.status(200).json({ success: true, count: templates.length, templates });
   } catch (err) {
     console.error("Error in getTemplatePathways:", err);
