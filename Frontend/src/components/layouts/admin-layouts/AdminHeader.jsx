@@ -32,6 +32,7 @@ export default function AdminHeader({ setIsChatOpen }) {
     { to: "/admin/approvals", label: "Reviews Course" },
     { to: "/admin/specializations", label: "Specializations" },
     { to: "/admin/reviewers", label: "Create Reviewer" },
+    { to: "/admin/pathway-builder", label: "Pathways" },
   ];
 
   return (
