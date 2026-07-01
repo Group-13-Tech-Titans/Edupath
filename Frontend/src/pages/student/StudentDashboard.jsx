@@ -50,8 +50,8 @@ StatCard.propTypes = {
 };
 
 const PathwayCard = ({ pathway, index, pathwayName, onResume, onDelete }) => {
-  const totalSteps = pathway.steps?.length || 0;
-  const completedSteps = pathway.steps?.filter((s) => s.isCompleted).length || 0;
+  const totalSteps = pathway.totalSteps !== undefined ? pathway.totalSteps : (pathway.steps?.length || 0);
+  const completedSteps = pathway.completedSteps !== undefined ? pathway.completedSteps : (pathway.steps?.filter((s) => s.isCompleted).length || 0);
   const pathwayProgress = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
   const bgGradient = GRADIENTS[index % GRADIENTS.length];
   const icon = getPathwayIcon(index);
@@ -146,7 +146,7 @@ const StudentDashboard = () => {
             console.error("Failed to load specializations:", e);
             return { data: { specializations: [] } };
           }),
-          axios.get(`${API_BASE_URL}/pathway/my`, config).catch((e) => {
+          axios.get(`${API_BASE_URL}/pathway/my?summary=true`, config).catch((e) => {
             console.error("Failed to load user pathways:", e);
             return { data: { hasPathway: false } };
           })

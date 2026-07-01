@@ -62,8 +62,8 @@ const PathFinder = () => {
         // Resolves Network Waterfall by fetching data concurrently
         const [specRes, myDataRes, publishedRes] = await Promise.all([
           axios.get(`${API_BASE_URL}/specializations`, config).catch(() => ({ data: { specializations: [] } })),
-          axios.get(`${API_BASE_URL}/pathway/my`, config),
-          axios.get(`${API_BASE_URL}/pathway/published`, config)
+          axios.get(`${API_BASE_URL}/pathway/my?summary=true`, config).catch(() => ({ data: { hasPathway: false, pathways: [] } })),
+          axios.get(`${API_BASE_URL}/pathway/published?summary=true`, config).catch(() => ({ data: { templates: [] } }))
         ]);
 
         //  Map Specializations

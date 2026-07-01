@@ -64,12 +64,11 @@ const processTemplateStep = (templateStep, syncedSteps) => {
 
 const syncWithTemplate = async (currentStudentPathway, config) => {
   try {
-    const { data: templateData } = await axios.get(`${API_BASE_URL}/pathway/published`, config);
-    const pathwayTemplate = templateData.templates.find((t) => {
-      if (currentStudentPathway.originalTemplateId) 
-        return t._id === currentStudentPathway.originalTemplateId;
-      return t.pathName === currentStudentPathway.pathName && t.level === currentStudentPathway.level;
-    });
+    const queryParams = currentStudentPathway.originalTemplateId
+      ? `?templateId=${currentStudentPathway.originalTemplateId}`
+      : `?pathName=${encodeURIComponent(currentStudentPathway.pathName)}&level=${encodeURIComponent(currentStudentPathway.level)}`;
+    const { data: templateData } = await axios.get(`${API_BASE_URL}/pathway/published${queryParams}`, config);
+    const pathwayTemplate = templateData.templates?.[0];
 
     if (pathwayTemplate) {
       let hasUpdates = false;
@@ -389,7 +388,8 @@ const StudentStepDetail = () => {
       try {
         const token = localStorage.getItem("edupath_token");
         const config = { headers: { Authorization: `Bearer ${token}` } };
-        const { data } = await axios.get(`${API_BASE_URL}/pathway/my`, config);
+        const url = targetPathwayId ? `${API_BASE_URL}/pathway/my?pathwayId=${targetPathwayId}` : `${API_BASE_URL}/pathway/my`;
+        const { data } = await axios.get(url, config);
 
         if (!data.hasPathway || !data.pathways?.length) {
           setError("No pathway found. Please enroll first.");

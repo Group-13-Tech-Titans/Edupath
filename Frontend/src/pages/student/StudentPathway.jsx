@@ -281,9 +281,10 @@ const StudentPathway = () => {
       const token = localStorage.getItem("edupath_token");
       const config = { headers: { Authorization: `Bearer ${token}` } };
       
+      const myUrl = targetPathwayId ? `${API_BASE_URL}/pathway/my?pathwayId=${targetPathwayId}` : `${API_BASE_URL}/pathway/my`;
       const [specRes, pathwayRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/specializations`, config).catch(() => ({ data: { specializations: [] } })),
-        axios.get(`${API_BASE_URL}/pathway/my`, config).catch(() => ({ data: { hasPathway: false } }))
+        axios.get(myUrl, config).catch(() => ({ data: { hasPathway: false } }))
       ]);
 
       setSpecializations(specRes.data.specializations || []);
@@ -301,7 +302,10 @@ const StudentPathway = () => {
         setPathway({ ...currentStudentPathway });
 
         // Run template sync silently in the background without blocking UI rendering
-        axios.get(`${API_BASE_URL}/pathway/published`, config)
+        const queryParams = currentStudentPathway.originalTemplateId
+          ? `?templateId=${currentStudentPathway.originalTemplateId}`
+          : `?pathName=${encodeURIComponent(currentStudentPathway.pathName)}&level=${encodeURIComponent(currentStudentPathway.level)}`;
+        axios.get(`${API_BASE_URL}/pathway/published${queryParams}`, config)
           .then(async ({ data: templateData }) => {
             const syncedPathway = await syncStudentPathwayWithTemplate(currentStudentPathway, templateData, config);
             if (syncedPathway && syncedPathway.steps !== currentStudentPathway.steps) {

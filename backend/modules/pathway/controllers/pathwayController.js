@@ -156,7 +156,9 @@ exports.completeStep = async (req, res) => {
     const pathway = await Pathway.findOne({
       _id: pathwayId,
       userId: req.user._id,
-    });
+    })
+      .select('steps.order steps.isUnlocked steps.isCompleted status')
+      .lean();
 
     if (!pathway)
       return res
@@ -182,31 +184,36 @@ exports.completeStep = async (req, res) => {
         .status(400)
         .json({ success: false, message: "Step already completed" });
     }
-      
-
-    step.isCompleted = true;
 
     // Auto-unlock next step
     const nextStep = pathway.steps.find((step) => step.order === stepOrder + 1);
-    if (nextStep) nextStep.isUnlocked = true;
 
     // Check if entire pathway is completed
     const isFullyComplete = pathway.steps.every(
-      (step) => step.isCompleted === true,
+      (s) => s.order === stepOrder || s.isCompleted === true,
     );
 
-    if (isFullyComplete) {
-      pathway.status = STATUS.COMPLETED;
-    } else {
-      pathway.status = STATUS.IN_PROGRESS;
-    }
-
-    await pathway.save();
+    await Pathway.updateOne(
+      { _id: pathway._id },
+      {
+        $set: {
+          "steps.$[curr].isCompleted": true,
+          ...(nextStep ? { "steps.$[next].isUnlocked": true } : {}),
+          status: isFullyComplete ? STATUS.COMPLETED : STATUS.IN_PROGRESS,
+        },
+      },
+      {
+        arrayFilters: [
+          { "curr.order": stepOrder },
+          ...(nextStep ? [{ "next.order": stepOrder + 1 }] : []),
+        ],
+      }
+    );
 
     res.json({
       success: true,
       message: "Step completed successfully",
-      pathway,
+      pathwayId: pathway._id,
     });
   } catch (err) {
     console.error("Error in completeStep:", err);
@@ -219,11 +226,20 @@ exports.completeStep = async (req, res) => {
 // GET ALL PATHWAYS FOR STUDENT
 exports.getMyPathway = async (req, res) => {
   try {
-    // Returns an Array of all student's pathways, most recently added pathway first
-    const pathways = await Pathway.find({
+    const filter = {
       userId: req.user._id,
       isTemplate: false,
-    }).sort({ updatedAt: -1 });
+    };
+    if (req.query.pathwayId) {
+      filter._id = req.query.pathwayId;
+    }
+    let query = Pathway.find(filter).sort({ updatedAt: -1 });
+
+    if (req.query.summary === 'true') {
+      query = query.select('pathName level status isTemplate steps.isCompleted steps.order updatedAt createdAt userId');
+    }
+
+    const pathways = await query.lean();
 
     if (!pathways || pathways.length === 0) {
       return res.json({
@@ -355,7 +371,7 @@ exports.getTemplatePathways = async (req, res) => {
       query.pathName = { $in: [officialName, req.user.specializationTag] };
     }
 
-    const templates = await Pathway.find(query);
+    const templates = await Pathway.find(query).lean();
     res.status(200).json({ success: true, count: templates.length, templates });
   } catch (err) {
     console.error("Error in getTemplatePathways:", err);
@@ -607,10 +623,24 @@ exports.updateTemplateStatus = async (req, res) => {
 // Get all published/enable Templates
 exports.getPublishedTemplates = async (req, res) => {
   try {
-    const templates = await Pathway.find({
+    const filter = {
       isTemplate: true,
       status: STATUS.PUBLISHED,
-    });
+    };
+    if (req.query.templateId) {
+      filter._id = req.query.templateId;
+    } else if (req.query.pathName && req.query.level) {
+      filter.pathName = req.query.pathName;
+      filter.level = req.query.level;
+    }
+    let query = Pathway.find(filter);
+
+    // Performance optimization: return lightweight summary when full step details aren't needed
+    if (req.query.summary === 'true') {
+      query = query.select('-steps');
+    }
+
+    const templates = await query.lean();
     res.status(200).json({ success: true, templates });
   } catch (err) {
     console.error("Error in getPublishedTemplates:", err);
