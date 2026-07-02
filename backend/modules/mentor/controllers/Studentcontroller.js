@@ -1,21 +1,24 @@
 const MentorStudent = require("../models/MentorStudent");
+const User = require("../../auth/models/User");
+const Session = require("../models/Session");
+const Resource = require("../models/Resource");
+const mongoose = require("mongoose");
 
-// ─────────────────────────────────────────────────────────────
-// GET /api/mentor/students
-// Returns all students assigned to the logged-in mentor.
-// Powers the main student list on the MentorStudents page.
-// ─────────────────────────────────────────────────────────────
+/**
+ * GET /api/mentor/students
+ * Fetches the list of students assigned to the logged-in mentor.
+ * Allows filtering by status (active/paused/new) and search (name/track).
+ * Supports sorting by name or enrollment date.
+ */
 const getStudents = async (req, res) => {
   try {
     const { status, search, sort } = req.query;
     const query = { mentorId: req.user._id };
 
-    // 1. Filtering by Status
     if (status && status !== "all") {
       query.status = status;
     }
 
-    // 2. Searching by Name or Track
     if (search) {
       query.$or = [
         { studentName: { $regex: search, $options: "i" } },
@@ -25,11 +28,10 @@ const getStudents = async (req, res) => {
 
     let studentsQuery = MentorStudent.find(query);
 
-    // 3. Sorting
     if (sort === "name_asc") studentsQuery = studentsQuery.sort({ studentName: 1 });
     else if (sort === "name_desc") studentsQuery = studentsQuery.sort({ studentName: -1 });
     else if (sort === "enrolled_asc") studentsQuery = studentsQuery.sort({ enrolledAt: 1 });
-    else studentsQuery = studentsQuery.sort({ enrolledAt: -1 }); // Default: newest first
+    else studentsQuery = studentsQuery.sort({ enrolledAt: -1 });
 
     const students = await studentsQuery;
     res.json(students);
@@ -39,11 +41,11 @@ const getStudents = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────────
-// GET /api/mentor/students/stats
-// Returns counts: total, active, paused students.
-// Powers the Overview sidebar on the MentorStudents page.
-// ─────────────────────────────────────────────────────────────
+/**
+ * GET /api/mentor/students/stats
+ * Calculates and returns statistics for the mentor's student base.
+ * Provides counts for total, active, paused, and new students.
+ */
 const getStudentStats = async (req, res) => {
   try {
     const [total, active, paused, newStudents] = await Promise.all([
@@ -60,38 +62,70 @@ const getStudentStats = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────────
-// GET /api/mentor/students/:studentId
-// Returns a COMPREHENSIVE view of a student:
-// - Basic Info
-// - Session History
-// - Shared Resources
-// ─────────────────────────────────────────────────────────────
+/**
+ * GET /api/mentor/students/:studentId
+ * Retrieves detailed profile information for a specific student.
+ * This includes basic info, session history, shared resources, and discussed topics.
+ * It checks both the explicit relationship table and the general user table.
+ */
 const getStudentById = async (req, res) => {
   try {
     const mentorId = req.user._id;
     const { studentId } = req.params;
 
-    // 1. Get Basic Info
-    const student = await MentorStudent.findOne({ mentorId, studentId });
+    console.log(`[getStudentById] studentId: ${studentId}, mentorId: ${mentorId}`);
 
-    if (!student) {
-      return res.status(404).json({ message: "Student not found" });
+    // 1. Validate studentId
+    if (!mongoose.Types.ObjectId.isValid(studentId)) {
+      return res.status(400).json({ message: "Invalid student ID format." });
     }
 
-    // 2. Get Session History (Completed and Scheduled)
+    // 2. Get Basic Info from Relationship table
+    let relationship = await MentorStudent.findOne({ mentorId, studentId });
+    let studentData;
+
+    if (relationship) {
+      const u = await User.findById(studentId);
+      studentData = {
+        ...relationship.toObject(),
+        name: relationship.studentName,
+        email: u?.email || "",
+        role: u?.role || "student"
+      };
+    } else {
+      const u = await User.findById(studentId);
+      if (!u) {
+        return res.status(404).json({ message: "Student user not found" });
+      }
+      studentData = {
+        studentId: u._id,
+        name: u.name,
+        email: u.email,
+        track: u.learningPath || "Student",
+        status: "potential",
+        createdAt: u.createdAt,
+        role: u.role
+      };
+    }
+
+    // 3. Get Session History and Resources
     const [sessions, resources] = await Promise.all([
-      require("../models/Session").find({ mentorId, studentId }).sort({ createdAt: -1 }),
-      require("../models/Resource").find({ mentorId, studentId }).sort({ createdAt: -1 })
+      Session.find({
+        $or: [
+          { mentorId, studentId },
+          { mentorId, studentId: studentId.toString() }
+        ]
+      }).sort({ createdAt: -1 }),
+      Resource.find({ mentorId, studentId }).sort({ createdAt: -1 })
     ]);
 
-    // 3. Aggregate "Previously Discussed" topics from completed sessions
     const discussedTopics = sessions
       .filter(s => s.status === "completed" && s.note)
       .map(s => s.note);
 
     res.json({
-      profile: student,
+      ...studentData,
+      profile: studentData,
       sessions,
       resources,
       discussedTopics
@@ -102,17 +136,15 @@ const getStudentById = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────────
-// POST /api/mentor/students
-// Adds a student under this mentor.
-// In real life this would happen automatically when a student
-// is assigned — but for now we create it manually for testing.
-// ─────────────────────────────────────────────────────────────
+/**
+ * POST /api/mentor/students
+ * Manually adds a student to the mentor's list.
+ * This is used to establish a tracking relationship if it doesn't exist yet.
+ */
 const addStudent = async (req, res) => {
   try {
     const { studentId, studentName, track, status } = req.body;
 
-    // Check if this student is already assigned to this mentor
     const existing = await MentorStudent.findOne({
       mentorId: req.user._id,
       studentId,
@@ -137,11 +169,11 @@ const addStudent = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────────
-// PUT /api/mentor/students/:studentId
-// Update a student's status or notes.
-// e.g. change status from "new" to "active", or add mentor notes
-// ─────────────────────────────────────────────────────────────
+/**
+ * PUT /api/mentor/students/:studentId
+ * Updates the relationship data for a student, such as their track,
+ * current status, or the mentor's private notes.
+ */
 const updateStudent = async (req, res) => {
   try {
     const { status, track, mentorNotes, lastActivity } = req.body;
@@ -159,7 +191,7 @@ const updateStudent = async (req, res) => {
           ...(lastActivity && { lastActivity }),
         },
       },
-      { new: true } // return the updated version
+      { new: true }
     );
 
     if (!student) {
@@ -173,10 +205,11 @@ const updateStudent = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────────
-// DELETE /api/mentor/students/:studentId
-// Remove a student from this mentor's list
-// ─────────────────────────────────────────────────────────────
+/**
+ * DELETE /api/mentor/students/:studentId
+ * Removes a student from the mentor's assigned list.
+ * This deletes the relationship record but not the user itself.
+ */
 const removeStudent = async (req, res) => {
   try {
     const student = await MentorStudent.findOneAndDelete({
@@ -195,10 +228,10 @@ const removeStudent = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────────
-// PATCH /api/mentor/students/:studentId/notes
-// Mentor updates their private notes about a student.
-// ─────────────────────────────────────────────────────────────
+/**
+ * PATCH /api/mentor/students/:studentId/notes
+ * specifically updates the mentor's private notes about a student.
+ */
 const updateMentorNotes = async (req, res) => {
   try {
     const { mentorNotes } = req.body;

@@ -120,7 +120,16 @@ PathwayCard.propTypes = {
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
-  const { currentUser } = useApp();
+  const { state, currentUser, courses = [], lessonProgress = {} } = useApp();
+
+  const email = currentUser?.email;
+  const progress = lessonProgress[email] || {};
+  const approvedCourses = courses.filter((c) => c.status === "approved");
+
+  const completedCount = Object.values(progress).reduce(
+    (acc, lessons) => acc + (lessons ? lessons.length : 0),
+    0
+  );
   
   const [activePathways, setActivePathways] = useState([]);
   const [specializations, setSpecializations] = useState([]);
@@ -290,6 +299,113 @@ const StudentDashboard = () => {
         </div>
 
         {renderPathwayContent()}
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4">
+          <StatCard
+            icon="📚"
+            title="Active Courses"
+            value={approvedCourses.length}
+            themeClass="bg-blue-50 text-blue-500"
+          />
+          <StatCard
+            icon="✅"
+            title="Lessons Done"
+            value={completedCount}
+            themeClass="bg-emerald-50 text-emerald-500"
+          />
+          <StatCard
+            icon="🔥"
+            title="Study Streak"
+            value="7 Days"
+            themeClass="bg-orange-50 text-orange-500"
+          />
+        </div>
+
+        {/* 🤝 MENTORSHIP SESSIONS */}
+        <div className="pt-4">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
+              <span>🤝</span> Mentorship Sessions
+            </h2>
+            <button
+              onClick={() => navigate("/student/mentor")}
+              className="text-primary text-sm font-bold hover:underline"
+            >
+              Request New Session
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {(state?.mentorRequests || []).filter(r => r.userEmail === currentUser?.email).length > 0 ? (
+              (state?.mentorRequests || [])
+                .filter(r => r.userEmail === currentUser?.email)
+                .map((req) => (
+                  <div key={req.id} className={`p-6 rounded-[32px] border-2 transition-all ${
+                    req.status === 'accepted' ? 'border-emerald-100 bg-emerald-50/50' :
+                    req.status === 'rejected' ? 'border-red-100 bg-red-50/50' :
+                    'border-slate-100 bg-white'
+                  }`}>
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="font-bold text-slate-800">{req.field} Session</h3>
+                        <p className="text-xs text-slate-500">Mentor: <span className="font-bold text-slate-700">{req.mentorName || "Assigning..."}</span></p>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                        req.status === 'accepted' ? 'bg-emerald-100 text-emerald-700' :
+                        req.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                        'bg-slate-100 text-slate-600'
+                      }`}>
+                        {req.status}
+                      </span>
+                    </div>
+
+                    {req.status === 'accepted' ? (
+                      <div className="space-y-4">
+                        <div className="flex gap-4 p-3 bg-white rounded-2xl border border-emerald-100 text-sm">
+                          <div className="flex flex-col">
+                            <span className="text-[10px] text-slate-400 font-bold uppercase">Date</span>
+                            <span className="font-bold text-slate-700">{req.scheduledDate}</span>
+                          </div>
+                          <div className="flex flex-col border-l pl-4">
+                            <span className="text-[10px] text-slate-400 font-bold uppercase">Time</span>
+                            <span className="font-bold text-slate-700">{req.scheduledTime}</span>
+                          </div>
+                        </div>
+                        <a
+                          href={req.meetingLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block w-full bg-slate-800 text-white text-center font-bold py-3 rounded-full shadow-lg hover:opacity-90 transition-all"
+                        >
+                          JOIN SESSION →
+                        </a>
+                      </div>
+                    ) : req.status === 'rejected' ? (
+                      <div className="bg-white p-4 rounded-2xl border border-red-100">
+                        <p className="text-sm text-red-600 font-medium">
+                          Unfortunately, this request was declined. You can try requesting another session with a different mentor or field.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-500 italic">
+                        Your request is being reviewed by the mentor. You'll see the schedule here once accepted.
+                      </p>
+                    )}
+                  </div>
+                ))
+            ) : (
+              <div className="md:col-span-2 p-10 border-2 border-dashed border-slate-200 rounded-[32px] text-center">
+                <p className="text-slate-400 font-medium mb-4">You haven't requested any mentor sessions yet.</p>
+                <button
+                  onClick={() => navigate("/student/mentor")}
+                  className="bg-primary/10 text-primary font-bold px-6 py-2.5 rounded-full hover:bg-primary/20 transition-all"
+                >
+                  Request Your First Session
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
 
       </div>
 

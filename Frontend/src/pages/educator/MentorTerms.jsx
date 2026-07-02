@@ -2,23 +2,63 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useApp } from "../../context/AppProvider.jsx";
+import MentorRegistrationDetailsModal from "../../components/educator/MentorRegistrationDetailsModal.jsx";
+import { createMentorProfile, updateMentorProfile } from "../../api/mentorApi.js";
 
 export default function MentorTerms() {
   const navigate = useNavigate();
-  const { updateUserProfile } = useApp();
+  const { updateUserProfile, currentUser } = useApp();
   const [accepted, setAccepted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
-  const handleAccept = async () => {
+  const handleAccept = () => {
     if (!accepted) return;
+    setIsDetailsModalOpen(true);
+  };
+
+  const handleDetailsSubmit = async (details) => {
     setIsSubmitting(true);
-    
     try {
-      // 🟢 4. Update the database flag!
-      await updateUserProfile({ isMentor: true }); 
+      // 1. Create or Update Mentor Profile
+      try {
+        const createRes = await createMentorProfile({
+          ...details,
+          email: currentUser.email,
+          avatar: currentUser.avatar,
+        });
+        if (!createRes.profile) {
+          throw new Error(createRes.message || "Profile creation failed");
+        }
+      } catch (err) {
+        // If profile exists, update it instead of failing
+        const errorMsg = err.message || "";
+        if (errorMsg.includes("exists") || errorMsg.includes("duplicate")) {
+          const updateRes = await updateMentorProfile({
+            ...details,
+            email: currentUser.email,
+            avatar: currentUser.avatar,
+          });
+          if (!updateRes.profile) {
+            throw new Error(updateRes.message || "Profile update failed");
+          }
+        } else {
+          throw err;
+        }
+      }
+
+      // 2. Update the database flag on User model
+      const updateResult = await updateUserProfile({ isMentor: true }); 
+      
+      if (!updateResult.success) {
+        throw new Error(updateResult.message || "Failed to update user role");
+      }
+
+      setIsDetailsModalOpen(false);
       navigate("/mentor"); // Go to mentor dashboard
     } catch (err) {
-      alert("Failed to register as mentor. Please try again.");
+      console.error("Mentor registration error:", err);
+      alert(`Failed to register as mentor: ${err.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -43,6 +83,49 @@ export default function MentorTerms() {
           <p className="mt-3 text-lg text-slate-500">
             Please review and accept our guidelines to begin your mentoring journey.
           </p>
+        </div>
+
+        {/* Benefits Section */}
+        <div className="mb-10 grid gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl bg-white p-5 border border-slate-100 shadow-sm transition hover:shadow-md">
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+            </div>
+            <h3 className="font-bold text-slate-800 text-sm">Earn Extra Income</h3>
+            <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+              Set your own rates and get paid for 1-on-1 sessions with students globally.
+            </p>
+          </div>
+          <div className="rounded-2xl bg-white p-5 border border-slate-100 shadow-sm transition hover:shadow-md">
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+            <h3 className="font-bold text-slate-800 text-sm">Direct Impact</h3>
+            <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+              Shape the careers of ambitious students through personalized guidance.
+            </p>
+          </div>
+          <div className="rounded-2xl bg-white p-5 border border-slate-100 shadow-sm transition hover:shadow-md">
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+              </svg>
+            </div>
+            <h3 className="font-bold text-slate-800 text-sm">Advanced Tools</h3>
+            <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+              Access exclusive mentor analytics and resource sharing tools.
+            </p>
+          </div>
         </div>
 
         {/* Terms Container */}
@@ -147,6 +230,13 @@ export default function MentorTerms() {
           Last updated: April 20, 2026. If you have any questions, please contact support@edupath.com.
         </p>
       </motion.div>
+
+      <MentorRegistrationDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={() => setIsDetailsModalOpen(false)}
+        onSubmit={handleDetailsSubmit}
+        initialData={currentUser}
+      />
     </div>
   );
 }

@@ -34,6 +34,7 @@ const DECISIONS = [
   },
 ];
 
+// Shows clickable stars for the review rating
 const StarRating = ({ rating, onChange }) => (
   <div className="flex items-center gap-1.5">
     {Array.from({ length: 5 }).map((_, i) => {
@@ -59,6 +60,7 @@ const StarRating = ({ rating, onChange }) => (
   </div>
 );
 
+// Builds the course review form
 const ReviewerCourseReview = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -68,13 +70,15 @@ const ReviewerCourseReview = () => {
 
   const typeFromQuery = searchParams.get("type") || "course";
   const stateItem = location.state?.reviewItem;
-  const course = courses.find((c) => c.id === id);
+  const course = courses.find((c) => String(c.id || c._id) === String(id));
 
+  // Builds the review item from route state or course data
   const reviewItem = useMemo(() => {
     if (typeFromQuery === "course") {
+      if (!course && stateItem && String(stateItem.id) === String(id)) return stateItem;
       if (!course) return null;
       return {
-        id: course.id,
+        id: course.id || course._id,
         type: "course",
         title: course.title,
         subjectDomain: course.subject || course.category || "General",
@@ -94,6 +98,7 @@ const ReviewerCourseReview = () => {
   if (!reviewItem) {
     return (
       <PageShell>
+        {/* Shows when the review item cannot be found */}
         <div className="glass-card p-10 text-center">
           <p className="text-sm font-medium text-muted">Review item not found.</p>
           <button
@@ -108,8 +113,10 @@ const ReviewerCourseReview = () => {
     );
   }
 
+  // Sends the reviewer back to the queue
   const onCancel = () => navigate("/reviewer", { replace: true });
 
+  // Submits the reviewer decision
   const onSubmit = async () => {
     if (!notes.trim()) { setError("Review notes are required before submitting."); return; }
     if (rating < 1 || rating > 5) { setError("Please select a star rating (1–5)."); return; }
@@ -122,13 +129,16 @@ const ReviewerCourseReview = () => {
   };
 
   const selectedDecision = DECISIONS.find((d) => d.value === decision);
-  const contentLinkTo = `/reviewer/queue/${reviewItem.id}/content`;
+  const panelBasePath = location.pathname.startsWith("/admin") ? "/admin" : "/reviewer";
+  const contentLinkTo = `${panelBasePath}/courses/${reviewItem.id}`;
 
   return (
     <PageShell>
+      {/* Holds the course review sections */}
       <div className="space-y-6">
 
         {/* Back + breadcrumb */}
+        {/* Shows back navigation and current course title */}
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -145,7 +155,9 @@ const ReviewerCourseReview = () => {
         </div>
 
         {/* Course summary */}
+        {/* Shows the course being reviewed */}
         <div className="glass-card p-6">
+          {/* Holds course title and pending badge */}
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <span className="rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-[11px] font-semibold text-primary">
@@ -159,6 +171,7 @@ const ReviewerCourseReview = () => {
           </div>
 
           {/* Description */}
+          {/* Shows the course description */}
           <div className="mt-5 rounded-2xl border border-black/8 bg-white/60 p-4">
             <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Description</p>
             <p className="text-sm text-text-dark leading-relaxed">
@@ -167,6 +180,7 @@ const ReviewerCourseReview = () => {
           </div>
 
           {/* Content link */}
+          {/* Opens the course content viewer */}
           <div className="mt-4 rounded-2xl border border-black/8 bg-white/60 p-4">
             <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">Course Content</p>
             <Link
@@ -180,10 +194,12 @@ const ReviewerCourseReview = () => {
         </div>
 
         {/* Decision */}
+        {/* Lets the reviewer choose a decision */}
         <div className="glass-card p-6">
           <h2 className="font-semibold text-text-dark mb-1">Your Decision</h2>
           <p className="text-xs text-muted mb-5">Select an outcome for this course review.</p>
 
+          {/* Shows the decision options */}
           <div className="grid gap-3 sm:grid-cols-2">
             {DECISIONS.map((d) => {
               const isSelected = decision === d.value;
@@ -211,10 +227,12 @@ const ReviewerCourseReview = () => {
         </div>
 
         {/* Rating & Notes */}
+        {/* Collects rating and written feedback */}
         <div className="glass-card p-6 space-y-5">
           <h2 className="font-semibold text-text-dark">Rating & Feedback</h2>
 
           {/* Star rating */}
+          {/* Lets the reviewer rate course quality */}
           <div>
             <label className="field-label">Quality Rating</label>
             <div className="mt-2">
@@ -226,6 +244,7 @@ const ReviewerCourseReview = () => {
           </div>
 
           {/* Notes */}
+          {/* Lets the reviewer write feedback */}
           <div>
             <label className="field-label">
               Review Notes <span className="text-rose-500">*</span>
@@ -245,12 +264,14 @@ const ReviewerCourseReview = () => {
 
           {/* Error */}
           {error && (
+            /* Shows form validation errors */
             <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-600">
               {error}
             </div>
           )}
 
           {/* Actions */}
+          {/* Holds cancel and submit buttons */}
           <div className="flex justify-end gap-3 pt-1">
             <button
               type="button"

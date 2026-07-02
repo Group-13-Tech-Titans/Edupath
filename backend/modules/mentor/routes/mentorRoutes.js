@@ -12,10 +12,12 @@ const {
   updateProfile,
   getPublicProfile,
   getReviews,
+  getMentors,
 } = require("../controllers/mentorProfileController");
 
 const {
   getSessions,
+  getStudentSessions,
   requestSession,
   acceptSession,
   declineSession,
@@ -41,7 +43,7 @@ const {
   deleteResource,
   updateResource,
   getResourceStats
-} = require("../controllers/resourceController");
+} = require("../controllers/ResourceController");
 
 const { getDashboardData } = require("../controllers/dashboardController");
 
@@ -51,29 +53,34 @@ const {
   sendMessage,
   markAsRead,
   getUnreadCount,
+  getEligibleMentors,
 } = require("../controllers/messageController");
 
 const { getMentorAnalytics } = require("../controllers/analyticsController");
 
-// ═══════════════════════════════════════════════
+//_________________________________________________________________________________________________________________
 // DASHBOARD ROUTE
-// ═══════════════════════════════════════════════
+// _________________________________________________________________________________________________________________
+
 router.get("/dashboard", authMiddleware, roleMiddleware(["mentor"]), getDashboardData);
 router.get("/analytics", authMiddleware, roleMiddleware(["mentor"]), getMentorAnalytics);
 
-// ═══════════════════════════════════════════════
+// _________________________________________________________________________________________________________________
 // PROFILE ROUTES
-// ═══════════════════════════════════════════════
+// _________________________________________________________________________________________________________________
+
 router.get("/profile/:mentorId", getPublicProfile);
 router.get("/profile",  authMiddleware, roleMiddleware(["mentor"]), getProfile);
-router.post("/profile", authMiddleware, roleMiddleware(["mentor"]), createProfile);
-router.put("/profile",  authMiddleware, roleMiddleware(["mentor"]), updateProfile);
+router.post("/profile", authMiddleware, roleMiddleware(["mentor", "educator"]), createProfile);
+router.put("/profile",  authMiddleware, roleMiddleware(["mentor", "educator"]), updateProfile);
 router.get("/profile/reviews", authMiddleware, roleMiddleware(["mentor"]), getReviews);
+router.get("/profiles", getMentors);
 
-// ═══════════════════════════════════════════════
+// _________________________________________________________________________________________________________________
 // SESSION ROUTES
-// ═══════════════════════════════════════════════
+// _________________________________________________________________________________________________________________
 router.get("/sessions",       authMiddleware, roleMiddleware(["mentor"]), getSessions);
+router.get("/sessions/student", authMiddleware, getStudentSessions);
 router.get("/sessions/stats", authMiddleware, roleMiddleware(["mentor"]), getStats);
 
 // Mentor responds to sessions
@@ -84,9 +91,10 @@ router.put("/sessions/:id/complete", authMiddleware, roleMiddleware(["mentor"]),
 // A student requests a session (any logged-in user can do this)
 router.post("/sessions/request", authMiddleware, requestSession);
 
-// ═══════════════════════════════════════════════
+// _________________________________________________________________________________________________________________
 // STUDENT ROUTES
-// ═══════════════════════════════════════════════
+// _________________________________________________________________________________________________________________
+
 router.get("/students/stats",        authMiddleware, roleMiddleware(["mentor"]), getStudentStats);
 router.get("/students",              authMiddleware, roleMiddleware(["mentor"]), getStudents);
 router.get("/students/:studentId",   authMiddleware, roleMiddleware(["mentor"]), getStudentById);
@@ -95,9 +103,10 @@ router.post("/students",             authMiddleware, roleMiddleware(["mentor"]),
 router.put("/students/:studentId",   authMiddleware, roleMiddleware(["mentor"]), updateStudent);
 router.delete("/students/:studentId",authMiddleware, roleMiddleware(["mentor"]), removeStudent);
 
-// ═══════════════════════════════════════════════
+// _________________________________________________________________________________________________________________
 // RESOURCE ROUTES
-// ═══════════════════════════════════════════════
+// _________________________________________________________________________________________________________________
+
 router.get("/resources/stats", authMiddleware, roleMiddleware(["mentor"]), getResourceStats);
 router.get("/resources", authMiddleware, roleMiddleware(["mentor"]), getAllResources);
 router.post("/resources", authMiddleware, roleMiddleware(["mentor"]), shareResource);
@@ -107,23 +116,26 @@ router.get("/resources/student/:studentId", authMiddleware, roleMiddleware(["men
 
 router.get("/resources/mine", authMiddleware, getMyResources);
 
-// ═══════════════════════════════════════════════
+// _________________________________________________________________________________________________________________
 // MESSAGING ROUTES
-// ═══════════════════════════════════════════════
+// _________________________________________________________________________________________________________________
 
-// All conversations for the mentor
-router.get("/messages/conversations", authMiddleware, roleMiddleware(["mentor"]), getConversations);
+// All conversations for the logged-in user
+router.get("/messages/conversations", authMiddleware, getConversations);
 
 // Total unread count badge
-router.get("/messages/unread-count",  authMiddleware, roleMiddleware(["mentor"]), getUnreadCount);
+router.get("/messages/unread-count",  authMiddleware, getUnreadCount);
 
 // Specific conversation messages
-router.get("/messages/conversations/:studentId", authMiddleware, roleMiddleware(["mentor"]), getMessages);
+router.get("/messages/conversations/:targetId", authMiddleware, getMessages);
 
 // Send a message
 router.post("/messages/send", authMiddleware, sendMessage);
 
 // Mark conversation as read
-router.put("/messages/conversations/:studentId/read", authMiddleware, roleMiddleware(["mentor"]), markAsRead);
+router.put("/messages/conversations/:targetId/read", authMiddleware, markAsRead);
+
+// Get mentors eligible for messaging (student only)
+router.get("/messages/eligible-mentors", authMiddleware, getEligibleMentors);
 
 module.exports = router;

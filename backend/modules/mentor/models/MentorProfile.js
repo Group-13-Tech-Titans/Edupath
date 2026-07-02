@@ -1,20 +1,5 @@
 const mongoose = require("mongoose");
 
-
-
-const experienceSchema = new mongoose.Schema({
-  role: { type: String },         // e.g. "Senior Developer"
-  company: { type: String },      // e.g. "Tech Corp"
-  duration: { type: String },     // e.g. "2020 - Present"
-  description: { type: String },  // what they did there
-});
-
-const educationSchema = new mongoose.Schema({
-  degree: { type: String },       // e.g. "B.Sc in Computer Science"
-  institution: { type: String },  // e.g. "University of Colombo"
-  year: { type: String },         // e.g. "2015 - 2019"
-});
-
 const mentorProfileSchema = new mongoose.Schema(
   {
     // Which user does this profile belong to
@@ -33,6 +18,8 @@ const mentorProfileSchema = new mongoose.Schema(
     avatar: { type: String },         // URL to profile photo
     location: { type: String },       // e.g. "Colombo, Sri Lanka"
     phone: { type: String },
+    yearsExperience: { type: String }, // e.g. "5+ Years"
+    responseTime: { type: String },    // e.g. "< 24 Hours"
 
     // Skills / expertise tags — stored as a simple list of words
     // e.g. ["JavaScript", "React", "Node.js"]
@@ -42,12 +29,6 @@ const mentorProfileSchema = new mongoose.Schema(
     // e.g. ["Monday 3pm-5pm", "Friday 10am-12pm"]
     availability: [{ type: String }],
 
-    // Work history (an array of experience objects)
-    experience: [experienceSchema],
-
-    // Education history
-    education: [educationSchema],
-
     // Social Links (LinkedIn, Github, Website, etc.)
     socialLinks: {
       linkedin: { type: String },
@@ -55,12 +36,6 @@ const mentorProfileSchema = new mongoose.Schema(
       website: { type: String },
       twitter: { type: String },
     },
-
-    // Certifications (e.g. "AWS Certified Solutions Architect")
-    certifications: [{ type: String }],
-
-    // Mentoring Focus (e.g. "Career Transition", "Technical Deep Dive")
-    mentoringFocus: [{ type: String }],
 
     // Stats (these update automatically as sessions happen)
     rating: { type: Number, default: 0 },

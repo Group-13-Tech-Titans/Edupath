@@ -26,6 +26,8 @@ import StudentPathway from "./pages/student/StudentPathway.jsx";
 import StudentStepDetail from "./pages/student/StudentStepDetail";
 import StudentDashboard from "./pages/student/StudentDashboard.jsx"
 import PathFinder from "./pages/student/PathFinder.jsx";
+import StudentMessages from "./pages/student/StudentMessages.jsx";
+import StudentResources from "./pages/student/StudentResources.jsx";
 
 import EducatorDashboard from "./pages/educator/EducatorDashboard.jsx";
 import EducatorCourses from "./pages/educator/EducatorCourses.jsx";
@@ -36,6 +38,7 @@ import EducatorCourseDetail from "./pages/educator/EducatorCourseDetail.jsx";
 import EducatorPayouts from "./pages/educator/EducatorPayouts.jsx";
 import EducatorProfile from "./pages/educator/EducatorProfile.jsx";
 import EducatorVerificationPendingPage from "./pages/educator/EducatorVerificationPendingPage.jsx";
+import MentorTerms from "./pages/educator/MentorTerms.jsx";
 
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import AdminReviewers from "./pages/admin/AdminReviewers.jsx";
@@ -61,12 +64,10 @@ import MentorProfile from "./pages/mentor/MentorProfile.jsx";
 import MentorSessions from "./pages/mentor/MentorSessions.jsx";
 import MentorStudents from "./pages/mentor/MentorStudents.jsx";
 import MentorSettings from "./pages/mentor/MentorSettings.jsx";
-import MentorShareProfile from "./pages/mentor/MentorShareProfile.jsx";
 import MentorResources from "./pages/mentor/MentorResources.jsx";
 import MentorMessages from "./pages/mentor/MentorMessages.jsx";
 import MentorStudentDetails from "./pages/mentor/MentorStudentDetails.jsx";
 import MentorAnalytics from "./pages/mentor/MentorAnalytics.jsx";
-import MentorTerms from "./pages/mentor/MentorTerms.jsx"
 
 import ComingSoon from './pages/ComingSoon.jsx';
 
@@ -97,6 +98,8 @@ const App = () => {
             <Route path="/student/path-finder" element={<PathFinder />} />
             <Route path="/student/journey" element={<StudentPathway />} />
             <Route path="/student/journey/step/:stepOrder" element={<StudentStepDetail />} />
+            <Route path="messages" element={<StudentMessages />} />
+            <Route path="resources" element={<StudentResources />} />
           </Route>
         </Route>
 
@@ -151,7 +154,6 @@ const App = () => {
             <Route path="students" element={<MentorStudents />} />
             <Route path="profile" element={<MentorProfile />} />
             <Route path="settings" element={<MentorSettings />} />
-            <Route path="share-profile" element={<MentorShareProfile />} />
             <Route path="resources" element={<MentorResources />} />
             <Route path="messages" element={<MentorMessages />} />
             <Route path="student-details/:id" element={<MentorStudentDetails />} />
