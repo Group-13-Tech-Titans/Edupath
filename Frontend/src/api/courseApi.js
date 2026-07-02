@@ -33,6 +33,12 @@ export async function getReviewerQueue() {
   return data.courses;
 }
 
+// Get courses reviewed by the logged-in reviewer
+export async function getReviewerHistory() {
+  const data = await apiRequest("/api/courses/reviewer/history");
+  return data.courses;
+}
+
 // Get a single course by ID
 export async function getCourseById(courseId) {
   const data = await apiRequest(`/api/courses/${courseId}`);

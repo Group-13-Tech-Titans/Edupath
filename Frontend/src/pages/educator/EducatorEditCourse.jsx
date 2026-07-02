@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 import * as courseApi from "../../api/courseApi.js";
+import { deleteContentFile, uploadThumbnailFile } from "../../api/uploadApi.js";
 
 const ALL_TAGS = [
   "web-dev", "data-science", "ai-ml", "cyber-security",
@@ -12,6 +13,7 @@ const ALL_TAGS = [
   "health", "engineering", "law", "other"
 ];
 
+// Builds the course edit page
 const EducatorEditCourse = () => {
   const { id } = useParams();
   const { courses, currentUser, fetchMyCourses } = useApp();
@@ -19,15 +21,19 @@ const EducatorEditCourse = () => {
 
   const course = courses.find((c) => c.id === id || c._id === id);
 
-  // Pre-fill form from existing course data
+  // Checks if this educator owns the course
+  const isOwner = !course || course.createdByEducatorEmail === currentUser?.email;
+
+  // Fills the form with existing course data
   const [form, setForm] = useState(() => {
     if (!course) return {
       title: "", description: "", category: "", level: "",
       price: "", duration: "", specializationTags: [],
-      thumbnailFile: null, thumbnailUrl: ""
+      thumbnailFile: null, thumbnailUrl: "", thumbnailName: "",
+      thumbnailPublicId: "", thumbnailResourceType: "image"
     };
 
-    // Parse specializationTag - could be comma-separated
+    // Splits saved specialization tags
     const existingTags = course.specializationTag
       ? course.specializationTag.split(",").map(t => t.trim()).filter(Boolean)
       : [];
@@ -41,15 +47,32 @@ const EducatorEditCourse = () => {
       duration: String(course.duration || ""),
       specializationTags: existingTags,
       thumbnailFile: null,
-      thumbnailUrl: course.thumbnailUrl || ""
+      thumbnailUrl: course.thumbnailUrl || "",
+      thumbnailName: course.thumbnailName || "",
+      thumbnailPublicId: course.thumbnailPublicId || "",
+      thumbnailResourceType: course.thumbnailResourceType || "image"
     };
   });
 
-  // Pre-fill content items from existing course
+  // Loads edited content from local storage first
+  const contentStorageKey = `edupath_content_${id}`;
   const [contentItems, setContentItems] = useState(() => {
-    if (!course) return [];
-    return course.content?.items || [];
+    try {
+      const raw = localStorage.getItem(contentStorageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch { /* ignore */ }
+    return course?.content?.items || [];
   });
+
+  // Removes a content item from the edit page
+  const removeContentItem = (itemId) => {
+    const updated = contentItems.filter((i) => i.id !== itemId);
+    setContentItems(updated);
+    try { localStorage.setItem(contentStorageKey, JSON.stringify(updated)); } catch { /* ignore */ }
+  };
 
   const [tagSearch, setTagSearch] = useState("");
   const [error, setError] = useState("");
@@ -57,25 +80,31 @@ const EducatorEditCourse = () => {
 
   const isVerified = currentUser?.status === "VERIFIED";
 
+  // Updates normal text fields
   const handleChange = (e) => {
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
   };
 
+  // Keeps number fields as digits only
   const handleNumberChange = (e) => {
     const { name, value } = e.target;
     setForm((p) => ({ ...p, [name]: String(value).replace(/[^\d]/g, "") }));
   };
 
+  // Stores the selected thumbnail file
   const handleThumbnail = (e) => {
     const file = e.target.files?.[0] || null;
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      setForm((p) => ({ ...p, thumbnailFile: file, thumbnailUrl: evt.target.result }));
-    };
-    reader.readAsDataURL(file);
+    const previewUrl = URL.createObjectURL(file);
+    setForm((p) => ({
+      ...p,
+      thumbnailFile: file,
+      thumbnailName: file.name,
+      thumbnailUrl: previewUrl
+    }));
   };
 
+  // Adds or removes a specialization tag
   const toggleTag = (tag) => {
     setForm((p) => {
       const exists = p.specializationTags.includes(tag);
@@ -88,12 +117,14 @@ const EducatorEditCourse = () => {
     });
   };
 
+  // Filters tags by search text
   const filteredTags = useMemo(() => {
     const q = tagSearch.trim().toLowerCase();
     if (!q) return ALL_TAGS;
     return ALL_TAGS.filter((t) => t.includes(q));
   }, [tagSearch]);
 
+  // Checks if the edit form is complete
   const isFormComplete = useMemo(() => {
     return Boolean(
       form.title.trim() &&
@@ -111,6 +142,7 @@ const EducatorEditCourse = () => {
   const canPublish = isVerified && isFormComplete && hasContent;
   const canDraft = isVerified && form.title.trim().length > 0;
 
+  // Builds the course data sent to the API
   const buildPayload = (status) => ({
     title: form.title.trim(),
     description: form.description.trim(),
@@ -121,6 +153,8 @@ const EducatorEditCourse = () => {
     specializationTag: form.specializationTags.join(","),
     thumbnailName: form.thumbnailFile?.name || course?.thumbnailName || "",
     thumbnailUrl: form.thumbnailUrl || "",
+    thumbnailPublicId: form.thumbnailPublicId || "",
+    thumbnailResourceType: form.thumbnailResourceType || "image",
     rating: course?.rating || 0,
     educatorName: currentUser?.name || "Educator",
     createdByEducatorEmail: currentUser?.email,
@@ -128,6 +162,42 @@ const EducatorEditCourse = () => {
     content: { modules: [], items: contentItems }
   });
 
+  // Uploads the thumbnail before saving if needed
+  const ensureUploadedThumbnail = async () => {
+    if (!form.thumbnailFile) {
+      return {
+        thumbnailUrl: form.thumbnailUrl || "",
+        thumbnailName: form.thumbnailName || "",
+        thumbnailPublicId: form.thumbnailPublicId || "",
+        thumbnailResourceType: form.thumbnailResourceType || "image"
+      };
+    }
+
+    const previousPublicId = form.thumbnailPublicId || "";
+    const previousResourceType = form.thumbnailResourceType || "image";
+    const uploaded = await uploadThumbnailFile(form.thumbnailFile);
+    setForm((prev) => ({
+      ...prev,
+      thumbnailFile: null,
+      thumbnailName: uploaded.thumbnail.name,
+      thumbnailUrl: uploaded.thumbnail.url,
+      thumbnailPublicId: uploaded.thumbnail.publicId,
+      thumbnailResourceType: uploaded.thumbnail.resourceType
+    }));
+
+    if (previousPublicId && previousPublicId !== uploaded.thumbnail.publicId) {
+      deleteContentFile(previousPublicId, previousResourceType).catch(() => {});
+    }
+
+    return {
+      thumbnailUrl: uploaded.thumbnail.url,
+      thumbnailName: uploaded.thumbnail.name,
+      thumbnailPublicId: uploaded.thumbnail.publicId,
+      thumbnailResourceType: uploaded.thumbnail.resourceType
+    };
+  };
+
+  // Saves edits as a draft
   const handleSaveDraft = async () => {
     setError("");
     if (!form.title.trim()) {
@@ -136,7 +206,9 @@ const EducatorEditCourse = () => {
     }
     setSaving(true);
     try {
-      await courseApi.updateCourseData(id, buildPayload("draft"));
+      const thumbnail = await ensureUploadedThumbnail();
+      await courseApi.updateCourseData(id, { ...buildPayload("draft"), ...thumbnail });
+      try { localStorage.removeItem(contentStorageKey); } catch { /* ignore */ }
       await fetchMyCourses();
       navigate("/educator/courses");
     } catch (err) {
@@ -146,6 +218,7 @@ const EducatorEditCourse = () => {
     }
   };
 
+  // Publishes edits for review
   const handlePublish = async (e) => {
     e.preventDefault();
     setError("");
@@ -154,7 +227,9 @@ const EducatorEditCourse = () => {
     if (!hasContent) { setError("Please add at least one content item."); return; }
     setSaving(true);
     try {
-      await courseApi.updateCourseData(id, buildPayload("pending"));
+      const thumbnail = await ensureUploadedThumbnail();
+      await courseApi.updateCourseData(id, { ...buildPayload("pending"), ...thumbnail });
+      try { localStorage.removeItem(contentStorageKey); } catch { /* ignore */ }
       await fetchMyCourses();
       navigate("/educator/courses");
     } catch (err) {
@@ -167,15 +242,31 @@ const EducatorEditCourse = () => {
   if (!course) {
     return (
       <PageShell>
+        {/* Shows when the course cannot be found */}
         <p className="text-sm text-muted">Course not found.</p>
+      </PageShell>
+    );
+  }
+
+  if (!isOwner) {
+    return (
+      <PageShell>
+        {/* Shows when another educator tries to edit this course */}
+        <div className="glass-card px-6 py-10 text-center">
+          <p className="text-sm font-semibold text-rose-600">You don't have permission to edit this course.</p>
+          <button type="button" onClick={() => navigate("/educator/courses")}
+            className="btn-soft mt-4 px-5 py-2 text-xs">← Back to courses</button>
+        </div>
       </PageShell>
     );
   }
 
   return (
     <PageShell>
+      {/* Holds the edit course sections */}
       <div className="space-y-6">
         {/* Header */}
+        {/* Shows the edit page title and alerts */}
         <div className="glass-card p-6">
           <h1 className="text-xl font-semibold text-text-dark">Edit Draft</h1>
           <p className="mt-1 text-xs text-muted">
@@ -191,13 +282,16 @@ const EducatorEditCourse = () => {
           )}
         </div>
 
+        {/* Holds course details and setup fields */}
         <form onSubmit={handlePublish} className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* LEFT */}
+          {/* Collects the main course information */}
           <div className="rounded-3xl bg-white/80 border border-black/5 shadow-lg p-6">
             <h2 className="text-base font-semibold text-text-dark">Course Details</h2>
             <p className="mt-1 text-xs text-muted">Basic course information visible to students.</p>
 
             <div className="mt-5 space-y-4 text-xs">
+              {/* Lets the educator edit the course title */}
               <div>
                 <label className="font-semibold text-text-dark">Course Title</label>
                 <input name="title" value={form.title} onChange={handleChange}
@@ -205,6 +299,7 @@ const EducatorEditCourse = () => {
                   className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-4 py-2.5 outline-none ring-primary/40 focus:ring disabled:cursor-not-allowed disabled:bg-gray-100" />
               </div>
 
+              {/* Lets the educator edit the description */}
               <div>
                 <label className="font-semibold text-text-dark">Description</label>
                 <textarea name="description" value={form.description} onChange={handleChange}
@@ -214,23 +309,52 @@ const EducatorEditCourse = () => {
               </div>
 
               {/* Content items */}
+              {/* Shows existing content and the add content button */}
               <div>
-                <p className="font-semibold text-text-dark">Course Content</p>
-                <p className="text-[11px] text-muted">Add lessons, resources, and quizzes.</p>
+                {/* Holds the content section heading and add button */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-text-dark">Course Content</p>
+                    <p className="text-[11px] text-muted">Add lessons, resources, and quizzes.</p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!isVerified}
+                    onClick={() => navigate(`/educator/add-content/${id}`, { state: { backTo: `/educator/edit/${id}` } })}
+                    className="btn-primary px-4 py-2 text-[11px] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    + Add Content
+                  </button>
+                </div>
                 {contentItems.length === 0 ? (
+                  /* Shows when no content has been added */
                   <div className="mt-3 rounded-2xl border border-black/10 bg-white/70 px-4 py-4 text-[11px] text-muted text-center">
-                    No content added yet.
+                    No content added yet. Click Add Content to begin.
                   </div>
                 ) : (
+                  /* Lists current course content */
                   <div className="mt-3 rounded-2xl border border-black/10 bg-white/70 px-4 py-3">
                     <ul className="space-y-2">
                       {contentItems.map((item) => (
                         <li key={item.id}
-                          className="flex items-center justify-between rounded-xl bg-white/80 border border-black/5 px-3 py-2">
-                          <div>
-                            <p className="text-[12px] font-semibold text-text-dark">{item.name}</p>
+                          className="flex items-center justify-between gap-2 rounded-xl bg-white/80 border border-black/5 px-3 py-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[12px] font-semibold text-text-dark truncate">{item.name}</p>
                             <p className="text-[11px] text-muted">{item.type}</p>
                           </div>
+                          <button
+                            type="button"
+                            title="Remove item"
+                            onClick={() => {
+                              if (item.publicId) {
+                                deleteContentFile(item.publicId, item.resourceType || "raw").catch(() => {});
+                              }
+                              removeContentItem(item.id);
+                            }}
+                            className="shrink-0 grid h-6 w-6 place-items-center rounded-full border border-rose-200 bg-white text-rose-400 hover:bg-rose-50 transition text-sm"
+                          >
+                            ×
+                          </button>
                         </li>
                       ))}
                     </ul>
@@ -241,12 +365,14 @@ const EducatorEditCourse = () => {
           </div>
 
           {/* RIGHT */}
+          {/* Collects course settings */}
           <div className="rounded-3xl bg-white/80 border border-black/5 shadow-lg p-6">
             <h2 className="text-base font-semibold text-text-dark">Course Setup</h2>
             <p className="mt-1 text-xs text-muted">Quick settings for your course.</p>
 
             <div className="mt-5 space-y-4 text-xs">
               {/* Category */}
+              {/* Lets the educator edit the category */}
               <div>
                 <label className="font-semibold text-text-dark">Category</label>
                 <select name="category" value={form.category} onChange={handleChange}
@@ -277,6 +403,7 @@ const EducatorEditCourse = () => {
               </div>
 
               {/* Difficulty */}
+              {/* Lets the educator edit difficulty */}
               <div>
                 <label className="font-semibold text-text-dark">Difficulty</label>
                 <select name="level" value={form.level} onChange={handleChange}
@@ -290,6 +417,7 @@ const EducatorEditCourse = () => {
               </div>
 
               {/* Price */}
+              {/* Lets the educator edit the price */}
               <div>
                 <label className="font-semibold text-text-dark">Price (LKR)</label>
                 <input name="price" value={form.price} onChange={handleNumberChange}
@@ -298,6 +426,7 @@ const EducatorEditCourse = () => {
               </div>
 
               {/* Duration */}
+              {/* Lets the educator edit the duration */}
               <div>
                 <label className="font-semibold text-text-dark">Estimated Duration</label>
                 <input name="duration" value={form.duration} onChange={handleNumberChange}
@@ -307,6 +436,7 @@ const EducatorEditCourse = () => {
               </div>
 
               {/* Thumbnail */}
+              {/* Lets the educator replace the thumbnail */}
               <div>
                 <label className="font-semibold text-text-dark">Thumbnail</label>
                 {form.thumbnailUrl && !form.thumbnailFile && (
@@ -325,6 +455,7 @@ const EducatorEditCourse = () => {
               </div>
 
               {/* Specialization Tags */}
+              {/* Lets the educator edit specialization tags */}
               <div>
                 <label className="font-semibold text-text-dark">Specialization Tags</label>
                 <p className="mt-1 text-[11px] text-muted">Search and select one or more tags.</p>
@@ -364,6 +495,7 @@ const EducatorEditCourse = () => {
               </div>
 
               {/* Buttons */}
+              {/* Holds cancel, draft and publish buttons */}
               <div className="pt-1 flex gap-3 justify-end flex-wrap">
                 <button type="button"
                   onClick={() => navigate("/educator")}

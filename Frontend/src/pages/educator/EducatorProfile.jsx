@@ -2,36 +2,28 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
+import { passwordRegex } from "../../utils/validation.js";
 
-/**
- * EducatorProfile - connected to backend via PATCH /api/auth/profile
- * - Loads real user data from currentUser (AppContext)
- * - Save Profile: updates name + profile fields
- * - Update Password: updates password (with confirmation check)
- * - Update Changes: saves payout details inside profile.payout
- * - Profile photo: local preview only (no upload endpoint yet)
- */
-
+// Builds the educator account settings page
 const EducatorProfile = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { currentUser, updateUserProfile, logoutAllDevices } = useApp();
 
-  // ----- Section refs for smooth scroll -----
   const profileRef = useRef(null);
   const securityRef = useRef(null);
   const payoutRef = useRef(null);
   const notificationsRef = useRef(null);
   const deactivateRef = useRef(null);
 
-  // ----- Active sidebar highlight -----
   const [activeSection, setActiveSection] = useState("profile");
+  // Scrolls to a selected settings section
   const scrollToSection = (key, ref) => {
     setActiveSection(key);
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  // Auto-scroll when arriving with /educator/profile#payout-details
+  // Scrolls to payout details from the payouts page
   useEffect(() => {
     if (location.hash === "#payout-details") {
       setTimeout(() => {
@@ -40,7 +32,7 @@ const EducatorProfile = () => {
     }
   }, [location.hash]);
 
-  // ----- Default profile avatar -----
+  // Builds the default profile avatar
   const defaultAvatar = useMemo(() => {
     const svg = encodeURIComponent(`
       <svg xmlns="http://www.w3.org/2000/svg" width="420" height="420">
@@ -68,6 +60,7 @@ const EducatorProfile = () => {
 
   const [profileImage, setProfileImage] = useState(defaultAvatar);
 
+  // Updates the profile photo preview
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -83,7 +76,7 @@ const EducatorProfile = () => {
     reader.readAsDataURL(file);
   };
 
-  // ----- Helper: split "First Last" name from DB -----
+  // Splits a full name into first and last name
   const splitName = (fullName) => {
     if (!fullName) return { firstName: "", lastName: "" };
     const parts = fullName.trim().split(" ");
@@ -92,18 +85,21 @@ const EducatorProfile = () => {
     return { firstName, lastName };
   };
 
+  const getSavedSpecialization = (profile = {}) =>
+    profile.specialization || profile["expert" + "iseArea"] || "";
+
   // ----- Profile form (populated from currentUser) -----
   const [profileForm, setProfileForm] = useState({
     firstName: "",
     lastName: "",
     email: "",
     contact: "",
-    expertiseArea: "",
+    specialization: "",
     yearsExperience: "",
     bio: ""
   });
 
-  // ----- Payout form (stored inside profile.payout) -----
+  // Stores payout form fields
   const [payoutForm, setPayoutForm] = useState({
     bankName: "",
     accountNumber: "",
@@ -116,8 +112,7 @@ const EducatorProfile = () => {
   const [securityForm, setSecurityForm] = useState({
     currentPassword: "",
     newPassword: "",
-    confirmPassword: "",
-    twoFA: "Disabled"
+    confirmPassword: ""
   });
 
   // ----- Notifications -----
@@ -128,20 +123,29 @@ const EducatorProfile = () => {
     softwareUpdates: true
   });
 
+  // Turns a notification setting on or off
   const toggleNotification = (key) => {
     setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   // ----- Feedback states -----
-  const [profileMsg, setProfileMsg] = useState(null);   // { type: "success"|"error", text }
+  const [profileMsg, setProfileMsg] = useState(null);   
   const [passwordMsg, setPasswordMsg] = useState(null);
   const [payoutMsg, setPayoutMsg] = useState(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [savingPayout, setSavingPayout] = useState(false);
   const [loggingOutAll, setLoggingOutAll] = useState(false);
+  const isContactInvalid = profileForm.contact !== "" && !/^0\d{9}$/.test(profileForm.contact);
+  const bioWordLimit = 30;
+  const countWords = (text) => text.trim().split(/\s+/).filter(Boolean).length;
+  const limitBioWords = (text) => {
+    const words = text.trim().split(/\s+/).filter(Boolean);
+    return words.length > bioWordLimit ? words.slice(0, bioWordLimit).join(" ") : text;
+  };
+  const bioWordsLeft = bioWordLimit - countWords(profileForm.bio);
 
-  // ----- Populate forms from currentUser when it loads -----
+  // Fills forms from the current user
   useEffect(() => {
     if (!currentUser) return;
     const { firstName, lastName } = splitName(currentUser.name);
@@ -151,7 +155,7 @@ const EducatorProfile = () => {
       lastName,
       email: currentUser.email || "",
       contact: p.contact || "",
-      expertiseArea: p.expertiseArea || currentUser.specializationTag || "",
+      specialization: getSavedSpecialization(p) || currentUser.specializationTag || "",
       yearsExperience: p.yearsExperience || "",
       bio: p.bio || ""
     });
@@ -167,14 +171,14 @@ const EducatorProfile = () => {
       setNotifications(p.notifications);
     }
     setProfileImage(p.profileImage || defaultAvatar);
-    setSecurityForm((s) => ({
-      ...s,
-      twoFA: currentUser.twoFactorEnabled || p.twoFactorEnabled ? "Enabled" : "Disabled"
-    }));
   }, [currentUser]);
 
-  // ----- Save Profile -----
+  // Saves profile details
   const handleSaveProfile = async () => {
+    if (isContactInvalid) {
+      setProfileMsg(null);
+      return;
+    }
     setSavingProfile(true);
     setProfileMsg(null);
     const fullName = `${profileForm.firstName.trim()} ${profileForm.lastName.trim()}`.trim();
@@ -183,7 +187,7 @@ const EducatorProfile = () => {
       profile: {
         ...(currentUser?.profile || {}),
         contact: profileForm.contact,
-        expertiseArea: currentUser?.profile?.expertiseArea || currentUser?.specializationTag || profileForm.expertiseArea,
+        specialization: getSavedSpecialization(currentUser?.profile) || currentUser?.specializationTag || profileForm.specialization,
         yearsExperience: profileForm.yearsExperience,
         bio: profileForm.bio,
         profileImage: profileImage === defaultAvatar
@@ -199,7 +203,7 @@ const EducatorProfile = () => {
     }
   };
 
-  // ----- Reset Profile (re-populate from currentUser) -----
+  // Resets profile details from the current user
   const handleResetProfile = () => {
     if (!currentUser) return;
     const { firstName, lastName } = splitName(currentUser.name);
@@ -209,7 +213,7 @@ const EducatorProfile = () => {
       lastName,
       email: currentUser.email || "",
       contact: p.contact || "",
-      expertiseArea: p.expertiseArea || currentUser.specializationTag || "",
+      specialization: getSavedSpecialization(p) || currentUser.specializationTag || "",
       yearsExperience: p.yearsExperience || "",
       bio: p.bio || ""
     });
@@ -217,7 +221,7 @@ const EducatorProfile = () => {
     setProfileMsg(null);
   };
 
-  // ----- Update Password -----
+  // Updates the educator password
   const handleUpdatePassword = async () => {
     setPasswordMsg(null);
     const isChangingPassword =
@@ -234,8 +238,11 @@ const EducatorProfile = () => {
         setPasswordMsg({ type: "error", text: "Please enter a new password." });
         return;
       }
-      if (securityForm.newPassword.length < 6) {
-        setPasswordMsg({ type: "error", text: "New password must be at least 6 characters." });
+      if (!passwordRegex.test(securityForm.newPassword)) {
+        setPasswordMsg({
+          type: "error",
+          text: "Password must be 8+ characters with uppercase, lowercase, number and special character.",
+        });
         return;
       }
       if (securityForm.newPassword !== securityForm.confirmPassword) {
@@ -248,13 +255,7 @@ const EducatorProfile = () => {
       }
     }
     setSavingPassword(true);
-    const twoFactorEnabled = securityForm.twoFA === "Enabled";
     const result = await updateUserProfile({
-      twoFactorEnabled,
-      profile: {
-        ...(currentUser?.profile || {}),
-        twoFactorEnabled
-      },
       ...(isChangingPassword
         ? {
             password: securityForm.newPassword,
@@ -264,14 +265,14 @@ const EducatorProfile = () => {
     });
     setSavingPassword(false);
     if (result.success) {
-      setPasswordMsg({ type: "success", text: "Security settings updated successfully." });
+      setPasswordMsg({ type: "success", text: "Password updated successfully." });
       setSecurityForm((s) => ({ ...s, currentPassword: "", newPassword: "", confirmPassword: "" }));
     } else {
-      setPasswordMsg({ type: "error", text: result.message || "Failed to update security settings." });
+      setPasswordMsg({ type: "error", text: result.message || "Failed to update password." });
     }
   };
 
-  // ----- Save Payout -----
+  // Saves payout details
   const handleSavePayout = async () => {
     setSavingPayout(true);
     setPayoutMsg(null);
@@ -289,7 +290,7 @@ const EducatorProfile = () => {
     }
   };
 
-  // ----- Reset Payout -----
+  // Resets payout details from the current user
   const handleResetPayout = () => {
     const payout = currentUser?.profile?.payout || {};
     setPayoutForm({
@@ -302,21 +303,8 @@ const EducatorProfile = () => {
     setPayoutMsg(null);
   };
 
-  const handleLogoutAllDevices = async () => {
-    const confirmed = window.confirm("Log out from this browser and all other devices?");
-    if (!confirmed) return;
-
-    setLoggingOutAll(true);
-    const result = await logoutAllDevices();
-    setLoggingOutAll(false);
-    if (result.success) {
-      navigate("/login", { replace: true });
-      return;
-    }
-    alert(result.message || "Failed to log out from all devices.");
-  };
-
   // ----- Components -----
+  // Shows an on off toggle
   const Toggle = ({ enabled, onClick }) => (
     <button
       type="button"
@@ -334,6 +322,7 @@ const EducatorProfile = () => {
     </button>
   );
 
+  // Shows one sidebar navigation item
   const SideItem = ({ title, subtitle, active, onClick }) => (
     <button
       type="button"
@@ -349,56 +338,7 @@ const EducatorProfile = () => {
     </button>
   );
 
-  const CustomSelect = ({ value, options, onChange, placeholder = "Select..." }) => {
-    const [open, setOpen] = useState(false);
-    const rootRef = useRef(null);
-
-    useEffect(() => {
-      const onDoc = (e) => {
-        if (!rootRef.current) return;
-        if (!rootRef.current.contains(e.target)) setOpen(false);
-      };
-      document.addEventListener("mousedown", onDoc);
-      return () => document.removeEventListener("mousedown", onDoc);
-    }, []);
-
-    return (
-      <div ref={rootRef} className="relative">
-        <button
-          type="button"
-          onClick={() => setOpen((s) => !s)}
-          className="w-full rounded-xl border border-primary/30 bg-white px-4 py-2 text-left text-sm shadow-sm hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/25"
-        >
-          <span className={value ? "text-text-dark" : "text-muted"}>
-            {value || placeholder}
-          </span>
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted">v</span>
-        </button>
-        {open && (
-          <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-primary/25 bg-white/95 shadow-lg backdrop-blur">
-            <div className="max-h-56 overflow-auto py-1">
-              {options.map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => { onChange(opt); setOpen(false); }}
-                  className={`w-full px-4 py-2 text-left text-sm transition ${
-                    opt === value
-                      ? "bg-primary/15 text-text-dark font-semibold"
-                      : "hover:bg-primary/10 text-text-dark"
-                  }`}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Feedback banner
+  // Shows a success or error message
   const FeedbackBanner = ({ msg }) => {
     if (!msg) return null;
     return (
@@ -421,23 +361,29 @@ const EducatorProfile = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="glass-card p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          {/* Shows the settings page heading */}
           <div>
             <h1 className="text-lg font-semibold text-text-dark">Account Settings</h1>
             <p className="mt-1 text-xs text-muted">
-              Update your educator profile, payout details, password, and notification preferences.
+              Update your educator profile
             </p>
           </div>
-          <button className="btn-primary px-6 py-2 text-sm self-start sm:self-auto">
-            Apply for Mentorship
+          <button
+            type="button"
+            onClick={() => navigate("/mentor")}
+            className="btn-primary px-6 py-2 text-sm self-start sm:self-auto"
+          >
+            Switch to Mentor Portal
           </button>
         </div>
 
+        {/* Splits sidebar navigation and settings forms */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* LEFT SIDEBAR */}
+          {/* Left Sidebar */}
           <div className="glass-card p-5 space-y-4 self-start">
             <SideItem
               title="Profile"
-              subtitle="Name, bio, expertise"
+              subtitle="Name, bio, specialization"
               active={activeSection === "profile"}
               onClick={() => scrollToSection("profile", profileRef)}
             />
@@ -461,15 +407,15 @@ const EducatorProfile = () => {
             />
           </div>
 
-          {/* RIGHT CONTENT */}
+          {/* Right handed section */}
           <div className="lg:col-span-3 space-y-6">
 
-            {/* PROFILE */}
+            {/* Profile Details */}
             <section ref={profileRef} className="glass-card p-6 space-y-4">
               <div>
                 <h2 className="font-semibold text-text-dark">Profile</h2>
                 <p className="text-xs text-muted mt-1">
-                  These details will be visible to students on your educator profile.
+                  Update your personal details visible to others
                 </p>
               </div>
 
@@ -506,52 +452,57 @@ const EducatorProfile = () => {
                   <label className={labelCls}>Email</label>
                   <input className={`${inputCls} opacity-80`} value={profileForm.email} readOnly />
                   <p className="mt-1 text-[11px] text-muted">
-                    Use a verified email to receive payout updates.
+                    Please contact admin to amend if this email is no longer accessible
                   </p>
                 </div>
                 <div>
                   <label className={labelCls}>Contact Number</label>
                   <input
                     className={inputCls}
+                    inputMode="numeric"
+                    pattern="0[0-9]{9}"
                     value={profileForm.contact}
                     onChange={(e) => setProfileForm((p) => ({ ...p, contact: e.target.value }))}
                   />
+                  {isContactInvalid && (
+                    <p className="mt-1 text-[11px] font-medium text-red-600">
+                      Invalid format. Please enter a contact number of 10 digits.
+                    </p>
+                  )}
                 </div>
 
                 <div>
-                  <label className={labelCls}>Expertise Area</label>
+                  <label className={labelCls}>Specialization</label>
                   <input
                     className={`${inputCls} cursor-not-allowed bg-gray-50 opacity-80`}
-                    value={profileForm.expertiseArea}
+                    value={profileForm.specialization}
                     readOnly
                   />
                   <p className="mt-1 text-[11px] text-muted">
-                    To change your expertise area, please contact the admin.
+                    Please contact the admin to amend specialization
                   </p>
-                </div>
-
-                <div>
-                  <label className={labelCls}>Years of Experience</label>
-                  <input
-                    className={inputCls}
-                    value={profileForm.yearsExperience}
-                    onChange={(e) => setProfileForm((p) => ({ ...p, yearsExperience: e.target.value }))}
-                  />
                 </div>
               </div>
 
+              {/* Lets the educator edit their bio */}
               <div>
                 <label className={labelCls}>Bio</label>
-                <textarea
-                  className={inputCls}
-                  rows={3}
-                  value={profileForm.bio}
-                  onChange={(e) => setProfileForm((p) => ({ ...p, bio: e.target.value }))}
-                />
+                <div className="relative">
+                  <p className="absolute left-4 top-2 text-[11px] font-medium text-muted">
+                    {bioWordsLeft} words left
+                  </p>
+                  <textarea
+                    className={`${inputCls} pt-8`}
+                    rows={4}
+                    value={profileForm.bio}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, bio: limitBioWords(e.target.value) }))}
+                  />
+                </div>
               </div>
 
               <FeedbackBanner msg={profileMsg} />
 
+              {/* Profile reset and save buttons */}
               <div className="flex justify-end gap-3">
                 <button type="button" className="btn-soft px-6 py-2 text-sm" onClick={handleResetProfile}>
                   Reset
@@ -567,13 +518,14 @@ const EducatorProfile = () => {
               </div>
             </section>
 
-            {/* SECURITY */}
+            {/* Security*/}
             <section ref={securityRef} className="glass-card p-6 space-y-4">
               <div>
                 <h2 className="font-semibold text-text-dark">Security</h2>
                 <p className="text-xs text-muted mt-1">Update your password to keep your account secure.</p>
               </div>
 
+              {/* Holds password fields */}
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className={labelCls}>Current Password</label>
@@ -592,7 +544,7 @@ const EducatorProfile = () => {
                     className={inputCls}
                     type="password"
                     value={securityForm.newPassword}
-                    placeholder="New password (min. 6 characters)"
+                    placeholder="8+ chars with uppercase, lowercase, number and symbol"
                     onChange={(e) => setSecurityForm((s) => ({ ...s, newPassword: e.target.value }))}
                   />
                 </div>
@@ -608,18 +560,11 @@ const EducatorProfile = () => {
                   />
                 </div>
 
-                <div>
-                  <label className={labelCls}>Two-Factor Authentication</label>
-                  <CustomSelect
-                    value={securityForm.twoFA}
-                    options={["Disabled", "Enabled"]}
-                    onChange={(v) => setSecurityForm((s) => ({ ...s, twoFA: v }))}
-                  />
-                </div>
               </div>
 
               <FeedbackBanner msg={passwordMsg} />
 
+              {/* Holds password reset and update buttons */}
               <div className="flex justify-end gap-3">
                 <button
                   type="button"
@@ -637,17 +582,17 @@ const EducatorProfile = () => {
                   onClick={handleUpdatePassword}
                   disabled={savingPassword}
                 >
-                  {savingPassword ? "Updating..." : "Update Security"}
+                  {savingPassword ? "Updating..." : "Update Password"}
                 </button>
               </div>
             </section>
 
-            {/* PAYOUT */}
+            {/* Payout Details */}
             <section id="payout-details" ref={payoutRef} className="glass-card p-6 space-y-4">
               <div>
                 <h2 className="font-semibold text-text-dark">Payout Details</h2>
                 <p className="text-xs text-muted mt-1">
-                  Used for educator withdrawals and payouts (bank transfer).
+                  Please ensure your bank details are accurate as this is where your earnings will be forwarded to
                 </p>
               </div>
 
@@ -698,6 +643,7 @@ const EducatorProfile = () => {
 
               <FeedbackBanner msg={payoutMsg} />
 
+              {/* Holds payout reset and save buttons */}
               <div className="flex justify-end gap-3">
                 <button type="button" className="btn-soft px-6 py-2 text-sm" onClick={handleResetPayout}>
                   Reset
@@ -713,13 +659,14 @@ const EducatorProfile = () => {
               </div>
             </section>
 
-            {/* NOTIFICATIONS */}
+            {/* Notifications */}
             <section ref={notificationsRef} className="glass-card p-6 space-y-3">
               <div>
                 <h2 className="font-semibold text-text-dark">Notifications</h2>
                 <p className="text-xs text-muted mt-1">Choose which alerts you want to receive.</p>
               </div>
 
+              {/* Holds notification toggles */}
               <div className="rounded-2xl border border-primary/25 bg-white/70 overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-4 border-b border-black/10">
                   <div>

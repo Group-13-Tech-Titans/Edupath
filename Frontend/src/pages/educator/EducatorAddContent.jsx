@@ -1,8 +1,9 @@
 import React, { useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
-import { uploadContentFile, deleteContentFile } from "../../api/uploadApi.js";
+import { uploadContentFile, deleteContentFile, buildDownloadUrl } from "../../api/uploadApi.js";
+import * as courseApi from "../../api/courseApi.js";
 
 // ── Content type definitions ─────────────────────────────────────────────────
 const CONTENT_TYPES = [
@@ -53,15 +54,18 @@ const CONTENT_TYPES = [
   },
 ];
 
+// Formats file size for display
 const formatBytes = (bytes) => {
   if (!bytes) return "";
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+// Finds the display settings for a content type
 const typeInfo = (type) => CONTENT_TYPES.find((t) => t.value === type) || CONTENT_TYPES[0];
 
 // ── Item row ─────────────────────────────────────────────────────────────────
+// Shows one uploaded content item
 const ContentRow = ({ item, index, total, onMoveUp, onMoveDown, onDelete, deleting }) => {
   const { icon, color } = typeInfo(item.type);
   return (
@@ -102,8 +106,14 @@ const ContentRow = ({ item, index, total, onMoveUp, onMoveDown, onDelete, deleti
           {item.bytes ? ` · ${formatBytes(item.bytes)}` : ""}
           {item.duration ? ` · ${Math.round(item.duration)}s` : ""}
           {item.url ? (
-            <a href={item.url} target="_blank" rel="noreferrer" className="ml-2 text-primary hover:underline">
-              View ↗
+            <a
+              href={buildDownloadUrl(item.url, item.name, item.format)}
+              target="_blank"
+              rel="noreferrer"
+              download={item.format ? `${item.name}.${item.format}` : undefined}
+              className="ml-2 text-primary hover:underline"
+            >
+              Download ↓
             </a>
           ) : null}
         </p>
@@ -124,31 +134,75 @@ const ContentRow = ({ item, index, total, onMoveUp, onMoveDown, onDelete, deleti
 };
 
 // ── Main component ────────────────────────────────────────────────────────────
+// Builds the add course content page
 const EducatorAddContent = () => {
-  const { currentUser } = useApp();
+  const { currentUser, courses, fetchMyCourses } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
+  const { id: courseId } = useParams();
   const fileInputRef = useRef(null);
 
-  const backTo = location.state?.backTo || "/educator/publish";
+  // Checks if content belongs to a new course
+  const isNew = !courseId || courseId === "new";
 
+  const backTo = location.state?.backTo || (isNew ? "/educator/publish" : "/educator/courses");
+
+  // Builds the local storage key for content items
   const storageKey = useMemo(() => {
-    const email = currentUser?.email || "unknown";
-    return `edupath_publish_content_${email}`;
-  }, [currentUser?.email]);
+    if (isNew) {
+      const email = currentUser?.email || "unknown";
+      return `edupath_publish_content_${email}`;
+    }
+    return `edupath_content_${courseId}`;
+  }, [isNew, courseId, currentUser?.email]);
 
-  // ── Existing content list from localStorage ──────────────────────────────
+  // ── Existing content list ────────────────────────────────────────────────
+  // Loads saved content items
   const [items, setItems] = useState(() => {
     try {
       const raw = localStorage.getItem(storageKey);
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch { return []; }
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch { /* ignore */ }
+
+    if (!isNew) {
+      const course = courses.find((c) => c.id === courseId || c._id === courseId);
+      return course?.content?.items || [];
+    }
+    return [];
   });
 
+  const [saving, setSaving] = useState(false);
+
+  // Saves content items to state and local storage
   const saveItems = (updated) => {
     setItems(updated);
-    localStorage.setItem(storageKey, JSON.stringify(updated));
+    try { localStorage.setItem(storageKey, JSON.stringify(updated)); } catch { /* ignore */ }
+  };
+
+  // Saves content and goes back to the course form
+  const handleDone = async () => {
+    if (isNew) { navigate(backTo); return; }
+    setSaving(true);
+    try {
+      const course = courses.find((c) => c.id === courseId || c._id === courseId);
+      if (course) {
+        await courseApi.updateCourseData(courseId, {
+          ...course,
+          content: { modules: course.content?.modules || [], items }
+        });
+        await fetchMyCourses();
+      }
+      // Clears temporary content after saving to the database
+      try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
+      navigate(backTo);
+    } catch (err) {
+      setError(err.message || "Failed to save content. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   // ── Form state ────────────────────────────────────────────────────────────
@@ -163,12 +217,14 @@ const EducatorAddContent = () => {
   const currentTypeDef = CONTENT_TYPES.find((t) => t.value === selectedType) || null;
   const needsFile = selectedType && selectedType !== "Quiz";
 
+  // Stores the selected file
   const handleFileChange = (e) => {
     const file = e.target.files?.[0] || null;
     setSelectedFile(file);
     if (file && !itemName) setItemName(file.name.replace(/\.[^.]+$/, ""));
   };
 
+  // Adds a new content item
   const handleAdd = async () => {
     setError("");
 
@@ -218,6 +274,7 @@ const EducatorAddContent = () => {
     }
   };
 
+  // Deletes a content item
   const handleDelete = async (item) => {
     setDeletingId(item.id);
     try {
@@ -225,12 +282,13 @@ const EducatorAddContent = () => {
         await deleteContentFile(item.publicId, item.resourceType || "raw");
       }
     } catch {
-      // Don't block UI if Cloudinary delete fails
+      // Keeps the UI moving if file delete fails
     }
     saveItems(items.filter((i) => i.id !== item.id));
     setDeletingId("");
   };
 
+  // Moves a content item up or down
   const moveItem = (index, dir) => {
     const updated = [...items];
     const target = index + dir;
@@ -241,14 +299,18 @@ const EducatorAddContent = () => {
 
   return (
     <PageShell>
+      {/* Holds all course content sections */}
       <div className="space-y-6">
 
         {/* Header */}
+        {/* Shows the content page title and item count */}
         <div className="glass-card p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          {/* Shows the page heading */}
           <div>
             <h1 className="text-lg font-semibold text-text-dark">Course Content</h1>
             <p className="mt-1 text-xs text-muted">
-              Add videos, documents, presentations, certificates and quizzes. Files are stored on Cloudinary.
+              Add videos, documents, presentations, certificates and quizzes.
+              {!isNew && " Changes are saved to the course when you click Save & Back."}
             </p>
           </div>
           <span className="self-start rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-xs font-semibold text-primary sm:self-auto">
@@ -257,10 +319,12 @@ const EducatorAddContent = () => {
         </div>
 
         {/* Add content form */}
+        {/* Lets the educator add a new content item */}
         <div className="glass-card p-6 space-y-5">
           <h2 className="font-semibold text-text-dark">Add New Item</h2>
 
           {/* Type selector */}
+          {/* Lets the educator choose the content type */}
           <div>
             <p className="field-label">Content Type</p>
             <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -292,6 +356,7 @@ const EducatorAddContent = () => {
           </div>
 
           {/* Item name */}
+          {/* Lets the educator name the content item */}
           <div>
             <label className="field-label">Item Name</label>
             <input
@@ -303,6 +368,7 @@ const EducatorAddContent = () => {
           </div>
 
           {/* File picker (hidden for Quiz) */}
+          {/* Lets the educator choose a file when needed */}
           {needsFile && currentTypeDef && (
             <div>
               <label className="field-label">Select File</label>
@@ -335,6 +401,7 @@ const EducatorAddContent = () => {
 
           {/* Upload progress */}
           {uploading && (
+            /* Shows file upload progress */
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted">Uploading to Cloudinary…</span>
@@ -351,24 +418,27 @@ const EducatorAddContent = () => {
 
           {/* Error */}
           {error && (
+            /* Shows content form errors */
             <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-600">
               {error}
             </div>
           )}
 
           {/* Actions */}
+          {/* Holds back and add item buttons */}
           <div className="flex justify-end gap-3">
             <button
               type="button"
-              onClick={() => navigate(backTo)}
-              className="btn-outline px-6 py-2 text-sm"
+              onClick={handleDone}
+              disabled={saving}
+              className="btn-outline px-6 py-2 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              ← Back
+              {saving ? "Saving…" : isNew ? "← Back" : "← Save & Back"}
             </button>
             <button
               type="button"
               onClick={handleAdd}
-              disabled={uploading || !selectedType}
+              disabled={uploading || !selectedType || saving}
               className="btn-primary px-7 py-2 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {uploading ? "Uploading…" : "Add Item"}
@@ -378,7 +448,9 @@ const EducatorAddContent = () => {
 
         {/* Content list */}
         {items.length > 0 && (
+          /* Shows all added content items */
           <div className="glass-card p-6">
+            {/* Shows the content list heading */}
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-text-dark">Course Content ({items.length})</h2>
               <p className="text-[11px] text-muted">Drag ▲▼ to reorder</p>
@@ -402,6 +474,7 @@ const EducatorAddContent = () => {
 
         {/* Empty state */}
         {items.length === 0 && (
+          /* Shows when no content has been added */
           <div className="glass-card px-6 py-12 text-center">
             <p className="text-2xl mb-3">📭</p>
             <p className="text-sm font-semibold text-text-dark">No content yet</p>
@@ -411,6 +484,7 @@ const EducatorAddContent = () => {
 
         {/* Done button */}
         {items.length > 0 && (
+          /* Shows the final back button after content exists */
           <div className="flex justify-end">
             <button
               type="button"

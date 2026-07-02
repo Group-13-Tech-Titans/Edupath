@@ -132,6 +132,19 @@ router.get("/reviewer/queue", authMiddleware, roleMiddleware(["reviewer", "admin
   }
 });
 
+// GET reviewer history (courses reviewed by the logged-in reviewer)
+router.get("/reviewer/history", authMiddleware, roleMiddleware(["reviewer", "admin", "educator"]), async (req, res) => {
+  try {
+    const courses = await Course.find({
+      "review.reviewerEmail": req.user.email,
+      trashedAt: null
+    }).sort({ "review.reviewedAt": -1, updatedAt: -1 });
+    res.json({ courses });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to fetch reviewer history" });
+  }
+});
+
 // GET all approved courses (public)
 router.get("/", async (req, res) => {
   try {
@@ -270,56 +283,9 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
 router.post("/enroll/:id", authMiddleware, async (req, res) => {
   try {
     const courseId = req.params.id;
-    const userId = req.user._id;
-
-    // Find the user in the database
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    // Initialize the array if it doesn't exist yet
-    if (!user.enrolledCourses) {
-      user.enrolledCourses = [];
-    }
-
-    // Check if the student is already enrolled
-    const alreadyEnrolled = user.enrolledCourses.find(c => String(c.courseId) === String(courseId));
-    
-    if (alreadyEnrolled) {
-      return res.status(400).json({ message: "You are already enrolled in this course." });
-    }
-
-    // Add the course to the user's enrolled list and save
-    user.enrolledCourses.push({ courseId });
-    await user.save();
-
-    // Strip out the password before sending the updated user back to React
-    const safeUser = user.toObject();
-    delete safeUser.password;
-
-    res.status(200).json({ 
-      success: true, 
-      user: safeUser, 
-      message: "Successfully enrolled!" 
-    });
-  } catch (err) {
-    console.error("Enrollment Error:", err);
-    res.status(500).json({ message: err.message || "Failed to enroll in course" });
-  }
-});
-
-// ==========================================
-// 🟢 NEW: ENROLL IN A COURSE (Student)
-// ==========================================
-router.post("/enroll/:id", authMiddleware, async (req, res) => {
-  try {
-    const courseId = req.params.id;
     
     // 🟢 FIXED: Safely grab the ID whether it's ._id or .id
     const userId = req.user._id || req.user.id; 
-
-    const User = require("../models/User"); // Ensure this path matches your file structure!
     
     const user = await User.findById(userId);
     if (!user) {
