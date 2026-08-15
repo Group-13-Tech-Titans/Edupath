@@ -31,7 +31,7 @@ const Signup = () => {
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
       setIsLoading(true);
-      const res = await axios.post("http://localhost:5000/api/auth/google", {
+      const res = await axios.post(import.meta.env.VITE_API_URL + "/api/auth/google", {
         credential: credentialResponse.credential,
         isSignup: true, // Tell the backend this is a strict signup attempt!
       });

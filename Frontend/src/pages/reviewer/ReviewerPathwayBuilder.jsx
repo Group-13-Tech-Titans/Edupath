@@ -31,7 +31,7 @@ const ReviewerPathwayBuilder = () => {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem("edupath_token");
-        const { data } = await axios.get("http://localhost:5000/api/auth/me", {
+        const { data } = await axios.get(import.meta.env.VITE_API_URL + "/api/auth/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setPathway((prev) => ({
@@ -138,7 +138,7 @@ const ReviewerPathwayBuilder = () => {
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
       const { data: pathwayData } = await axios.post(
-        "http://localhost:5000/api/pathway/template",
+        import.meta.env.VITE_API_URL + "/api/pathway/template",
         pathway,
         config,
       );
@@ -148,7 +148,7 @@ const ReviewerPathwayBuilder = () => {
       for (const step of steps) {
         const { id, ...stepData } = step;
         await axios.post(
-          `http://localhost:5000/api/pathway/template/${templateId}/steps`,
+          `${import.meta.env.VITE_API_URL}/api/pathway/template/${templateId}/steps`,
           { ...stepData, order: orderCounter },
           config,
         );

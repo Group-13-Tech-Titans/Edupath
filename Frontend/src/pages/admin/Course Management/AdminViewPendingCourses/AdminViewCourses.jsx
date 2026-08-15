@@ -9,7 +9,7 @@ import CourseOverviewStats from "./CourseOverviewStats";
 import CoursesGrid from "./CoursesGrid";
 
 // API endpoints
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL;
 const PENDING_COURSES_API = `${API_URL}/api/admin/courses/pending`;
 const COURSE_STATS_API = `${API_URL}/api/admin/courses/stats`;
 

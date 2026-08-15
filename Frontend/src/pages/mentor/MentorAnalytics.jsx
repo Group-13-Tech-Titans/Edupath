@@ -22,7 +22,7 @@ export default function MentorAnalytics() {
     const fetchAnalytics = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("http://localhost:5000/api/mentor/analytics", {
+        const res = await axios.get(import.meta.env.VITE_API_URL + "/api/mentor/analytics", {
           headers: { Authorization: `Bearer ${token}` }
         });
         setData(res.data);

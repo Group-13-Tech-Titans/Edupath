@@ -17,7 +17,7 @@ const ReviewerPathwayList = () => {
       const token = localStorage.getItem("edupath_token");
       const config = { headers: { Authorization: `Bearer ${token}` } };
       const { data } = await axios.get(
-        "http://localhost:5000/api/pathway/template",
+        import.meta.env.VITE_API_URL + "/api/pathway/template",
         config,
       );
       setTemplates(data.templates);
@@ -33,7 +33,7 @@ const ReviewerPathwayList = () => {
       return;
     try {
       const token = localStorage.getItem("edupath_token");
-      await axios.delete(`http://localhost:5000/api/pathway/template/${id}`, {
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/pathway/template/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setTemplates(templates.filter((t) => t._id !== id));
@@ -47,7 +47,7 @@ const ReviewerPathwayList = () => {
     try {
       const token = localStorage.getItem("edupath_token");
       await axios.put(
-        `http://localhost:5000/api/pathway/template/${id}/status`,
+        `${import.meta.env.VITE_API_URL}/api/pathway/template/${id}/status`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } },
       );

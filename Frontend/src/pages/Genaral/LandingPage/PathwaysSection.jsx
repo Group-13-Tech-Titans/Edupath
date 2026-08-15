@@ -1,52 +1,89 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { fadeUp, fade, stagger, PathCard, MiniRow } from "./LandingSharedUI";
+import { fadeUp, stagger } from "./LandingSharedUI";
+
+// Modern Pathway Card for a cleaner look
+function ModernPathCard({ title, icon, points, colorClass, bgClass }) {
+  return (
+    <div className="flex flex-col h-full rounded-[30px] border border-black/5 bg-white p-8 shadow-[0_15px_40px_rgba(0,0,0,0.04)] transition-transform hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)]">
+      <div className={`mb-6 flex h-14 w-14 items-center justify-center rounded-2xl ${bgClass} ${colorClass} text-2xl`}>
+        {icon}
+      </div>
+      <h3 className="mb-4 text-xl font-extrabold text-slate-800">{title}</h3>
+      <ul className="mt-auto space-y-3">
+        {points.map((p, i) => (
+          <li key={i} className="flex items-start text-sm text-slate-600">
+            <span className={`mr-3 mt-1.5 inline-flex h-2 w-2 flex-shrink-0 rounded-full ${colorClass.replace('text-', 'bg-')}`} />
+            <span className="leading-relaxed font-medium">{p}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 // Section explaining career pathways
 export default function PathwaysSection({ scrollToId }) {
   return (
-    <section id="pathways" className="mx-auto max-w-6xl px-4 py-12">
-      <motion.div
-        initial="hidden"
-        whileInView="show"
-        viewport={{ once: true, amount: 0.2 }}
-        variants={stagger}
-        className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]"
-      >
-        {/* Pathway Examples */}
-        <div className="space-y-4">
-          <motion.p variants={fadeUp} className="text-xs font-extrabold text-emerald-700">CAREER PATHWAYS</motion.p>
-          <motion.h2 variants={fadeUp} className="text-3xl font-extrabold sm:text-4xl">Build your future with job-ready learning pathways</motion.h2>
-          <motion.p variants={fadeUp} className="max-w-2xl text-sm text-slate-600 sm:text-base">
-            EduPath uses AI to suggest the best career direction for you. Once you choose a goal, we guide you step-by-step.
+    <section id="pathways" className="bg-white px-4 py-20 sm:px-6 lg:px-12 lg:py-28 relative">
+      <div className="mx-auto max-w-[1300px] relative z-10">
+        <div className="text-center mb-16">
+          <motion.p variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="text-sm font-bold tracking-wider text-[#2b9d62] uppercase mb-3">
+            Career Pathways
           </motion.p>
-
-          <motion.div variants={fadeUp} className="grid gap-3 sm:grid-cols-2">
-            <PathCard title="UI/UX Designer" points={["Design fundamentals", "Figma projects"]} accent="emerald" />
-            <PathCard title="Full-Stack Developer" points={["Frontend + backend", "Deploy real apps"]} accent="teal" />
-            <PathCard title="Data Analyst" points={["Excel → SQL", "Dashboards"]} accent="yellow" />
-            <PathCard title="Cybersecurity Basics" points={["Security mindset", "Hands-on labs"]} accent="slate" />
-          </motion.div>
+          <motion.h2 variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-5xl mb-6">
+            Build your future with <br className="hidden sm:block"/> job-ready learning paths
+          </motion.h2>
+          <motion.p variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="mx-auto max-w-2xl text-lg text-slate-500">
+            EduPath uses AI to suggest the best career direction for you. Once you choose a goal, we provide a clear, step-by-step roadmap so you know exactly what to learn next.
+          </motion.p>
         </div>
 
-        {/* Why Pathways Matter Details */}
-        <motion.div variants={fade} className="rounded-[30px] border border-black/5 bg-white p-6 shadow-[0_18px_60px_rgba(0,0,0,0.06)]">
-          <p className="text-sm font-extrabold">Why pathways matter</p>
-          <p className="mt-2 text-sm text-slate-600">
-            A clear pathway removes confusion and tells you exactly what to learn next, in the right order.
-          </p>
-
-          <div className="mt-5 space-y-3">
-            <MiniRow icon="🧠" title="Less confusion" text="Know what to learn next, step-by-step." />
-            <MiniRow icon="🎯" title="Clear goals" text="Milestones + projects to track improvement." />
-            <MiniRow icon="⏱️" title="Save time" text="No more jumping between random tutorials." />
-          </div>
-
-          <button onClick={() => scrollToId("contact")} className="mt-6 w-full rounded-full bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow hover:brightness-95">
-            Ask about pathways
-          </button>
+        <motion.div
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: 0.1 }}
+          variants={stagger}
+          className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
+        >
+          <motion.div variants={fadeUp} className="h-full">
+            <ModernPathCard 
+              title="UI/UX Designer" 
+              icon="🎨" 
+              points={["Design fundamentals", "Figma mastery", "User research"]} 
+              colorClass="text-emerald-600" 
+              bgClass="bg-emerald-50" 
+            />
+          </motion.div>
+          <motion.div variants={fadeUp} className="h-full">
+            <ModernPathCard 
+              title="Full-Stack Developer" 
+              icon="💻" 
+              points={["Frontend & Backend", "Database design", "Deploy real apps"]} 
+              colorClass="text-blue-600" 
+              bgClass="bg-blue-50" 
+            />
+          </motion.div>
+          <motion.div variants={fadeUp} className="h-full">
+            <ModernPathCard 
+              title="Data Analyst" 
+              icon="📊" 
+              points={["Excel to SQL", "Data visualization", "Building dashboards"]} 
+              colorClass="text-purple-600" 
+              bgClass="bg-purple-50" 
+            />
+          </motion.div>
+          <motion.div variants={fadeUp} className="h-full">
+            <ModernPathCard 
+              title="Cybersecurity" 
+              icon="🛡️" 
+              points={["Security mindset", "Network defense", "Hands-on labs"]} 
+              colorClass="text-orange-600" 
+              bgClass="bg-orange-50" 
+            />
+          </motion.div>
         </motion.div>
-      </motion.div>
+      </div>
     </section>
   );
 }

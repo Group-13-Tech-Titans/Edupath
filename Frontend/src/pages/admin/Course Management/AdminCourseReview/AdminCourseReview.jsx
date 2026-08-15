@@ -9,7 +9,7 @@ import CourseReviewHeader from "./CourseReviewHeader";
 import CourseDetailsPanel from "./CourseDetailsPanel";
 import CourseReviewForm from "./CourseReviewForm";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL;
 
 // Main page where an Admin reviews a specific course
 export default function AdminCourseReview() {

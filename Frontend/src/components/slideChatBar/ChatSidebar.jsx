@@ -7,7 +7,7 @@ import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
 
 // Initialize socket connection
-const socket = io(import.meta.env.VITE_API_URL || "http://localhost:5000");
+const socket = io(import.meta.env.VITE_API_URL);
 
 export default function ChatSidebar({ isOpen, onClose, currentUser }) {
   const [messages, setMessages] = useState([]);

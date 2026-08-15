@@ -12,7 +12,7 @@ import CreateAdminModal from "./CreateAdminModal";
 
 //import endpoints and constants
 const LS_KEY = "edupath_admin_profile_v1";
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000"; 
+const API_URL = import.meta.env.VITE_API_URL; 
 const GET_ME_API = `${API_URL}/api/auth/me`;
 const UPDATE_PROFILE_API = `${API_URL}/api/auth/profile`; 
 const CREATE_ADMIN_API = `${API_URL}/api/admin/create-user`; 

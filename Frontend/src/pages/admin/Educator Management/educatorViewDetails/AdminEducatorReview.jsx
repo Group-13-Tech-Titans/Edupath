@@ -7,7 +7,7 @@ import ReviewHeader from "./ReviewHeader.jsx";
 import ApplicantInfo from "./ApplicantInfo.jsx";
 import ReviewActions from "./ReviewActions.jsx";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL;
 const VERIFY_EDUCATOR_API = (id) => `${API_URL}/api/admin/educators/${id}/verify`;
 
 export default function AdminEducatorReview() {

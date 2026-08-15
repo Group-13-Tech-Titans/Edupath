@@ -1,34 +1,90 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { fadeUp, fade, stagger, MiniRow } from "./LandingSharedUI";
+import { fadeUp, fade, stagger } from "./LandingSharedUI";
+
+// Clean feature item
+function FeatureRow({ icon, title, text }) {
+  return (
+    <div className="flex items-start gap-4">
+      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-[#eefaf6] text-2xl text-emerald-600">
+        {icon}
+      </div>
+      <div>
+        <h4 className="text-lg font-bold text-slate-900">{title}</h4>
+        <p className="mt-1 text-sm text-slate-500 leading-relaxed">{text}</p>
+      </div>
+    </div>
+  );
+}
 
 // Section explaining why users should choose EduPath
 export default function WhySection() {
   return (
-    <section id="why" className="mx-auto max-w-6xl px-4 pb-14">
-      <motion.div
-        initial="hidden"
-        whileInView="show"
-        viewport={{ once: true, amount: 0.2 }}
-        variants={stagger}
-        className="grid gap-6 lg:grid-cols-2"
-      >
-        {/* Left Side: Illustration Image */}
-        <motion.div variants={fadeUp} className="rounded-[30px] border border-black/5 bg-white p-7 shadow-[0_18px_60px_rgba(0,0,0,0.06)]">
-          <img src="/landingImages/Img1.png" alt="Landing Preview" className="w-full rounded-xl" />
-        </motion.div>
+    <section id="why" className="bg-white px-4 py-20 sm:px-6 lg:px-12 lg:py-28">
+      <div className="mx-auto max-w-[1300px]">
+        <motion.div
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: 0.2 }}
+          variants={stagger}
+          className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16"
+        >
+          {/* Left Side: Modern Stock Photo */}
+          <motion.div variants={fade} className="relative order-2 lg:order-1">
+            <div className="absolute -inset-4 rounded-[40px] bg-gradient-to-tr from-emerald-100 to-teal-50 opacity-50 blur-2xl" />
+            <img 
+              src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=800" 
+              alt="Students collaborating" 
+              className="relative w-full rounded-[40px] shadow-2xl"
+            />
+            {/* Decorative badge */}
+            <div className="absolute -bottom-6 -right-6 hidden sm:flex items-center gap-3 rounded-2xl bg-white p-4 shadow-xl border border-slate-50">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 text-2xl">🎓</span>
+              <div>
+                <p className="text-xl font-black text-slate-800">100%</p>
+                <p className="text-xs font-bold text-slate-500">Job Ready</p>
+              </div>
+            </div>
+          </motion.div>
 
-        {/* Right Side: Features List */}
-        <motion.div variants={fade} className="rounded-[30px] border border-black/5 bg-white p-7 shadow-[0_18px_60px_rgba(0,0,0,0.06)]">
-          <p className="text-sm font-extrabold">What you’ll get</p>
-          <div className="mt-4 space-y-3">
-            <MiniRow icon="✅" title="Verified & approved courses" text="Reviewer checks content quality before it goes live." />
-            <MiniRow icon="🧭" title="AI Path Finder recommendations" text="Get multiple best-fit career paths based on your profile." />
-            <MiniRow icon="🧩" title="Stepstones + quizzes + milestones" text="Learn in the right order and prove progress with tasks and tests." />
-            <MiniRow icon="🤝" title="Mentor support (Premium)" text="Request 1:1 sessions with industry experts and get guidance whenever you’re stuck." />
+          {/* Right Side: Features */}
+          <div className="order-1 lg:order-2">
+            <motion.p variants={fadeUp} className="text-sm font-bold tracking-wider text-[#2b9d62] uppercase mb-3">
+              Why EduPath
+            </motion.p>
+            <motion.h2 variants={fadeUp} className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl mb-6">
+              Learn smarter, not harder. <br className="hidden sm:block"/> We guarantee results.
+            </motion.h2>
+            <motion.p variants={fadeUp} className="text-lg text-slate-500 mb-10">
+              Stop wandering through endless tutorials. We provide curated, expert-reviewed content structured into definitive career paths.
+            </motion.p>
+
+            <motion.div variants={fadeUp} className="space-y-8">
+              <FeatureRow 
+                icon="✅" 
+                title="Verified & Approved Courses" 
+                text="Every course is heavily scrutinized by reviewers before publishing to ensure high quality." 
+              />
+              <FeatureRow 
+                icon="🧭" 
+                title="AI Path Finder Recommendations" 
+                text="Get customized learning recommendations based on your goals and current skill level." 
+              />
+              <FeatureRow 
+                icon="🧩" 
+                title="Stepstones & Milestones" 
+                text="Follow a structured journey with quizzes and assignments that prove your competency." 
+              />
+              <FeatureRow 
+                icon="🤝" 
+                title="1:1 Mentor Support (Premium)" 
+                text="Stuck? Request a live session with industry experts to get past any hurdle quickly." 
+              />
+            </motion.div>
           </div>
+
         </motion.div>
-      </motion.div>
+      </div>
     </section>
   );
 }

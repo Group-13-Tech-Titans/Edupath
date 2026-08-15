@@ -31,7 +31,7 @@ const StudentDashboard = () => {
         const token = localStorage.getItem("edupath_token");
         if (!token) return;
 
-        const { data } = await axios.get("http://localhost:5000/api/pathway/my", {
+        const { data } = await axios.get(import.meta.env.VITE_API_URL + "/api/pathway/my", {
           headers: { Authorization: `Bearer ${token}` }
         });
         
@@ -56,7 +56,7 @@ const StudentDashboard = () => {
     try {
       setIsDeleting(true);
       const token = localStorage.getItem("edupath_token");
-      await axios.delete("http://localhost:5000/api/pathway/my", {
+      await axios.delete(import.meta.env.VITE_API_URL + "/api/pathway/my", {
         headers: { Authorization: `Bearer ${token}` }
       });
 

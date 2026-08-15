@@ -5,7 +5,7 @@ import ChartHeader from "./ChartHeader"; //import the header component
 import ChartArea from "./ChartArea"; //import the area chart component
 import { ChartLoading, ChartError, ChartEmpty } from "./ChartFeedback"; //import the feedback components for loading, error, and empty states
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000"; //call
+const API_URL = import.meta.env.VITE_API_URL; //call
 
 export default function StudentGrowthChart() {
   const [chartData, setChartData] = useState([]); //state to hold the chart data

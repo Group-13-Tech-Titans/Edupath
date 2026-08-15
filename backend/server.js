@@ -25,6 +25,8 @@ app.use("/api/step-quiz", require("./modules/quiz/routes/stepQuizRoutes"));
 app.use("/api/courses", require("./modules/courses/routes/courseRoutes"));
 app.use("/api/upload", require("./modules/upload/routes/uploadRoutes"));
 app.use("/api/specializations", require("./modules/specializations/routes/specializationRoutes")); //specialization related routes
+app.use("/api/chatbot", require("./modules/chatbot/routes/chatbotRoutes"));
+app.use("/api/contact", require("./modules/contact/routes/contactRoutes"));
 
 // Create an HTTP server and wrap the Express app
 const server = http.createServer(app);

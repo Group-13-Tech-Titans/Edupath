@@ -45,7 +45,7 @@ const PathFinder = () => {
     const fetchAvailablePaths = async () => {
       try {
         const token = localStorage.getItem("edupath_token");
-        const { data } = await axios.get("http://localhost:5000/api/pathway/published", {
+        const { data } = await axios.get(import.meta.env.VITE_API_URL + "/api/pathway/published", {
           headers: { Authorization: `Bearer ${token}` }
         });
         
@@ -81,7 +81,7 @@ const PathFinder = () => {
       const token = localStorage.getItem("edupath_token");
       
       const { data } = await axios.post(
-        "http://localhost:5000/api/pathway/recommend",
+        import.meta.env.VITE_API_URL + "/api/pathway/recommend",
         finalAnswers,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -101,7 +101,7 @@ const PathFinder = () => {
       const token = localStorage.getItem("edupath_token");
       
       await axios.post(
-        `http://localhost:5000/api/pathway/enroll/${recommendedTemplate._id}`,
+        `${import.meta.env.VITE_API_URL}/api/pathway/enroll/${recommendedTemplate._id}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

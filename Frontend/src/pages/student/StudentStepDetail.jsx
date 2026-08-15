@@ -25,7 +25,7 @@ const StudentStepDetail = () => {
   const fetchStepData = async () => {
     try {
       const token = localStorage.getItem("edupath_token");
-      const { data } = await axios.get("http://localhost:5000/api/pathway/my", {
+      const { data } = await axios.get(import.meta.env.VITE_API_URL + "/api/pathway/my", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -62,7 +62,7 @@ const StudentStepDetail = () => {
       const token = localStorage.getItem("edupath_token");
 
       await axios.post(
-        "http://localhost:5000/api/pathway/complete-step",
+        import.meta.env.VITE_API_URL + "/api/pathway/complete-step",
         { pathwayId: pathway._id, stepOrder: currentStep.order },
         { headers: { Authorization: `Bearer ${token}` } },
       );

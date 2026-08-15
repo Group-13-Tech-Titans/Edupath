@@ -4,13 +4,13 @@ import { motion } from "framer-motion";
 
 // --- Common Animation Variants ---
 export const fadeUp = {
-  hidden: { opacity: 0, y: 18 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } },
+  hidden: { opacity: 0, y: 30, scale: 0.95, filter: "blur(5px)" },
+  show: { opacity: 1, y: 0, scale: 1, filter: "blur(0px)", transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } },
 };
 
 export const fade = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } },
+  hidden: { opacity: 0, scale: 0.95, filter: "blur(5px)" },
+  show: { opacity: 1, scale: 1, filter: "blur(0px)", transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } },
 };
 
 export const stagger = {
@@ -130,13 +130,14 @@ export function ContactPill({ icon, title, text }) {
 }
 
 // Reusable text input field for forms
-export function Input({ label, placeholder, type = "text" }) {
+export function Input({ label, placeholder, type = "text", ...props }) {
   return (
     <div>
       <label className="text-xs font-extrabold text-slate-700">{label}</label>
       <input
         type={type}
         placeholder={placeholder}
+        {...props}
         className="mt-1 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-300"
       />
     </div>

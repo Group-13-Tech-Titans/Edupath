@@ -139,7 +139,7 @@ const AdminPathwayBuilder = () => {
 
       // Create the Template Pathway
       const { data: pathwayData } = await axios.post(
-        "http://localhost:5000/api/pathway/template",
+        import.meta.env.VITE_API_URL + "/api/pathway/template",
         pathway,
         config,
       );
@@ -153,7 +153,7 @@ const AdminPathwayBuilder = () => {
         const { id, ...stepData } = step;
 
         await axios.post(
-          `http://localhost:5000/api/pathway/template/${templateId}/steps`,
+          `${import.meta.env.VITE_API_URL}/api/pathway/template/${templateId}/steps`,
           { ...stepData, order: orderCounter },
           config,
         );

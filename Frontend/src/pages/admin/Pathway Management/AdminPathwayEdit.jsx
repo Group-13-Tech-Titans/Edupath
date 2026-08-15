@@ -24,7 +24,7 @@ const AdminPathwayEdit = () => {
       try {
         const token = localStorage.getItem("edupath_token");
         const { data } = await axios.get(
-          `http://localhost:5000/api/pathway/template/${id}`,
+          `${import.meta.env.VITE_API_URL}/api/pathway/template/${id}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           },
@@ -147,7 +147,7 @@ const AdminPathwayEdit = () => {
       const token = localStorage.getItem("edupath_token");
 
       await axios.put(
-        `http://localhost:5000/api/pathway/template/${id}`,
+        `${import.meta.env.VITE_API_URL}/api/pathway/template/${id}`,
         {
           pathName: pathway.pathName,
           level: pathway.level,

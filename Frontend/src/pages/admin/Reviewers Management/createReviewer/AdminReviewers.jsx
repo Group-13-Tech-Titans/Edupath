@@ -9,8 +9,8 @@ import EditReviewerModal from "./EditReviewerModal";
 import DeleteConfirmModal from "./DeleteConfirmModal";
 
 // API Endpoints for reviewers and specializations
-const API_BASE = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/admin/reviewers`;
-const SPEC_API_BASE = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/specializations`;
+const API_BASE = `${import.meta.env.VITE_API_URL}/api/admin/reviewers`;
+const SPEC_API_BASE = `${import.meta.env.VITE_API_URL}/api/specializations`;
 
 export default function AdminReviewers() {
   

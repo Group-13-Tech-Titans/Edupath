@@ -3,7 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 // API endpoint to fetch pending educators
-const PENDING_EDUCATORS_API = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/admin/educators/pending`;
+const PENDING_EDUCATORS_API = `${import.meta.env.VITE_API_URL}/api/admin/educators/pending`;
 
 export default function PendingEducatorsPreview() {
   // Local state to store the list of pending educators

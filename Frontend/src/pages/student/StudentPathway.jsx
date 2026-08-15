@@ -19,7 +19,7 @@ const StudentPathway = () => {
       const token = localStorage.getItem("edupath_token");
       const config = { headers: { Authorization: `Bearer ${token}` } };
       const { data: pathwayData } = await axios.get(
-        "http://localhost:5000/api/pathway/my",
+        import.meta.env.VITE_API_URL + "/api/pathway/my",
         config,
       );
 
@@ -31,7 +31,7 @@ const StudentPathway = () => {
         // ==========================================
         try {
           const { data: templateData } = await axios.get(
-            `http://localhost:5000/api/pathway/published`,
+            `${import.meta.env.VITE_API_URL}/api/pathway/published`,
             config,
           );
           
@@ -106,7 +106,7 @@ const StudentPathway = () => {
               // Silent background save of the PERFECTLY synced array
               axios
                 .put(
-                  `http://localhost:5000/api/pathway/my/sync`,
+                  `${import.meta.env.VITE_API_URL}/api/pathway/my/sync`,
                   { steps: syncedSteps },
                   config,
                 )
@@ -123,7 +123,7 @@ const StudentPathway = () => {
         setPathway({ ...currentStudentPathway });
       } else {
         const res = await axios.get(
-          "http://localhost:5000/api/pathway/published",
+          import.meta.env.VITE_API_URL + "/api/pathway/published",
           config,
         );
         setAvailableTemplates(res.data.templates);
@@ -140,7 +140,7 @@ const StudentPathway = () => {
       setLoading(true);
       const token = localStorage.getItem("edupath_token");
       const { data } = await axios.post(
-        `http://localhost:5000/api/pathway/enroll/${templateId}`,
+        `${import.meta.env.VITE_API_URL}/api/pathway/enroll/${templateId}`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },

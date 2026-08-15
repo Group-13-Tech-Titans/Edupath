@@ -8,7 +8,7 @@ import AdminFooter from "../../../../components/layouts/admin-layouts/AdminFoote
 import VerifyEducatorsHeader from "./VerifyEducatorsHeader.jsx";
 import VerifyEducatorsList from "./VerifyEducatorsList.jsx";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL;
 const PENDING_EDUCATORS_API = `${API_URL}/api/admin/educators/pending`;
 
 export default function AdminVerifyEducators() {
