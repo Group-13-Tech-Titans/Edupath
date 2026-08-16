@@ -1,36 +1,9 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-exports.generatePathway = async ({ path, level }) => {
-
-  // 🔥 TEMP (later connect Gemini)
-  if (path === "Web Development") {
-    return [
-      {
-        title: "Learn HTML",
-        description: "Basics of HTML",
-        type: "course",
-        resource: "YouTube"
-      },
-      {
-        title: "Learn CSS",
-        description: "Styling",
-        type: "course",
-        resource: "YouTube"
-      },
-      {
-        title: "Build Portfolio Website",
-        description: "Project",
-        type: "project"
-      }
-    ];
-  }
-
-  return [];
-};
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 exports.generatePathwayTopics = async (pathName, level, context) => {
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   const prompt = `
 You are an expert curriculum designer and educational AI.

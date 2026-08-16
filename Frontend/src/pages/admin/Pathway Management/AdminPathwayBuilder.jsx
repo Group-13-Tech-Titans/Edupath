@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import PageShell from "../../../components/PageShell.jsx"; // Adjust path as needed
+import AiPathwayGenerator from "./components/AiPathwayGenerator.jsx";
 
 // Helper to generate a unique ID for React keys
 const generateId = () =>
@@ -56,6 +57,26 @@ const AdminPathwayBuilder = () => {
   const removeStep = (index) => {
     const newSteps = steps.filter((_, i) => i !== index);
     setSteps(newSteps);
+  };
+
+  // 🤖 AI Integration Handler
+  const handleTopicsGenerated = (topics) => {
+    // Generate new steps from topics
+    const aiSteps = topics.map(topic => ({
+      id: generateId(),
+      title: topic,
+      description: `Learn the fundamentals of ${topic.split(':').pop().trim()}`,
+      type: "course",
+      resources: [],
+      quiz: [],
+    }));
+
+    // If the current first step is completely empty, replace it. Otherwise append.
+    if (steps.length === 1 && steps[0].title === "" && steps[0].description === "") {
+      setSteps(aiSteps);
+    } else {
+      setSteps([...steps, ...aiSteps]);
+    }
   };
 
   // 🟢 NEW HELPER FUNCTIONS FOR MULTIPLE RESOURCES
@@ -237,7 +258,14 @@ const AdminPathwayBuilder = () => {
           </div>
         </div>
 
-        {/* Steps Section */}
+        {/* --- NEW AI GENERATOR SECTION --- */}
+        <AiPathwayGenerator 
+          pathName={pathway.pathName} 
+          level={pathway.level} 
+          onTopicsGenerated={handleTopicsGenerated}
+        />
+
+        {/* --- CURRICULUM STEPS --- */}
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-text-dark pl-2">
             2. Curriculum Steps

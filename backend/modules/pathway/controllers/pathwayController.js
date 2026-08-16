@@ -1,5 +1,6 @@
 const Pathway = require("../models/Pathway");
-const { generatePathway } = require("../../../services/aiService");
+const User = require("../../auth/models/User");
+const { generatePathway, generatePathwayTopics } = require("../../../services/aiService");
 
 // ==========================================
 //          STUDENT LOGIC (EXISTING)
@@ -479,6 +480,26 @@ exports.recommendPathway = async (req, res) => {
   } catch (err) {
     console.error("RECOMMENDATION ERROR:", err.message); 
     res.status(500).json({ error: err.message });
+  }
+};
+
+// ==========================================
+// 8. Generate AI Pathway Suggestions
+// ==========================================
+exports.generatePathwaySuggestions = async (req, res) => {
+  try {
+    const { pathName, level, context } = req.body;
+
+    if (!pathName) {
+      return res.status(400).json({ success: false, message: "Pathway Name is required for AI generation" });
+    }
+
+    const topics = await generatePathwayTopics(pathName, level || "Beginner", context);
+
+    return res.status(200).json({ success: true, topics });
+  } catch (error) {
+    console.error("Generate Suggestions Error:", error);
+    return res.status(500).json({ success: false, message: error.message || "Failed to generate suggestions" });
   }
 };
 

@@ -17,7 +17,8 @@ const {
   getTemplateById,
   updateTemplate,
   recommendPathway,
-  deleteMyPathway
+  deleteMyPathway,
+  generatePathwaySuggestions
 } = require("../controllers/pathwayController");
 
 // 2. MIDDLEWARE IMPORTS
@@ -94,5 +95,10 @@ router.post("/enroll/:templateId", authMiddleware, enrollInTemplate);
 router.put("/my/sync", authMiddleware, syncPathwaySteps);
 router.post("/recommend", authMiddleware, recommendPathway);
 router.delete("/my", authMiddleware, deleteMyPathway);
+
+// ==========================================
+//          AI PATHWAY GENERATION
+// ==========================================
+router.post("/generate-suggestions", authMiddleware, roleMiddleware(["admin", "reviewer"]), generatePathwaySuggestions);
 
 module.exports = router;
