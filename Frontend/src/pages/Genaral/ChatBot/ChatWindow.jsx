@@ -13,6 +13,15 @@ export default function ChatWindow({ onClose }) {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
 
+  // Fallback for technical errors that might leak from backend
+  const sanitizeMessage = (msgText) => {
+    if (typeof msgText !== 'string') return "I'm having a little trouble connecting right now.";
+    if (msgText.includes("GoogleGenerativeAI Error") || msgText.includes("429 Too Many Requests") || msgText.includes("fetch")) {
+      return "I'm sorry, I'm having a little trouble connecting right now (I might be overwhelmed!). Could we try that again in a moment?";
+    }
+    return msgText;
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
   };
@@ -42,15 +51,16 @@ export default function ChatWindow({ onClose }) {
       const botTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
       if (response.data.success) {
-        setMessages(prev => [...prev, { text: response.data.data.text, sender: 'bot', time: botTime }]);
+        setMessages(prev => [...prev, { text: sanitizeMessage(response.data.data.text), sender: 'bot', time: botTime }]);
       } else {
-        setMessages(prev => [...prev, { text: response.data.error || "Sorry, I'm having trouble connecting right now.", sender: 'bot', time: botTime }]);
+        const fallback = response.data.error || "Sorry, I'm having trouble connecting right now.";
+        setMessages(prev => [...prev, { text: sanitizeMessage(fallback), sender: 'bot', time: botTime }]);
       }
     } catch (error) {
       console.error("Chat Error:", error);
       const botTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const errorMsg = error.response?.data?.error || "Network error. Please try again.";
-      setMessages(prev => [...prev, { text: errorMsg, sender: 'bot', time: botTime }]);
+      setMessages(prev => [...prev, { text: sanitizeMessage(errorMsg), sender: 'bot', time: botTime }]);
     } finally {
       setIsTyping(false);
     }
