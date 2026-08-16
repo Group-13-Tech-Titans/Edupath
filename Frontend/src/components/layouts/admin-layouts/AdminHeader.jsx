@@ -2,9 +2,9 @@ import React, { useMemo, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useApp } from "../../../context/AppProvider.jsx";
 // Import necessary icons from lucide-react
-import { MessageCircle, Menu, X, LogOut, GraduationCap } from "lucide-react";
+import { Menu, X, LogOut, GraduationCap } from "lucide-react";
 
-export default function AdminHeader({ setIsChatOpen }) {
+export default function AdminHeader() {
   const { currentUser, logout } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
@@ -69,16 +69,6 @@ export default function AdminHeader({ setIsChatOpen }) {
           {/* Right Side Actions (Chat, Profile, Logout, Mobile Menu Toggle) */}
           <div className="flex items-center gap-3">
             
-            {/* Live Chat Toggle Button */}
-            <button
-              onClick={() => setIsChatOpen(true)}
-              className="relative inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 hover:bg-emerald-200 transition shadow-sm"
-              title="Open Live Chat"
-            >
-              <MessageCircle className="w-5 h-5" />
-                
-            </button>
-
             {/* Profile Avatar Button (Hidden on very small screens) */}
             <button
               onClick={() => navigate("/admin/profile")}
