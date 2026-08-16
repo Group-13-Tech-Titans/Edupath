@@ -139,7 +139,7 @@ const EducatorProfile = () => {
     setSubmittingContact(true);
     try {
       const token = localStorage.getItem("edupath_token");
-      const res = await fetch("http://localhost:5000/api/specializations/contact", {
+      const res = await fetch(import.meta.env.VITE_API_URL + "/api/specializations/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -178,8 +178,8 @@ const EducatorProfile = () => {
         const headers = { Authorization: `Bearer ${token}` };
         
         const [specRes, reqRes] = await Promise.all([
-          fetch("http://localhost:5000/api/specializations", { headers }),
-          fetch("http://localhost:5000/api/specializations/requests/my", { headers })
+          fetch(import.meta.env.VITE_API_URL + "/api/specializations", { headers }),
+          fetch(import.meta.env.VITE_API_URL + "/api/specializations/requests/my", { headers })
         ]);
 
         if (specRes.ok) {
@@ -207,7 +207,7 @@ const EducatorProfile = () => {
     setSubmittingSpec(true);
     try {
       const token = localStorage.getItem("edupath_token");
-      const res = await fetch("http://localhost:5000/api/specializations/requests", {
+      const res = await fetch(import.meta.env.VITE_API_URL + "/api/specializations/requests", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
