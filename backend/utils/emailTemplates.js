@@ -1,4 +1,4 @@
-const BASE_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+const BASE_URL = process.env.FRONTEND_URL;
 
 const wrapper = (content) => `
 <!DOCTYPE html>

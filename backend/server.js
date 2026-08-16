@@ -12,7 +12,7 @@ dns.setServers(['8.8.8.8', '1.1.1.1']); // Set custom DNS servers (Google DNS an
 const app = express();
 connectDB(); // Connect to the database
 
-app.use(cors());
+app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
 app.use(express.json());
 
 
