@@ -8,13 +8,14 @@ const SPEC_API = `${API_URL}/api/specializations`;
 export default function SpecializationsList({ getAuthHeader, showToast, refreshKey }) {
   const [specializations, setSpecializations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [animatingId, setAnimatingId] = useState(null);
 
   // Fetch data from the server
   useEffect(() => {
     const fetchSpecializations = async () => {
       setIsLoading(true);
       try {
-        const res = await axios.get(SPEC_API, getAuthHeader());
+        const res = await axios.get(`${SPEC_API}/all`, getAuthHeader());
         setSpecializations(res.data.specializations || []);
       } catch (error) {
         console.error(error);
@@ -39,7 +40,10 @@ export default function SpecializationsList({ getAuthHeader, showToast, refreshK
         )
       );
 
-      showToast("success", `Status updated to ${!currentStatus ? 'Active' : 'Inactive'}`);
+      // Trigger attractive animation instead of toast
+      setAnimatingId(id);
+      setTimeout(() => setAnimatingId(null), 400);
+
     } catch (error) {
       console.error(error);
       showToast("error", "Failed to change status.");
@@ -75,7 +79,11 @@ export default function SpecializationsList({ getAuthHeader, showToast, refreshK
               <div>
                 <button
                   onClick={() => handleToggleStatus(spec._id, spec.isActive)}
-                  className={`px-3 py-1 text-[10px] font-extrabold uppercase rounded-full tracking-wider transition-colors shadow-sm hover:shadow focus:outline-none ${
+                  className={`px-3 py-1 text-[10px] font-extrabold uppercase rounded-full tracking-wider transition-all duration-300 transform active:scale-95 shadow-sm focus:outline-none ${
+                    animatingId === spec._id 
+                      ? 'scale-110 opacity-75 ring-4 ring-offset-1 ' + (spec.isActive ? 'ring-emerald-200' : 'ring-red-200') 
+                      : 'hover:-translate-y-0.5 hover:shadow-md'
+                  } ${
                     spec.isActive 
                       ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" 
                       : "bg-red-100 text-red-700 hover:bg-red-200"

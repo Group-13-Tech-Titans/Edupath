@@ -17,6 +17,52 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Admin gets all specializations (including inactive)
+router.get("/all", authMiddleware, roleMiddleware(["admin"]), async (req, res) => {
+  try {
+    const specializations = await Specialization.find().sort({ name: 1 });
+    res.json({ specializations });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to fetch specializations" });
+  }
+});
+
+// Admin creates a new specialization
+router.post("/", authMiddleware, roleMiddleware(["admin"]), async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ message: "Specialization name is required" });
+
+    // Generate slug
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    
+    const existing = await Specialization.findOne({ slug });
+    if (existing) return res.status(400).json({ message: "Specialization already exists" });
+
+    const spec = new Specialization({ name, slug, isActive: true });
+    await spec.save();
+
+    res.status(201).json({ message: "Specialization created", specialization: spec });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to create specialization" });
+  }
+});
+
+// Admin toggles specialization active status
+router.patch("/:id/toggle", authMiddleware, roleMiddleware(["admin"]), async (req, res) => {
+  try {
+    const spec = await Specialization.findById(req.params.id);
+    if (!spec) return res.status(404).json({ message: "Specialization not found" });
+    
+    spec.isActive = !spec.isActive;
+    await spec.save();
+    
+    res.json({ message: "Status toggled successfully", specialization: spec });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to toggle status" });
+  }
+});
+
 // Educator gets their pending request
 router.get("/requests/my", authMiddleware, roleMiddleware(["educator"]), async (req, res) => {
   try {
