@@ -98,3 +98,49 @@ exports.rejectEducator = async (req, res) => {
     res.status(500).json({ message: "Failed to reject educator." });
   }
 };
+
+// Get all educators with optional search and filtering
+exports.getAllEducators = async (req, res) => {
+  try {
+    const { search, specialization, page = 1, limit = 20 } = req.query;
+    
+    const query = { role: "educator" };
+    const andConditions = [];
+    
+    // Add text search if provided (matches name, email, or specializations)
+    if (search) {
+      andConditions.push({
+        $or: [
+          { name: { $regex: search, $options: "i" } },
+          { "profile.fullName": { $regex: search, $options: "i" } },
+          { email: { $regex: search, $options: "i" } },
+          { specializationTag: { $regex: search, $options: "i" } },
+          { "profile.specialization": { $regex: search, $options: "i" } }
+        ]
+      });
+    }
+    
+    // Add exact specialization filter if provided
+    if (specialization) {
+      andConditions.push({
+        $or: [
+          { specializationTag: specialization },
+          { "profile.specialization": specialization }
+        ]
+      });
+    }
+
+    if (andConditions.length > 0) {
+      query.$and = andConditions;
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const educators = await User.find(query).select("-password").sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit));
+    
+    const hasMore = educators.length === parseInt(limit);
+
+    res.status(200).json({ success: true, educators, hasMore });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch educators." });
+  }
+};

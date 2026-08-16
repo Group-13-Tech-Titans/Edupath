@@ -5,7 +5,9 @@ import { Check, X, Mail } from "lucide-react";
 
 //Actions Card Component for Educator Review Page
 
-export default function ReviewActions({ handleVerifyAction, handleContactAction, isProcessing }) {
+export default function ReviewActions({ handleVerifyAction, handleContactAction, actionStatus }) {
+  const isProcessing = actionStatus === "approving" || actionStatus === "rejecting";
+  const isDone = actionStatus === "approved" || actionStatus === "rejected";
   return (
     <div className="rounded-[28px] border border-black/5 bg-white/70 p-6 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur h-fit space-y-4">
       <h2 className="text-lg font-bold text-slate-800 mb-4">Actions</h2>
@@ -15,22 +17,22 @@ export default function ReviewActions({ handleVerifyAction, handleContactAction,
    
       <button
         onClick={() => handleVerifyAction("VERIFIED")}
-        disabled={isProcessing}
+        disabled={isProcessing || isDone}
         className="w-full rounded-2xl bg-emerald-500 py-3.5 font-bold text-white shadow hover:bg-emerald-600 transition disabled:opacity-70 flex items-center justify-center gap-2"
       >
         <Check className="w-5 h-5" />
-        {isProcessing ? "Processing..." : "Approve Educator"}
+        {actionStatus === "approving" ? "Approving..." : actionStatus === "approved" ? "Application Approved" : "Approve Educator"}
       </button>
 
 
 {/* Reject Button */}
       <button
         onClick={() => handleVerifyAction("REJECTED")}
-        disabled={isProcessing}
+        disabled={isProcessing || isDone}
         className="w-full rounded-2xl bg-red-500 py-3.5 font-bold text-white shadow hover:bg-red-600 transition disabled:opacity-70 flex items-center justify-center gap-2"
       >
         <X className="w-5 h-5" />
-        {isProcessing ? "Processing..." : "Reject Educator"}
+        {actionStatus === "rejecting" ? "Rejecting..." : actionStatus === "rejected" ? "Application Rejected" : "Reject Educator"}
       </button>
 
 

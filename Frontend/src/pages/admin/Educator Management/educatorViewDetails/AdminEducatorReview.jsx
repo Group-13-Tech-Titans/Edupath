@@ -16,17 +16,13 @@ export default function AdminEducatorReview() {
   
   const educator = location.state?.educator;
 
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [toast, setToast] = useState(null);
+  const [actionStatus, setActionStatus] = useState(
+    educator?.status === "VERIFIED" ? "approved" : educator?.status === "REJECTED" ? "rejected" : "idle"
+  ); // idle, approving, rejecting, approved, rejected
 
   const getAuthHeader = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem("edupath_token")}` }
   });
-
-  const showToast = (type, text) => {
-    setToast({ type, text });
-    setTimeout(() => setToast(null), 3000);
-  };
 
   if (!educator) {
     return (
@@ -43,7 +39,7 @@ export default function AdminEducatorReview() {
   const educatorId = educator._id || educator.id;
 
   const handleVerifyAction = async (status) => {
-    setIsProcessing(true);
+    setActionStatus(status === "VERIFIED" ? "approving" : "rejecting");
     try {
       await axios.patch(
         VERIFY_EDUCATOR_API(educatorId),
@@ -51,17 +47,16 @@ export default function AdminEducatorReview() {
         getAuthHeader()
       );
 
-      const actionWord = status === "VERIFIED" ? "approved" : "rejected";
-      showToast("success", `Educator successfully ${actionWord}!`);
+      setActionStatus(status === "VERIFIED" ? "approved" : "rejected");
       
       setTimeout(() => {
         navigate("/admin/verify-educators"); 
-      }, 1500);
+      }, 1200);
 
     } catch (err) {
       console.error("Verification error:", err);
-      showToast("error", err.response?.data?.message || `Failed to mark as ${status}.`);
-      setIsProcessing(false);
+      alert(err.response?.data?.message || `Failed to mark as ${status}.`);
+      setActionStatus("idle");
     }
   };
 
@@ -73,13 +68,6 @@ export default function AdminEducatorReview() {
 
   return (
     <PageShell>
-      {toast && (
-        <div className="fixed right-4 top-20 z-50">
-          <div className={`rounded-2xl border px-4 py-3 text-sm shadow-lg backdrop-blur bg-white/80 ${toast.type === "success" ? "border-emerald-200 text-emerald-700" : "border-red-200 text-red-600"}`}>
-            {toast.text}
-          </div>
-        </div>
-      )}
 
       <div className="space-y-6">
         {/* 1. Header Component */}
@@ -90,11 +78,13 @@ export default function AdminEducatorReview() {
           <ApplicantInfo educator={educator} fullName={fullName} />
 
           {/* 3. Actions Component */}
-          <ReviewActions 
-            handleVerifyAction={handleVerifyAction} 
-            handleContactAction={handleContactAction} 
-            isProcessing={isProcessing} 
-          />
+          <div>
+            <ReviewActions 
+              handleVerifyAction={handleVerifyAction} 
+              handleContactAction={handleContactAction} 
+              actionStatus={actionStatus} 
+            />
+          </div>
         </div>
       </div>
       <br/>

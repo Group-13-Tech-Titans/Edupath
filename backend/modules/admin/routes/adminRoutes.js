@@ -13,6 +13,7 @@ const analyticsController = require("../controller/analyticsController"); // das
 
 //   ADMIN MANAGEMENT
 router.get("/", authMiddleware, roleMiddleware(["admin"]), adminUserController.adminWelcome);
+router.get("/admins", authMiddleware, roleMiddleware(["admin"]), adminUserController.getAllAdmins); // fetch all admins
 router.post("/create-user", authMiddleware, roleMiddleware(["admin"]), adminUserController.createAdminUser); // create new admin user
 
 
@@ -25,6 +26,7 @@ router.delete("/reviewers/:id", authMiddleware, roleMiddleware(["admin"]), revie
 
 //   EDUCATORS VERIFICATION
 router.get("/educators/pending", authMiddleware, roleMiddleware(["admin"]), educatorController.getPendingEducators); // show pending educators 
+router.get("/educators", authMiddleware, roleMiddleware(["admin"]), educatorController.getAllEducators); // show all educators with optional filter
 router.patch("/educators/:id/verify", authMiddleware, roleMiddleware(["admin"]), educatorController.verifyEducator); // mark verified educator
 router.patch("/educators/:id/reject", authMiddleware, roleMiddleware(["admin"]), educatorController.rejectEducator); // mark rejected educator
 

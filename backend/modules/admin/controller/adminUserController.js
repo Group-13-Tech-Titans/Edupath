@@ -9,6 +9,16 @@ const BCRYPT_SALT_ROUNDS = 10;
 // Simple welcome message for admin route testing
 exports.adminWelcome = (req, res) => res.json({ message: "Welcome Admin" });
 
+// Get all admin users
+exports.getAllAdmins = async (req, res) => {
+  try {
+    const admins = await User.find({ role: "admin" }).select("-password");
+    res.status(200).json({ success: true, admins });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch admins." });
+  }
+};
+
 // Create a new Admin user and send auto-generated password via email
 exports.createAdminUser = async (req, res) => {
   try {

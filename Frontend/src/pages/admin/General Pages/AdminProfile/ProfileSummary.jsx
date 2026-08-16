@@ -1,5 +1,6 @@
 import React from "react";
 import { InfoRow } from "./ProfileSharedUI";
+import RegisteredAdmins from "./RegisteredAdmins";
 
 export default function ProfileSummary({ profile }) {
   
@@ -13,7 +14,8 @@ export default function ProfileSummary({ profile }) {
   };
 
   return (
-    <div className="rounded-[28px] border border-black/5 bg-white/70 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
+    <div className="space-y-6 h-full flex flex-col">
+      <div className="rounded-[28px] border border-black/5 bg-white/70 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur shrink-0">
       
       <div className="flex items-center gap-4">
         {/* Avatar circle with initials */}
@@ -46,6 +48,11 @@ export default function ProfileSummary({ profile }) {
               : "—"
           }
         />
+      </div>
+      </div>
+      
+      <div className="flex-1 min-h-0">
+        <RegisteredAdmins />
       </div>
     </div>
   );
