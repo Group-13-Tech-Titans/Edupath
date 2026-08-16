@@ -64,8 +64,8 @@ export default function AiPathwayGenerator({ pathName, level, onTopicsGenerated 
             <Bot className="h-5 w-5 animate-pulse" />
           </div>
           <div>
-            <h3 className="text-base font-extrabold text-slate-800 tracking-tight">AI Curriculum Architect</h3>
-            <p className="text-xs font-medium text-slate-500">Powered by Gemini - Let AI draft the perfect learning topics.</p>
+            <h3 className="text-base font-extrabold text-slate-800 tracking-tight">AI Pathway suggestions</h3>
+            <p className="text-xs font-medium text-slate-500">support to build a pathway template.</p>
           </div>
         </div>
 
@@ -94,7 +94,7 @@ export default function AiPathwayGenerator({ pathName, level, onTopicsGenerated 
             )}
 
             <div className="relative flex items-center gap-2 z-10">
-              {loadingState === "idle" && <><Sparkles className="h-4 w-4 text-yellow-400" /> Generate with AI</>}
+              {loadingState === "idle" && <><Sparkles className="h-4 w-4 text-yellow-400" /> Generate </>}
               {loadingState === "analyzing" && <><Cpu className="h-4 w-4 animate-bounce text-blue-200" /> AI is Thinking...</>}
               {loadingState === "generating" && <><Loader2 className="h-4 w-4 animate-spin text-white" /> Crafting Steps...</>}
               {loadingState === "success" && <><CheckCircle className="h-4 w-4 text-white" /> Topics Ready!</>}
