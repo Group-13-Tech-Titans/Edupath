@@ -1,10 +1,11 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const OpenAI = require("openai");
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const client = new OpenAI({
+  baseURL: 'https://api.deepseek.com',
+  apiKey: process.env.OPENROUTER_API_KEY,
+});
 
 exports.generatePathwayTopics = async (pathName, level, context) => {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
   const prompt = `
 You are an expert curriculum designer and educational AI.
 Your STRICT and ONLY task is to generate a structured JSON list of topics for a learning pathway.
@@ -28,16 +29,23 @@ Output ONLY valid JSON.
   `;
 
   try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const apiResponse = await client.chat.completions.create({
+      model: 'deepseek-v4-flash',
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    });
+    const text = apiResponse.choices[0].message.content;
     
     // Clean potential markdown from the response
     const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
     
     return JSON.parse(jsonString);
   } catch (error) {
-    console.error("Gemini AI Error:", error);
+    console.error("DeepSeek AI Error:", error);
     throw new Error("Failed to generate topics from AI");
   }
 };

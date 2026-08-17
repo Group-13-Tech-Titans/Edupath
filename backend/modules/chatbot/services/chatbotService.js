@@ -1,40 +1,39 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const OpenAI = require("openai");
 const { chatbotSystemInstruction } = require("../../../prompts/chatbotPrompts");
 
 exports.generateChatResponse = async (history, newMessage) => {
   try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    
-    const model = genAI.getGenerativeModel({
-      model: "gemini-3-flash-preview",
-      systemInstruction: chatbotSystemInstruction,
+    const client = new OpenAI({
+      baseURL: 'https://api.deepseek.com',
+      apiKey: process.env.OPENROUTER_API_KEY,
     });
 
-    const formattedHistory = [];
-    for (const msg of history) {
-      const role = msg.sender === 'user' ? 'user' : 'model';
-      
-      // History must start with 'user'
-      if (formattedHistory.length === 0 && role === 'model') {
-        continue;
-      }
+    const formattedHistory = [
+      { role: "system", content: chatbotSystemInstruction }
+    ];
 
-      if (formattedHistory.length > 0 && formattedHistory[formattedHistory.length - 1].role === role) {
+    for (const msg of history) {
+      const role = msg.sender === 'user' ? 'user' : 'assistant';
+      
+      if (formattedHistory.length > 0 && formattedHistory[formattedHistory.length - 1].role === role && role !== "system") {
         // Merge consecutive messages from the same role
-        formattedHistory[formattedHistory.length - 1].parts[0].text += '\n' + msg.text;
+        formattedHistory[formattedHistory.length - 1].content += '\n' + msg.text;
       } else {
-        formattedHistory.push({ role, parts: [{ text: msg.text }] });
+        formattedHistory.push({ role, content: msg.text });
       }
     }
 
-    const chat = model.startChat({
-      history: formattedHistory,
+    // Add the new message
+    formattedHistory.push({ role: 'user', content: newMessage });
+
+    const apiResponse = await client.chat.completions.create({
+      model: 'deepseek-v4-flash',
+      messages: formattedHistory,
     });
 
-    const result = await chat.sendMessage(newMessage);
-    return result.response.text();
+    return apiResponse.choices[0].message.content;
   } catch (error) {
-    console.error("Gemini API Error:", error.message || error);
+    console.error("DeepSeek API Error:", error.message || error);
     // Return a friendly fallback message instead of crashing the chat for the user
     return "I'm sorry, I'm having a little trouble connecting right now (I might be overwhelmed!). Could we try that again in a moment?";
   }

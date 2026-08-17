@@ -1,6 +1,6 @@
 exports.generateQuiz = async ({ stepTitle, level }) => {
 
-  // 🔥 Replace later with Gemini API
+  // 🔥 Replace later with DeepSeek API
   return [
     {
       question: `What is ${stepTitle}?`,
