@@ -9,10 +9,15 @@ const app = express();
 connectDB();
 
 app.use(cors({ 
-  origin: [
-    'http://localhost:5173', 
-    'https://edupath-2qyu-j7k3cchhg-yasindugunasekaras-projects.vercel.app'
-  ] 
+  origin: function (origin, callback) {
+    const allowedOrigins = ['http://localhost:5173'];
+    // Allow any origin that matches the Vercel preview domain pattern
+    if (!origin || allowedOrigins.includes(origin) || /^https:\/\/edupath-.*\.vercel\.app$/.test(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
 }));
 
 // Increase the limit to 50mb to allow large Base64 images to pass through
