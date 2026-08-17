@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { fadeUp, stagger } from "./LandingSharedUI";
+import { Palette, Monitor, BarChart, Shield } from "lucide-react";
 
 // Modern Pathway Card for a cleaner look
 function ModernPathCard({ title, icon, points, colorClass, bgClass }) {
@@ -49,7 +50,7 @@ export default function PathwaysSection({ scrollToId }) {
           <motion.div variants={fadeUp} className="h-full">
             <ModernPathCard 
               title="UI/UX Designer" 
-              icon="🎨" 
+              icon={<Palette className="h-7 w-7" />} 
               points={["Design fundamentals", "Figma mastery", "User research"]} 
               colorClass="text-emerald-600" 
               bgClass="bg-emerald-50" 
@@ -58,7 +59,7 @@ export default function PathwaysSection({ scrollToId }) {
           <motion.div variants={fadeUp} className="h-full">
             <ModernPathCard 
               title="Full-Stack Developer" 
-              icon="💻" 
+              icon={<Monitor className="h-7 w-7" />} 
               points={["Frontend & Backend", "Database design", "Deploy real apps"]} 
               colorClass="text-blue-600" 
               bgClass="bg-blue-50" 
@@ -67,7 +68,7 @@ export default function PathwaysSection({ scrollToId }) {
           <motion.div variants={fadeUp} className="h-full">
             <ModernPathCard 
               title="Data Analyst" 
-              icon="📊" 
+              icon={<BarChart className="h-7 w-7" />} 
               points={["Excel to SQL", "Data visualization", "Building dashboards"]} 
               colorClass="text-purple-600" 
               bgClass="bg-purple-50" 
@@ -76,7 +77,7 @@ export default function PathwaysSection({ scrollToId }) {
           <motion.div variants={fadeUp} className="h-full">
             <ModernPathCard 
               title="Cybersecurity" 
-              icon="🛡️" 
+              icon={<Shield className="h-7 w-7" />} 
               points={["Security mindset", "Network defense", "Hands-on labs"]} 
               colorClass="text-orange-600" 
               bgClass="bg-orange-50" 
