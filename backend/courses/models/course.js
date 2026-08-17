@@ -23,7 +23,14 @@ const courseSchema = new mongoose.Schema({
     reviewerName: { type: String },
     reviewerEmail: { type: String },
     reviewedAt: { type: Date }
-  }
+  },
+  enrolledStudents: [{
+    studentId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    studentEmail: { type: String },
+    studentName: { type: String },
+    enrolledAt: { type: Date, default: Date.now }
+  }],
+  enrolledCount: { type: Number, default: 0 }
 }, { timestamps: true });
 
 module.exports = mongoose.model("Course", courseSchema);

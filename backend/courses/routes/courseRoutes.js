@@ -1,9 +1,12 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const Course = require("../models/course");
-const authMiddleware = require("../../auth/middleware/authMiddleware");
-const roleMiddleware = require("../../auth/middleware/roleMiddleware");
-const sendEmail = require("../../utils/sendEmail");
-const { courseSubmittedEmail, courseReviewedEmail } = require("../../utils/emailTemplates");
+const authMiddleware = require("../../../middleware/authMiddleware");
+const roleMiddleware = require("../../../middleware/roleMiddleware");
+const sendEmail = require("../../../utils/sendEmail");
+const { courseSubmittedEmail, courseReviewedEmail } = require("../../../utils/emailTemplates");
+const User = require("../../auth/models/User");
+const subscriptionService = require("../../subscription/services/subscriptionService");
 
 const router = express.Router();
 
@@ -20,7 +23,8 @@ function getReviewerSpecializationTags(user) {
   return [...new Set(values.filter(Boolean).map((value) => String(value).trim()))];
 }
 
-router.post("/", authMiddleware, roleMiddleware(["educator", "admin"]), async (req, res) => {
+// CREATE a course (educator only)
+router.post("/", authMiddleware, async (req, res) => {
   try {
     const status = req.body.status || "pending";
     const course = await Course.create({
@@ -31,6 +35,7 @@ router.post("/", authMiddleware, roleMiddleware(["educator", "admin"]), async (r
     });
     res.status(201).json({ course });
 
+    // Send submission email only when published (not when saving a draft)
     if (status === "pending") {
       sendEmail({
         to: req.user.email,
@@ -41,15 +46,17 @@ router.post("/", authMiddleware, roleMiddleware(["educator", "admin"]), async (r
           category: course.category,
           level: course.level
         })
-      }).catch(() => {});
+      }).catch((err) => console.error("Course submitted email failed:", err.message));
     }
   } catch (err) {
     res.status(500).json({ message: err.message || "Failed to create course" });
   }
 });
 
-router.put("/:id", authMiddleware, roleMiddleware(["educator", "admin"]), async (req, res) => {
+// UPDATE a course (educator - for editing drafts)
+router.put("/:id", authMiddleware, async (req, res) => {
   try {
+    // Get the old course to check if status is changing to pending
     const oldCourse = await Course.findOne({ _id: req.params.id, createdByEducatorEmail: req.user.email });
     if (!oldCourse) return res.status(404).json({ message: "Course not found" });
 
@@ -60,6 +67,7 @@ router.put("/:id", authMiddleware, roleMiddleware(["educator", "admin"]), async 
     );
     res.json({ course });
 
+    // Send submission email if the course is being moved from draft/rejected to pending
     const wasNotPending = oldCourse.status !== "pending";
     if (req.body.status === "pending" && wasNotPending) {
       sendEmail({
@@ -71,14 +79,15 @@ router.put("/:id", authMiddleware, roleMiddleware(["educator", "admin"]), async 
           category: course.category,
           level: course.level
         })
-      }).catch(() => {});
+      }).catch((err) => console.error("Course submitted email failed:", err.message));
     }
   } catch (err) {
     res.status(500).json({ message: err.message || "Failed to update course" });
   }
 });
 
-router.get("/my", authMiddleware, roleMiddleware(["educator", "admin"]), async (req, res) => {
+// GET all courses for the logged-in educator
+router.get("/my", authMiddleware, async (req, res) => {
   try {
     const courses = await Course.find({ createdByEducatorEmail: req.user.email }).sort({ createdAt: -1 });
     res.json({ courses });
@@ -87,6 +96,7 @@ router.get("/my", authMiddleware, roleMiddleware(["educator", "admin"]), async (
   }
 });
 
+// GET pending courses matched to the reviewer specializations
 router.get("/reviewer/queue", authMiddleware, roleMiddleware(["reviewer", "admin"]), async (req, res) => {
   try {
     if (req.user.role === "admin") {
@@ -95,13 +105,18 @@ router.get("/reviewer/queue", authMiddleware, roleMiddleware(["reviewer", "admin
     }
 
     const specializationTags = getReviewerSpecializationTags(req.user);
+    // If reviewer has no specialization assigned yet, show all pending courses
+    // (so you can still test/review without a tag set in MongoDB)
     if (specializationTags.length === 0) {
       const allPending = await Course.find({ status: "pending", trashedAt: null }).sort({ createdAt: -1 });
       return res.json({ courses: allPending });
     }
 
+    // Courses store specializationTag as a comma-separated string (e.g. "web-development,data-science")
+    // so we use regex to check if ANY of the reviewer's tags appear anywhere in that string,
+    // rather than doing an exact $in match which would miss multi-tag courses.
     const tagRegexes = specializationTags.map(
-      (tag) => new RegExp(`(^|,\\s*)${tag.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}(\\s*,|$)`, "i")
+      (tag) => new RegExp(`(^|,\\s*)${tag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\s*,|$)`, "i")
     );
 
     const courses = await Course.find({
@@ -119,6 +134,20 @@ router.get("/reviewer/queue", authMiddleware, roleMiddleware(["reviewer", "admin
   }
 });
 
+// GET reviewer history (courses reviewed by the logged-in reviewer)
+router.get("/reviewer/history", authMiddleware, roleMiddleware(["reviewer", "admin", "educator"]), async (req, res) => {
+  try {
+    const courses = await Course.find({
+      "review.reviewerEmail": req.user.email,
+      trashedAt: null
+    }).sort({ "review.reviewedAt": -1, updatedAt: -1 });
+    res.json({ courses });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to fetch reviewer history" });
+  }
+});
+
+// GET all approved courses (public)
 router.get("/", async (req, res) => {
   try {
     const courses = await Course.find({ status: "approved", trashedAt: null }).sort({ createdAt: -1 });
@@ -128,7 +157,8 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/all", authMiddleware, roleMiddleware(["admin"]), async (req, res) => {
+// GET all courses (admin)
+router.get("/all", authMiddleware, async (req, res) => {
   try {
     const courses = await Course.find().sort({ createdAt: -1 });
     res.json({ courses });
@@ -137,9 +167,15 @@ router.get("/all", authMiddleware, roleMiddleware(["admin"]), async (req, res) =
   }
 });
 
+// GET single course by ID
 router.get("/:id", async (req, res) => {
   try {
-    const course = await Course.findById(req.params.id);
+    let course = null;
+    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+      course = await Course.findOne({ $or: [{ _id: req.params.id }, { id: req.params.id }] }).catch(() => null);
+    } else {
+      course = await Course.findOne({ id: req.params.id }).catch(() => null);
+    }
     if (!course) return res.status(404).json({ message: "Course not found" });
     res.json({ course });
   } catch (err) {
@@ -147,7 +183,8 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.patch("/:id/trash", authMiddleware, roleMiddleware(["educator", "admin"]), async (req, res) => {
+// MOVE course to trash (soft delete)
+router.patch("/:id/trash", authMiddleware, async (req, res) => {
   try {
     const course = await Course.findOneAndUpdate(
       { _id: req.params.id, createdByEducatorEmail: req.user.email },
@@ -161,7 +198,8 @@ router.patch("/:id/trash", authMiddleware, roleMiddleware(["educator", "admin"])
   }
 });
 
-router.patch("/:id/restore", authMiddleware, roleMiddleware(["educator", "admin"]), async (req, res) => {
+// RESTORE course from trash
+router.patch("/:id/restore", authMiddleware, async (req, res) => {
   try {
     const course = await Course.findOneAndUpdate(
       { _id: req.params.id, createdByEducatorEmail: req.user.email },
@@ -175,7 +213,8 @@ router.patch("/:id/restore", authMiddleware, roleMiddleware(["educator", "admin"
   }
 });
 
-router.delete("/trash/empty", authMiddleware, roleMiddleware(["educator", "admin"]), async (req, res) => {
+// EMPTY trash (permanently delete all trashed courses for the logged-in educator)
+router.delete("/trash/empty", authMiddleware, async (req, res) => {
   try {
     const result = await Course.deleteMany({
       createdByEducatorEmail: req.user.email,
@@ -187,7 +226,8 @@ router.delete("/trash/empty", authMiddleware, roleMiddleware(["educator", "admin
   }
 });
 
-router.delete("/:id/permanent", authMiddleware, roleMiddleware(["educator", "admin"]), async (req, res) => {
+// PERMANENTLY delete one trashed course
+router.delete("/:id/permanent", authMiddleware, async (req, res) => {
   try {
     const course = await Course.findOneAndDelete({
       _id: req.params.id,
@@ -201,7 +241,7 @@ router.delete("/:id/permanent", authMiddleware, roleMiddleware(["educator", "adm
   }
 });
 
-router.patch("/:id/status", authMiddleware, roleMiddleware(["reviewer", "admin"]), async (req, res) => {
+router.patch("/:id/status", authMiddleware, async (req, res) => {
   try {
     const { status, decision, rating, notes } = req.body;
     const updateData = { status };
@@ -224,6 +264,7 @@ router.patch("/:id/status", authMiddleware, roleMiddleware(["reviewer", "admin"]
     if (!course) return res.status(404).json({ message: "Course not found" });
     res.json({ course });
 
+    // Send review result email to educator (non-blocking)
     if (status === "approved" || status === "rejected") {
       sendEmail({
         to: course.createdByEducatorEmail,
@@ -236,12 +277,118 @@ router.patch("/:id/status", authMiddleware, roleMiddleware(["reviewer", "admin"]
           notes: notes || "",
           reviewerName: req.user.name
         })
-      }).catch(() => {});
+      }).catch((err) => console.error("Course reviewed email failed:", err.message));
     }
   } catch (err) {
     res.status(500).json({ message: err.message || "Failed to update course status" });
   }
 });
+
+// ==========================================
+// 🟢 ENROLL IN A COURSE (Student)
+// ==========================================
+const handleCourseEnrollment = async (req, res) => {
+  try {
+    const courseId = req.params.id;
+    const userId = req.user._id || req.user.id; 
+    
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    let course = null;
+    if (mongoose.Types.ObjectId.isValid(courseId)) {
+      course = await Course.findOne({ $or: [{ _id: courseId }, { id: courseId }] }).catch(() => null);
+    } else {
+      course = await Course.findOne({ id: courseId }).catch(() => null);
+    }
+    if (!course) {
+      return res.status(404).json({ success: false, message: "Course not found" });
+    }
+
+    if (!user.enrolledCourses) {
+      user.enrolledCourses = [];
+    }
+
+    const actualCourseId = course._id.toString();
+
+    const alreadyEnrolled = user.enrolledCourses.find(c => String(c.courseId) === actualCourseId);
+    
+    if (alreadyEnrolled) {
+      const safeUser = user.toObject();
+      delete safeUser.password;
+      return res.status(200).json({
+        success: true,
+        alreadyEnrolled: true,
+        user: safeUser,
+        message: "You are already enrolled in this course."
+      });
+    }
+
+    // 🛡️ Subscription Course Limit Check (20 courses/month for Free, Unlimited for Premium)
+    const trackResult = await subscriptionService.trackCourseView(user, actualCourseId);
+    if (!trackResult.allowed) {
+      return res.status(403).json(trackResult);
+    }
+
+    // 1. Add to student's enrolled courses
+    user.enrolledCourses.push({ courseId: actualCourseId, enrolledAt: new Date() });
+    await user.save();
+
+    // 2. Add student to course's enrolled students list
+    if (!course.enrolledStudents) {
+      course.enrolledStudents = [];
+    }
+    course.enrolledStudents.push({
+      studentId: user._id,
+      studentEmail: user.email,
+      studentName: user.name || "Student",
+      enrolledAt: new Date()
+    });
+    course.enrolledCount = course.enrolledStudents.length;
+    await course.save();
+
+    // 3. Credit $1.00 USD to Educator's Earnings for this enrollment!
+    if (course.createdByEducatorEmail) {
+      const educator = await User.findOne({ email: course.createdByEducatorEmail });
+      if (educator) {
+        if (!educator.educatorEarnings) {
+          educator.educatorEarnings = {
+            totalStudentsEnrolled: 0,
+            totalEarnedUSD: 0,
+            withdrawnUSD: 0,
+            currentBalanceUSD: 0,
+            lastWithdrawalDate: null,
+            withdrawals: []
+          };
+        }
+        educator.educatorEarnings.totalStudentsEnrolled = (educator.educatorEarnings.totalStudentsEnrolled || 0) + 1;
+        educator.educatorEarnings.totalEarnedUSD = (educator.educatorEarnings.totalEarnedUSD || 0) + 1;
+        educator.educatorEarnings.currentBalanceUSD = (educator.educatorEarnings.currentBalanceUSD || 0) + 1;
+        await educator.save();
+      }
+    }
+
+    const safeUser = user.toObject();
+    delete safeUser.password;
+
+    res.status(200).json({
+      success: true,
+      user: safeUser,
+      message: "Successfully enrolled! Enjoy your course.",
+      coursesWatchedCount: trackResult.coursesWatchedCount,
+      coursesWatchedLimit: trackResult.coursesWatchedLimit,
+      monthlyResetDate: trackResult.monthlyResetDate
+    });
+  } catch (err) {
+    console.error("Enrollment Error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+router.post("/enroll/:id", authMiddleware, handleCourseEnrollment);
+router.post("/:id/enroll", authMiddleware, handleCourseEnrollment);
 
 module.exports = router;
 

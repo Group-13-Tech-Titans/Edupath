@@ -1,70 +1,76 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+} from "react";
+import PropTypes from "prop-types";
 import { mockCourses } from "../data/mockCourses.js";
+import * as authApi from "../api/authApi.js";
+import { getToken, setToken } from "../api/client.js";
+import { googleLogout } from "@react-oauth/google";
+import * as courseApi from '../api/courseApi';
+import * as mentorApi from "../api/mentorApi.js";
+import toast from "react-hot-toast";
+import { initiateSocketConnection, disconnectSocket, subscribeToMessages } from "../socket.js";
+import axios from "axios";
+
+
 
 const STORAGE_KEY = "edupath_app_state_v1";
 
 const AppContext = createContext(null);
 
-const defaultUsers = [
-  {
-    id: "u-admin",
-    name: "Platform Admin",
-    email: "admin@edupath.com",
-    password: "Admin@123",
-    role: "admin"
-  },
-  {
-    id: "u-student",
-    name: "Demo Student",
-    email: "student@edupath.com",
-    password: "Student@123",
-    role: "student"
-  },
-  {
-    id: "u-educator",
-    name: "Demo Educator",
-    email: "educator@edupath.com",
-    password: "Educator@123",
-    role: "educator",
-    status: "VERIFIED",
-    specializationTag: "web-dev"
-  }
-];
+function normalizeUser(u) {
+  if (!u) return null;
+  const user = { ...u };
+  if (user._id && !user.id) user.id = user._id.toString();
+  return user;
+}
 
 const defaultState = {
   currentUser: null,
-  users: defaultUsers,
+  authLoading: true,
+  users: [],
   courses: mockCourses,
   mentorRequests: [],
   lessonProgress: {},
   payouts: {},
   reviewHistory: [],
-  reviewerAccounts: []
+  reviewerAccounts: [],
+  unreadMessagesCount: 0,
 };
 
 function loadState() {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = globalThis.localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultState));
-      return defaultState;
+      return { ...defaultState };
     }
     const parsed = JSON.parse(raw);
     return {
       ...defaultState,
       ...parsed,
-      users: parsed.users || defaultUsers,
-      courses: parsed.courses || mockCourses
+      currentUser: null,
+      authLoading: true,
+      users: parsed.users || [],
+      courses: parsed.courses || mockCourses,
+      mentorRequests: [],
     };
   } catch (e) {
     console.error("Failed to load state", e);
-    return defaultState;
+    return { ...defaultState };
   }
 }
 
 function persistState(state) {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const toPersist = { ...state };
+    delete toPersist.mentorRequests;
+    delete toPersist.courses;
+    globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(toPersist));
   } catch (e) {
     console.error("Failed to persist state", e);
   }
@@ -77,152 +83,536 @@ export const AppProvider = ({ children }) => {
     persistState(state);
   }, [state]);
 
-  const login = useCallback((email, password) => {
-    const user = state.users.find((u) => u.email === email && u.password === password);
-    if (!user) return { success: false, message: "Invalid credentials" };
-    const newState = { ...state, currentUser: user };
-    setState(newState);
-    return { success: true, user };
-  }, [state]);
+  useEffect(() => {
+    // run once only (cleanup legacy keys)
+    if (localStorage.getItem("token")) localStorage.removeItem("token");
+  }, []);
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) {
+      setState((prev) => ({ ...prev, authLoading: false }));
+      return;
+    }
+    authApi
+      .getMe()
+      .then((user) => {
+        setState((prev) => ({
+          ...prev,
+          currentUser: normalizeUser(user),
+          authLoading: false,
+        }));
+      })
+      .catch(() => {
+        setToken(null);
+        setState((prev) => ({
+          ...prev,
+          currentUser: null,
+          authLoading: false,
+        }));
+      });
+  }, []);
+
+  const refreshCurrentUser = useCallback(async () => {
+    const token = getToken();
+    if (!token) return;
+    try {
+      const user = await authApi.getMe();
+      setState((prev) => ({
+        ...prev,
+        currentUser: normalizeUser(user),
+      }));
+    } catch (err) {
+      console.error("Failed to refresh current user", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    const onSubscriptionUpdated = () => {
+      refreshCurrentUser();
+    };
+    window.addEventListener("edupath_subscription_updated", onSubscriptionUpdated);
+    return () => window.removeEventListener("edupath_subscription_updated", onSubscriptionUpdated);
+  }, [refreshCurrentUser]);
+
+  const fetchMentorRequests = useCallback(async () => {
+    if (!state.currentUser) return;
+    try {
+      let sessions = [];
+      const isMentor = state.currentUser.role === "mentor" || state.currentUser.isMentor === true;
+      if (isMentor) {
+        sessions = await mentorApi.getMentorSessions();
+      } else {
+        sessions = await mentorApi.getStudentSessions();
+      }
+      
+      const normalized = sessions.map(s => ({
+        id: s._id,
+        fullName: s.studentName,
+        mentorName: s.mentorName || "Mentor",
+        field: s.topic,
+        sessionType: s.type,
+        notes: s.note,
+        status: s.status,
+        scheduledDate: s.scheduledDate,
+        scheduledTime: s.scheduledTime,
+        meetingLink: s.meetingLink,
+        mentorId: s.mentorId,
+        createdAt: s.createdAt
+      }));
+
+      setState(prev => ({ ...prev, mentorRequests: normalized }));
+    } catch (error) {
+      console.error("fetchMentorRequests failed:", error);
+    }
+  }, [state.currentUser]);
+
+  const fetchUnreadCount = useCallback(async () => {
+    if (!state.currentUser) return;
+    try {
+      const res = await mentorApi.getUnreadCount();
+      setState(prev => ({ ...prev, unreadMessagesCount: res.unreadCount || 0 }));
+    } catch (err) {
+      console.error("fetchUnreadCount failed:", err);
+    }
+  }, [state.currentUser]);
+
+  useEffect(() => {
+    if (state.currentUser) {
+      fetchMentorRequests();
+      fetchUnreadCount();
+      
+      // Real-time Chat setup
+      initiateSocketConnection(state.currentUser.id);
+      subscribeToMessages((msg) => {
+        // Increment unread count locally
+        setState(prev => ({ ...prev, unreadMessagesCount: prev.unreadMessagesCount + 1 }));
+        
+        // Show notification toast
+        const senderName = msg.senderName || "New message";
+        toast.success(`New message from ${senderName}`, {
+          duration: 4000,
+          position: "top-right",
+          style: {
+            borderRadius: '10px',
+            background: '#333',
+            color: '#fff',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          },
+        });
+      });
+    } else {
+      disconnectSocket();
+    }
+    
+    return () => disconnectSocket();
+  }, [state.currentUser, fetchMentorRequests, fetchUnreadCount]);
+
+  const setSession = useCallback((token, user) => {
+    setToken(token); // saves to edupath_token
+    setState((prev) => ({
+      ...prev,
+      currentUser: normalizeUser(user),
+      authLoading: false,
+    }));
+  }, []);
+
+  const login = useCallback(
+    async (email, password) => {
+      try {
+        const result = await authApi.login(email.trim(), password);
+        setSession(result.token, result.user); // needs authApi.login to return token too
+        return { success: true, user: result.user };
+      } catch (err) {
+        return {
+          success: false,
+          message: err.message || "Invalid credentials",
+        };
+      }
+    },
+    [setSession],
+  );
 
   const logout = useCallback(() => {
+    googleLogout();
+    setToken(null); // removes edupath_token
+    localStorage.removeItem("edupath_user");
+    localStorage.removeItem("user"); // optional if you used it before
     setState((prev) => ({ ...prev, currentUser: null }));
   }, []);
 
-  const signupStudent = useCallback((formData) => {
-    const exists = state.users.find((u) => u.email === formData.email);
-    if (exists) {
-      return { success: false, message: "Email already in use" };
-    }
-    const newUser = {
-      id: `u-${Date.now()}`,
-      name: `${formData.firstName} ${formData.lastName}`,
-      role: "student",
-      email: formData.email,
-      password: formData.password,
-      profile: { ...formData }
-    };
-    setState((prev) => ({ ...prev, users: [...prev.users, newUser] }));
-    return { success: true };
-  }, [state.users]);
+  const signupAccount = useCallback(async (payload) => {
+    try {
+      // 1) Register (creates user with pending role)
+      await authApi.register({
+        email: payload.email,
+        password: payload.password,
+        role: "pending",
+      });
 
-  const signupEducator = useCallback((formData) => {
-    const exists = state.users.find((u) => u.email === formData.email);
-    if (exists) {
-      return { success: false, message: "Email already in use" };
-    }
-    const newUser = {
-      id: `u-${Date.now()}`,
-      name: formData.fullName,
-      role: "educator",
-      email: formData.email,
-      password: formData.password,
-      status: "PENDING_VERIFICATION",
-      specializationTag: formData.specializationTag,
-      profile: { ...formData }
-    };
-    setState((prev) => ({ ...prev, users: [...prev.users, newUser] }));
-    return { success: true };
-  }, [state.users]);
+      // 2) Immediately login to get token + user
+      const loginRes = await authApi.login(payload.email, payload.password);
 
-  const createReviewer = useCallback((payload) => {
-    const exists = state.users.find((u) => u.email === payload.email);
-    if (exists) {
-      return { success: false, message: "Email already in use" };
+      // 3) Save currentUser in state
+      setState((prev) => ({
+        ...prev,
+        currentUser: normalizeUser(loginRes.user),
+      }));
+
+      return { success: true, user: loginRes.user };
+    } catch (err) {
+      return {
+        success: false,
+        message: err.message || "Unable to create account",
+      };
     }
-    const reviewer = {
-      id: `u-${Date.now()}`,
-      name: payload.name,
-      role: "reviewer",
-      email: payload.email,
-      password: payload.password,
-      specializationTag: payload.specializationTag
-    };
-    setState((prev) => ({
-      ...prev,
-      users: [...prev.users, reviewer],
-      reviewerAccounts: [...prev.reviewerAccounts, reviewer]
-    }));
-    return { success: true };
-  }, [state.users, state.reviewerAccounts]);
+  }, []);
+
+  const signupStudent = useCallback(async (formData) => {
+    try {
+      // Extract password & confirm. Keep everything else in 'safeProfileData'
+      const { password, confirm, ...safeProfileData } = formData;
+
+      const result = await authApi.updateProfile({
+        name: `${formData.firstName} ${formData.lastName}`,
+        role: "student",
+        password: password,
+        profile: safeProfileData,
+        status: "active",
+      });
+      setState((prev) => ({
+        ...prev,
+        currentUser: normalizeUser(result.user),
+      }));
+      return { success: true };
+    } catch (err) {
+      return {
+        success: false,
+        message: err.message || "Unable to complete registration",
+      };
+    }
+  }, []);
+
+  const signupEducator = useCallback(async (formData) => {
+    try {
+      // Extract password & confirm. Keep everything else in 'safeProfileData'
+      const { password, confirm, ...safeProfileData } = formData;
+
+      const result = await authApi.updateProfile({
+        name: formData.fullName,
+        role: "educator",
+        password: password,
+        status: "PENDING_VERIFICATION",
+        specializationTag: formData.specializationTag,
+        profile: safeProfileData,
+      });
+      setState((prev) => ({
+        ...prev,
+        currentUser: normalizeUser(result.user),
+      }));
+      return { success: true };
+    } catch (err) {
+      return {
+        success: false,
+        message: err.message || "Unable to complete registration",
+      };
+    }
+  }, []);
+
+  const createReviewer = useCallback(
+    (payload) => {
+      const exists = state.users.find((u) => u.email === payload.email);
+      if (exists) {
+        return { success: false, message: "Email already in use" };
+      }
+      const reviewer = {
+        id: `u-${Date.now()}`,
+        name: payload.name,
+        role: "reviewer",
+        email: payload.email,
+        password: payload.password,
+        specializationTag: payload.specializationTag,
+      };
+      setState((prev) => ({
+        ...prev,
+        users: [...prev.users, reviewer],
+        reviewerAccounts: [...prev.reviewerAccounts, reviewer],
+      }));
+      return { success: true };
+    },
+    [state.users, state.reviewerAccounts],
+  );
 
   const verifyEducator = useCallback((educatorEmail, status) => {
     setState((prev) => {
       const users = prev.users.map((u) =>
         u.email === educatorEmail && u.role === "educator"
           ? { ...u, status }
-          : u
+          : u,
       );
       return { ...prev, users };
     });
   }, []);
 
-  const createCourse = useCallback((courseData) => {
-    const newCourse = {
-      ...courseData,
-      id: `c-${Date.now()}`,
-      status: "pending"
-    };
-    setState((prev) => ({ ...prev, courses: [newCourse, ...prev.courses] }));
-    return newCourse;
+  const createCourse = useCallback(async (courseData) => {
+    try {
+      const result = await courseApi.createCourse(courseData);
+      const newCourse = { ...result.course, id: result.course._id };
+      setState((prev) => ({ ...prev, courses: [newCourse, ...prev.courses] }));
+      return { success: true, course: newCourse };
+    } catch (err) {
+      return {
+        success: false,
+        message: err.message || "Failed to create course",
+      };
+    }
   }, []);
+
+  const fetchMyCourses = useCallback(async () => {
+    try {
+      const courses = await courseApi.getMyCourses();
+      const normalized = courses.map((c) => ({ ...c, id: c._id }));
+      setState((prev) => ({ ...prev, courses: normalized }));
+    } catch (err) {
+      console.error("Failed to fetch courses", err);
+    }
+  }, []);
+
+  // Fetches only APPROVED courses — safe for students and the public page.
+  // Pending, rejected, and draft courses are never included.
+  const fetchAllCourses = useCallback(async () => {
+    try {
+      const courses = await courseApi.getAllCourses();
+      const normalized = courses.map((c) => ({ ...c, id: c._id }));
+      setState((prev) => ({ ...prev, courses: normalized }));
+    } catch (err) {
+      console.error("Failed to fetch approved courses", err);
+    }
+  }, []);
+
+  // Fetches ALL courses regardless of status — for admin use only.
+  const fetchAllCoursesAdmin = useCallback(async () => {
+    try {
+      const courses = await courseApi.getAllCoursesAdmin();
+      const normalized = courses.map((c) => ({ ...c, id: c._id }));
+      setState((prev) => ({ ...prev, courses: normalized }));
+    } catch (err) {
+      console.error("Failed to fetch all courses (admin)", err);
+    }
+  }, []);
+
+  const fetchReviewerQueue = useCallback(async () => {
+    try {
+      const courses = await courseApi.getReviewerQueue();
+      const normalized = courses.map((c) => ({ ...c, id: c._id }));
+      setState((prev) => ({ ...prev, courses: normalized }));
+      return { success: true, courses: normalized };
+    } catch (err) {
+      console.error("Failed to fetch reviewer queue", err);
+      return {
+        success: false,
+        message: err.message || "Failed to fetch reviewer queue",
+      };
+    }
+  }, []);
+
+  const toReviewHistoryItem = useCallback((course) => {
+    const reviewedAt = course.review?.reviewedAt || course.updatedAt || course.createdAt;
+    return {
+      id: `rh-${course._id || course.id}`,
+      courseId: course._id || course.id,
+      course: { ...course, id: course._id || course.id },
+      title: course.title || "Untitled course",
+      decision: course.review?.decision || course.status,
+      reviewerEmail: course.review?.reviewerEmail,
+      reviewerName: course.review?.reviewerName,
+      rating: course.review?.rating,
+      notes: course.review?.notes || "",
+      reviewedAt,
+      createdAt: reviewedAt,
+    };
+  }, []);
+
+  const fetchReviewerHistory = useCallback(async () => {
+    try {
+      const courses = await courseApi.getReviewerHistory();
+      const normalized = courses.map((c) => ({ ...c, id: c._id }));
+      const history = normalized.map(toReviewHistoryItem);
+      setState((prev) => ({
+        ...prev,
+        reviewHistory: history,
+        courses: [
+          ...normalized,
+          ...prev.courses.filter(
+            (existing) =>
+              !normalized.some(
+                (course) => course.id === existing.id || course._id === existing._id,
+              ),
+          ),
+        ],
+      }));
+      return { success: true, history };
+    } catch (err) {
+      console.error("Failed to fetch reviewer history", err);
+      return {
+        success: false,
+        message: err.message || "Failed to fetch reviewer history",
+      };
+    }
+  }, [toReviewHistoryItem]);
+
+  const submitReviewDecision = useCallback(
+    async ({ itemId, decision, rating, notes }) => {
+      const status = decision === "approved" ? "approved" : "rejected";
+      try {
+        const result = await courseApi.updateCourseStatus(itemId, {
+          status,
+          decision,
+          rating,
+          notes,
+        });
+        const updatedCourse = { ...result.course, id: result.course._id };
+        setState((prev) => ({
+          ...prev,
+          courses: prev.courses.map((c) =>
+            c.id === itemId || c._id === itemId
+              ? { ...c, ...updatedCourse }
+              : c,
+          ),
+          reviewHistory: [
+            toReviewHistoryItem(updatedCourse),
+            ...prev.reviewHistory.filter(
+              (item) => item.courseId !== itemId && item.courseId !== updatedCourse._id,
+            ),
+          ],
+        }));
+        return { success: true };
+      } catch (err) {
+        return {
+          success: false,
+          message: err.message || "Failed to submit review",
+        };
+      }
+    },
+    [toReviewHistoryItem],
+  );
 
   const updateCourse = useCallback((courseId, updatedData) => {
-    setState((prev) => {
-      const courses = prev.courses.map((c) =>
-        c.id === courseId ? { ...c, ...updatedData } : c
-      );
-      return { ...prev, courses };
-    });
-  }, []);
-
-  const updateCourseContent = useCallback((courseId, items) => {
-    const course = state.courses.find((c) => c.id === courseId);
-    if (!course) return { success: false, message: "Course not found." };
-    if (state.currentUser?.role !== "educator") {
-      return { success: false, message: "Only educators can update course content." };
-    }
-    if (course.createdByEducatorEmail !== state.currentUser?.email) {
-      return { success: false, message: "You can only edit your own courses." };
-    }
-
     setState((prev) => ({
       ...prev,
       courses: prev.courses.map((c) =>
-        c.id === courseId
-          ? {
-              ...c,
-              content: {
-                ...(c.content || {}),
-                items: Array.isArray(items) ? items : []
-              }
-            }
-          : c
-      )
+        c.id === courseId ? { ...c, ...updatedData } : c,
+      ),
     }));
-    return { success: true };
-  }, [state.courses, state.currentUser]);
+  }, []);
+
+  const moveCourseToTrash = useCallback(async (courseId) => {
+    try {
+      const result = await courseApi.moveCourseToTrash(courseId);
+      const trashedCourse = { ...result.course, id: result.course._id };
+      setState((prev) => ({
+        ...prev,
+        courses: prev.courses.map((c) =>
+          c.id === courseId || c._id === courseId
+            ? { ...c, ...trashedCourse }
+            : c,
+        ),
+      }));
+      return { success: true, course: trashedCourse };
+    } catch (err) {
+      return {
+        success: false,
+        message: err.message || "Failed to move course to trash",
+      };
+    }
+  }, []);
+
+  const restoreCourseFromTrash = useCallback(async (courseId) => {
+    try {
+      const result = await courseApi.restoreCourseFromTrash(courseId);
+      const restoredCourse = { ...result.course, id: result.course._id };
+      setState((prev) => ({
+        ...prev,
+        courses: prev.courses.map((c) =>
+          c.id === courseId || c._id === courseId
+            ? { ...c, ...restoredCourse }
+            : c,
+        ),
+      }));
+      return { success: true, course: restoredCourse };
+    } catch (err) {
+      return {
+        success: false,
+        message: err.message || "Failed to restore course",
+      };
+    }
+  }, []);
+
+  const permanentlyDeleteCourse = useCallback(async (courseId) => {
+    try {
+      await courseApi.permanentlyDeleteCourse(courseId);
+      setState((prev) => ({
+        ...prev,
+        courses: prev.courses.filter(
+          (c) => c.id !== courseId && c._id !== courseId,
+        ),
+      }));
+      return { success: true };
+    } catch (err) {
+      return {
+        success: false,
+        message: err.message || "Failed to permanently delete course",
+      };
+    }
+  }, []);
+
+  const emptyCourseTrash = useCallback(async () => {
+    try {
+      const result = await courseApi.emptyCourseTrash();
+      setState((prev) => ({
+        ...prev,
+        courses: prev.courses.filter(
+          (c) =>
+            !(
+              c.trashedAt &&
+              c.createdByEducatorEmail === prev.currentUser?.email
+            ),
+        ),
+      }));
+      return { success: true, deletedCount: result.deletedCount || 0 };
+    } catch (err) {
+      return {
+        success: false,
+        message: err.message || "Failed to empty trash",
+      };
+    }
+  }, []);
 
   const approveCourse = useCallback((courseId, reviewer) => {
     setState((prev) => {
       const courses = prev.courses.map((c) =>
-        c.id === courseId ? { ...c, status: "approved" } : c
+        c.id === courseId ? { ...c, status: "approved" } : c,
       );
       const historyItem = {
         id: `rh-${Date.now()}`,
         courseId,
         decision: "approved",
         reviewerEmail: reviewer?.email,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
-      return { ...prev, courses, reviewHistory: [historyItem, ...prev.reviewHistory] };
+      return {
+        ...prev,
+        courses,
+        reviewHistory: [historyItem, ...prev.reviewHistory],
+      };
     });
   }, []);
 
   const rejectCourse = useCallback((courseId, reviewer, notes) => {
     setState((prev) => {
       const courses = prev.courses.map((c) =>
-        c.id === courseId ? { ...c, status: "rejected" } : c
+        c.id === courseId ? { ...c, status: "rejected" } : c,
       );
       const historyItem = {
         id: `rh-${Date.now()}`,
@@ -230,23 +620,70 @@ export const AppProvider = ({ children }) => {
         decision: "rejected",
         reviewerEmail: reviewer?.email,
         notes: notes || "",
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
-      return { ...prev, courses, reviewHistory: [historyItem, ...prev.reviewHistory] };
+      return {
+        ...prev,
+        courses,
+        reviewHistory: [historyItem, ...prev.reviewHistory],
+      };
     });
   }, []);
 
-  const saveMentorRequest = useCallback((payload) => {
-    setState((prev) => ({
-      ...prev,
-      mentorRequests: [
-        {
-          id: `mr-${Date.now()}`,
-          ...payload
-        },
-        ...prev.mentorRequests
-      ]
-    }));
+  const saveMentorRequest = useCallback(async (payload) => {
+    try {
+      const res = await mentorApi.requestSession(payload);
+      if (res.session) {
+        fetchMentorRequests();
+        return { success: true };
+      }
+    } catch (err) {
+      console.error("saveMentorRequest failed:", err);
+      return { success: false, message: err.message };
+    }
+  }, [fetchMentorRequests]);
+
+  const acceptMentorRequest = useCallback(async (requestId, details) => {
+    try {
+      await mentorApi.acceptSession(requestId, details);
+      fetchMentorRequests();
+      return { success: true };
+    } catch (err) {
+      console.error("acceptMentorRequest failed:", err);
+      return { success: false, message: err.message };
+    }
+  }, [fetchMentorRequests]);
+
+  const rejectMentorRequest = useCallback(async (requestId) => {
+    try {
+      await mentorApi.declineSession(requestId);
+      fetchMentorRequests();
+      return { success: true };
+    } catch (err) {
+      console.error("rejectMentorRequest failed:", err);
+      return { success: false, message: err.message };
+    }
+  }, [fetchMentorRequests]);
+  
+  const completeMentorSession = useCallback(async (requestId, notes = {}) => {
+    try {
+      await mentorApi.completeSession(requestId, notes);
+      fetchMentorRequests();
+      return { success: true };
+    } catch (err) {
+      console.error("completeMentorSession failed:", err);
+      return { success: false, message: err.message };
+    }
+  }, [fetchMentorRequests]);
+
+  const getMentorsByField = useCallback(async (field) => {
+    if (!field) return [];
+    try {
+      return await mentorApi.getMentorsByField(field);
+    } catch (err) {
+      console.error("getMentorsByField failed:", err);
+      return [];
+    }
   }, []);
 
   const markLessonCompleted = useCallback((userEmail, courseId, lessonId) => {
@@ -260,40 +697,153 @@ export const AppProvider = ({ children }) => {
           ...prev.lessonProgress,
           [userEmail]: {
             ...userProgress,
-            [courseId]: Array.from(courseProgress)
-          }
-        }
+            [courseId]: Array.from(courseProgress),
+          },
+        },
       };
     });
   }, []);
 
-  const value = {
-    state,
-    currentUser: state.currentUser,
-    users: state.users,
-    courses: state.courses,
-    mentorRequests: state.mentorRequests,
-    lessonProgress: state.lessonProgress,
-    payouts: state.payouts,
-    reviewHistory: state.reviewHistory,
-    reviewerAccounts: state.reviewerAccounts,
-    login,
-    logout,
-    signupStudent,
-    signupEducator,
-    createReviewer,
-    verifyEducator,
-    createCourse,
-    updateCourse,
-    updateCourseContent,
-    approveCourse,
-    rejectCourse,
-    saveMentorRequest,
-    markLessonCompleted
-  };
+  const updateUserProfile = useCallback(async (body) => {
+    try {
+      const result = await authApi.updateProfile(body);
+      setState((prev) => ({
+        ...prev,
+        currentUser: normalizeUser(result.user),
+      }));
+      return { success: true, user: result.user };
+    } catch (err) {
+      return { success: false, message: err.message || "Update failed" };
+    }
+  }, []);
+
+  // 🟢 FIXED: Using localStorage instead of getToken()
+  const enrollInCourse = useCallback(async (courseId) => {
+    try {
+      const token = localStorage.getItem("edupath_token"); 
+      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      
+      const res = await axios.post(
+        `${baseUrl}/api/courses/enroll/${courseId}`, 
+        {}, 
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (res.data.user) {
+        localStorage.setItem("edupath_user", JSON.stringify(res.data.user));
+        setState((prev) => ({
+          ...prev,
+          currentUser: normalizeUser(res.data.user),
+        }));
+      }
+
+      window.dispatchEvent(new Event("edupath_subscription_updated"));
+
+      return {
+        success: true,
+        alreadyEnrolled: res.data.alreadyEnrolled,
+        user: res.data.user
+      };
+    } catch (err) {
+      console.error("Enrollment Frontend Error:", err);
+      return { 
+        success: false, 
+        message: err.response?.data?.message || "Failed to enroll. Please check console.",
+        limitReached: err.response?.data?.limitReached,
+        limitType: err.response?.data?.limitType,
+        monthlyResetDate: err.response?.data?.monthlyResetDate
+      };
+    }
+  }, []);
+
+  // Wrapped the value object in useMemo to prevent massive re-renders
+  const value = useMemo(
+    () => ({
+      state,
+      authLoading: state.authLoading,
+      currentUser: state.currentUser,
+      users: state.users,
+      courses: state.courses,
+      mentorRequests: state.mentorRequests,
+      lessonProgress: state.lessonProgress,
+      payouts: state.payouts,
+      reviewHistory: state.reviewHistory,
+      reviewerAccounts: state.reviewerAccounts,
+      unreadMessagesCount: state.unreadMessagesCount,
+      login,
+      logout,
+      setSession,
+      signupAccount,
+      signupStudent,
+      signupEducator,
+      createReviewer,
+      verifyEducator,
+      createCourse,
+      fetchMyCourses,
+      fetchAllCourses,
+      fetchAllCoursesAdmin,
+      fetchReviewerQueue,
+      fetchReviewerHistory,
+      submitReviewDecision,
+      updateCourse,
+      moveCourseToTrash,
+      restoreCourseFromTrash,
+      permanentlyDeleteCourse,
+      emptyCourseTrash,
+      approveCourse,
+      rejectCourse,
+      saveMentorRequest,
+      acceptMentorRequest,
+      rejectMentorRequest,
+      getMentorsByField,
+      completeMentorSession,
+      markLessonCompleted,
+      updateUserProfile,
+      enrollInCourse,
+      fetchUnreadCount
+    }),
+    [
+      // This dependency array tells React: "Only recreate this object if one of these specific things changes"
+      state,
+      login,
+      logout,
+      setSession,
+      signupAccount,
+      signupStudent,
+      signupEducator,
+      createReviewer,
+      verifyEducator,
+      createCourse,
+      fetchMyCourses,
+      fetchAllCourses,
+      fetchAllCoursesAdmin,
+      fetchReviewerQueue,
+      fetchReviewerHistory,
+      submitReviewDecision,
+      updateCourse,
+      moveCourseToTrash,
+      restoreCourseFromTrash,
+      permanentlyDeleteCourse,
+      emptyCourseTrash,
+      approveCourse,
+      rejectCourse,
+      saveMentorRequest,
+      acceptMentorRequest,
+      rejectMentorRequest,
+      getMentorsByField,
+      completeMentorSession,
+      markLessonCompleted,
+      updateUserProfile,
+      enrollInCourse,
+      fetchUnreadCount
+    ],
+  );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
+// Added Prop Validation for 'children'
+AppProvider.propTypes = {
+  children: PropTypes.node.isRequired,
+};
 
 export const useApp = () => useContext(AppContext);
-
