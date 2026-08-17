@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { fadeUp, fade, stagger } from "./LandingSharedUI";
+import { GraduationCap, CheckCircle, Compass, Puzzle, HeartHandshake } from "lucide-react";
 
 // Clean feature item
 function FeatureRow({ icon, title, text }) {
@@ -39,7 +40,9 @@ export default function WhySection() {
             />
             {/* Decorative badge */}
             <div className="absolute -bottom-6 -right-6 hidden sm:flex items-center gap-3 rounded-2xl bg-white p-4 shadow-xl border border-slate-50">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 text-2xl">🎓</span>
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 text-yellow-600">
+                <GraduationCap className="h-6 w-6" />
+              </span>
               <div>
                 <p className="text-xl font-black text-slate-800">100%</p>
                 <p className="text-xs font-bold text-slate-500">Job Ready</p>
@@ -61,22 +64,22 @@ export default function WhySection() {
 
             <motion.div variants={fadeUp} className="space-y-8">
               <FeatureRow 
-                icon="✅" 
+                icon={<CheckCircle className="h-6 w-6" />} 
                 title="Verified & Approved Courses" 
                 text="Every course is heavily scrutinized by reviewers before publishing to ensure high quality." 
               />
               <FeatureRow 
-                icon="🧭" 
+                icon={<Compass className="h-6 w-6" />} 
                 title="AI Path Finder Recommendations" 
                 text="Get customized learning recommendations based on your goals and current skill level." 
               />
               <FeatureRow 
-                icon="🧩" 
+                icon={<Puzzle className="h-6 w-6" />} 
                 title="Stepstones & Milestones" 
                 text="Follow a structured journey with quizzes and assignments that prove your competency." 
               />
               <FeatureRow 
-                icon="🤝" 
+                icon={<HeartHandshake className="h-6 w-6" />} 
                 title="1:1 Mentor Support (Premium)" 
                 text="Stuck? Request a live session with industry experts to get past any hurdle quickly." 
               />

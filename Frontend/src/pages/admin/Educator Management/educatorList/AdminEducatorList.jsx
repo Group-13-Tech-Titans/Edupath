@@ -3,6 +3,7 @@ import PageShell from "../../../../components/PageShell.jsx";
 import AdminFooter from "./../../../../components/layouts/admin-layouts/AdminFooter.jsx";
 import { Search, Filter, Loader2, User as UserIcon } from "lucide-react";
 import EducatorDetailsModal from "./EducatorDetailsModal.jsx";
+import { useNavigate } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -22,6 +23,7 @@ const MiniPill = ({ label }) => (
 
 
 const AdminEducatorList = () => {
+  const navigate = useNavigate();
   const [educators, setEducators] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingMore, setIsFetchingMore] = useState(false);

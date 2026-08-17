@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { fadeUp, fade, stagger } from "./LandingSharedUI";
+import { Star } from "lucide-react";
 
 export default function HeroSection({ scrollToId }) {
   return (
@@ -101,7 +102,7 @@ export default function HeroSection({ scrollToId }) {
                 <div className="flex flex-col items-center">
                    <div className="flex items-center gap-1.5">
                       <span className="text-2xl font-extrabold text-slate-800">4.8</span>
-                      <span className="text-xl text-yellow-400">★</span>
+                      <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
                    </div>
                    <span className="text-xs font-medium text-slate-500 mt-0.5">Rating (86K)</span>
                 </div>
