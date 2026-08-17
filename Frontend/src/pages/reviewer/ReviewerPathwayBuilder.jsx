@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { CheckCircle2, Plus, Trash2, ArrowRight, Settings, AlignLeft, BookOpen, Layout } from "lucide-react";
 import PageShell from "../../components/PageShell.jsx";
 import AiPathwayGenerator from "../admin/Pathway Management/components/AiPathwayGenerator.jsx";
+import CourseSelectionPage from "../../components/CourseSelectionPage.jsx";
 
 // Helper to generate a unique ID for React keys
 const generateId = () =>
@@ -14,6 +15,7 @@ const ReviewerPathwayBuilder = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [activeCourseSelector, setActiveCourseSelector] = useState({ isActive: false, stepIndex: null });
 
   // Pathway Template State
   const [pathway, setPathway] = useState({
@@ -30,6 +32,7 @@ const ReviewerPathwayBuilder = () => {
       description: "",
       type: "course",
       resources: [],
+      linkedCourses: [],
     },
   ]);
 
@@ -41,12 +44,25 @@ const ReviewerPathwayBuilder = () => {
         const { data } = await axios.get(import.meta.env.VITE_API_URL + "/api/auth/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
+        const user = data.user || data;
+        
+        const specializations = Array.isArray(user?.specializationTags)
+          ? user.specializationTags
+          : user?.specializationTag
+          ? [user.specializationTag]
+          : Array.isArray(user?.profile?.specializationTags)
+          ? user.profile.specializationTags
+          : Array.isArray(user?.profile?.specializations)
+          ? user.profile.specializations.map((item) => item?.name || item?.slug || item)
+          : Array.isArray(user?.profile?.domains)
+          ? user.profile.domains
+          : Array.isArray(user?.domains || user?.subjects)
+          ? user?.domains || user?.subjects
+          : ["Specialization Not Found"];
+
         setPathway((prev) => ({
           ...prev,
-          specialization:
-            data.user?.specializationTag ||
-            data?.specializationTag ||
-            "Specialization Not Found",
+          specialization: specializations.length > 0 ? specializations[0] : "Specialization Not Found",
         }));
       } catch (err) {
         setError("Failed to load reviewer profile.");
@@ -74,6 +90,7 @@ const ReviewerPathwayBuilder = () => {
         description: "",
         type: "course",
         resources: [],
+        linkedCourses: [],
         quiz: [],
       },
     ]);
@@ -93,6 +110,7 @@ const ReviewerPathwayBuilder = () => {
       description: `Learn the fundamentals of ${topic.split(':').pop().trim()}`,
       type: "course",
       resources: [],
+      linkedCourses: [],
       quiz: [],
     }));
 
@@ -146,6 +164,36 @@ const ReviewerPathwayBuilder = () => {
   const removeQuizQuestion = (stepIndex, qIndex) => {
     const newSteps = [...steps];
     newSteps[stepIndex].quiz.splice(qIndex, 1);
+    setSteps(newSteps);
+  };
+
+  const openCourseSelector = (stepIndex) => setActiveCourseSelector({ isActive: true, stepIndex });
+
+  const handleAttachCourse = (course) => {
+    const newSteps = [...steps];
+    const stepIdx = activeCourseSelector.stepIndex;
+
+    if (!newSteps[stepIdx].linkedCourses)
+      newSteps[stepIdx].linkedCourses = [];
+    const courseId = course._id || course.id;
+    
+    if (!newSteps[stepIdx].linkedCourses.some((c) => c.courseId === courseId)) {
+      newSteps[stepIdx].linkedCourses.push({
+        id: generateId(),
+        courseId: courseId,
+        title: course.title,
+        thumbnail: course.thumbnailUrl || course.thumbnail || "https://placehold.co/600x400?text=Course",
+        educatorName: course.educatorName || course.createdByEducatorEmail || "EduPath Educator",
+      });
+    }
+
+    setSteps(newSteps);
+    setActiveCourseSelector({ isActive: false, stepIndex: null });
+  };
+
+  const removeLinkedCourse = (stepIndex, courseIndex) => {
+    const newSteps = [...steps];
+    newSteps[stepIndex].linkedCourses.splice(courseIndex, 1);
     setSteps(newSteps);
   };
 
@@ -222,6 +270,17 @@ const ReviewerPathwayBuilder = () => {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
+
+  if (activeCourseSelector.isActive) {
+    return (
+      <PageShell>
+        <CourseSelectionPage
+          onClose={() => setActiveCourseSelector({ isActive: false, stepIndex: null })}
+          onSelect={handleAttachCourse}
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell>
@@ -487,6 +546,32 @@ const ReviewerPathwayBuilder = () => {
                         No materials added yet.
                       </p>
                     )}
+                  </div>
+                </div>
+
+                {/* 🟢 NEW: PLATFORM COURSES */}
+                <div className="sm:col-span-2 pt-4 border-t border-black/10 mt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="block text-xs font-bold text-text-dark uppercase tracking-wider">Platform Courses</span>
+                    <button onClick={() => openCourseSelector(index)} type="button" className="text-[10px] font-bold bg-blue-100 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-200 transition-colors">+ ADD COURSE</button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {(step.linkedCourses || []).map((c, cIndex) => (
+                      <div key={c.id} className="flex items-center justify-between bg-blue-50/50 p-3 rounded-xl border border-blue-100">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-slate-200 overflow-hidden shrink-0">
+                            <img src={c.thumbnail} alt="thumb" className="w-full h-full object-cover" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-slate-800">{c.title}</p>
+                            <p className="text-xs text-slate-500">{c.educatorName}</p>
+                          </div>
+                        </div>
+                        <button onClick={() => removeLinkedCourse(index, cIndex)} type="button" className="text-red-400 hover:bg-red-50 p-2 rounded-lg font-bold transition-colors">✕</button>
+                      </div>
+                    ))}
+                    {(!step.linkedCourses || step.linkedCourses.length === 0) && <p className="text-xs text-muted italic">No internal courses linked yet.</p>}
                   </div>
                 </div>
                 {/* 🟢 NEW: QUIZ SECTION */}
