@@ -143,6 +143,49 @@ router.post(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+// POST /api/upload/avatar
+// Upload a user avatar image to Cloudinary
+// Body (multipart): file
+// ─────────────────────────────────────────────────────────────────────────────
+router.post(
+  "/avatar",
+  authMiddleware,
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file provided." });
+      }
+
+      const resourceType = getResourceType(req.file.mimetype);
+      if (resourceType !== "image") {
+        return res.status(400).json({ message: "Only image files are allowed for avatars." });
+      }
+
+      const safeEmail = (req.user.email || "unknown").replace(/[^a-z0-9]/gi, "_");
+      const folder = `edupath/users/${safeEmail}/avatar`;
+      const publicId = `avatar_${Date.now()}`;
+
+      const result = await uploadToCloudinary(req.file.buffer, {
+        resource_type: "image",
+        folder,
+        public_id: publicId,
+        overwrite: true,
+      });
+
+      res.json({
+        success: true,
+        url: result.secure_url,
+        publicId: result.public_id,
+      });
+    } catch (err) {
+      console.error("Avatar upload error:", err);
+      res.status(500).json({ message: err.message || "Upload failed." });
+    }
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // DELETE /api/upload/content
 // Delete a file from Cloudinary by publicId
 // Body: { publicId, resourceType }
