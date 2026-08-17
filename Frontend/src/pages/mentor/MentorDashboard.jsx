@@ -138,7 +138,6 @@ export default function MentorDashboard() {
             <h2 className="mb-5 text-xl font-semibold text-slate-800">Quick Actions</h2>
             <div className="grid grid-cols-1 gap-4">
               <QuickAction title="Review Sessions" desc="View session requests" onClick={() => navigate("/mentor/sessions")} icon={<EyeIcon />} />
-              <QuickAction title="Share Resources" desc="Upload learning materials" onClick={() => setResourceOpen(true)} icon={<DocIcon />} />
               <QuickAction title="Messages" desc="Chat with students" onClick={() => navigate("/mentor/messages")} icon={<ChatIcon />} />
               <QuickAction title="View Analytics" desc="Track mentoring metrics" onClick={() => navigate("/mentor/analytics")} icon={<ChartIcon />} />
             </div>

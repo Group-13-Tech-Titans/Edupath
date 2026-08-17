@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { useApp } from "../../context/AppProvider.jsx";
+import StudentFooter from "../../pages/student/StudentFooter.jsx";
 
 const StudentLayout = () => {
   const { currentUser, logout } = useApp();
@@ -92,6 +93,8 @@ const StudentLayout = () => {
           <Outlet />
         </div>
       </main>
+
+      <StudentFooter />
     </div>
   );
 };
