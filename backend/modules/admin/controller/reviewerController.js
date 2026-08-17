@@ -59,7 +59,11 @@ exports.createReviewer = async (req, res) => {
       console.error("⚠️ Failed to send credentials email:", emailError.message); // Log error if email sending fails
     }
 
-    res.status(201).json({ message: "Reviewer created and credentials sent via email", id: newUser._id });
+    res.status(201).json({ 
+      message: "Reviewer created and credentials sent via email", 
+      id: newUser._id,
+      temporaryPassword: generatedPassword 
+    });
   } catch (err) {
     res.status(500).json({ message: "Creation failed", error: err.message });
   }

@@ -52,7 +52,7 @@ export default function ProfileEditForm({
               value={form.email}
               
               className={inputClass(true)}
-vb            />
+            />
           </Field>
           
         </div>

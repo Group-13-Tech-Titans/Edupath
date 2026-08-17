@@ -43,7 +43,7 @@ export default function ChatWindow({ onClose }) {
 
     try {
       // Send request to backend
-      const response = await axios.post(import.meta.env.VITE_API_URL + "/api/chatbot/chat", {
+      const response = await axios.post((import.meta.env.VITE_API_URL || "http://localhost:5000") + "/api/chatbot/chat", {
         history: messages,
         message: text
       });
