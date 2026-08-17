@@ -74,7 +74,8 @@ exports.createAdminUser = async (req, res) => {
     
     return res.status(201).json({ 
       message: "Admin created and credentials sent via email", 
-      user: safe 
+      user: safe,
+      temporaryPassword: generatedPassword
     });
   } catch (err) {
     res.status(500).json({ message: "User creation failed", error: err.message });
