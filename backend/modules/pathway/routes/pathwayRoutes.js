@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
+// 1. ALL CONTROLLER IMPORTS CONSOLIDATED HERE
 const {
   createPathway,
   completeStep,
@@ -16,40 +17,88 @@ const {
   getTemplateById,
   updateTemplate,
   recommendPathway,
-  deleteMyPathway
+  deleteMyPathway,
+  generatePathwaySuggestions
 } = require("../controllers/pathwayController");
 
+// 2. MIDDLEWARE IMPORTS
 const authMiddleware = require("../../../middleware/authMiddleware");
 const roleMiddleware = require("../../../middleware/roleMiddleware");
 
-
-//    STUDENT INTERACTION ROUTES
-
-router.get("/published", authMiddleware, getPublishedTemplates);
-router.post("/recommend", authMiddleware, recommendPathway);
+// ==============================
+//    STUDENT ROUTES (EXISTING)
+// ==============================
 router.post("/generate", authMiddleware, createPathway);
-router.post("/enroll/:templateId", authMiddleware, enrollInTemplate);
-
-// Pathway Operations
-router.get("/my", authMiddleware, getMyPathway);
-router.put("/my/sync", authMiddleware, syncPathwaySteps);
-router.delete("/my/:id", authMiddleware, deleteMyPathway);
 router.post("/complete-step", authMiddleware, completeStep);
+router.get("/my", authMiddleware, getMyPathway);
 
+// ==============================
+//    ADMIN / REVIEWER ROUTES
+// ==============================
 
-//    ADMIN / REVIEWER TEMPLATE ROUTES
+// Create & Get All Templates
+router.post(
+  "/template",
+  authMiddleware,
+  roleMiddleware(["admin", "reviewer"]),
+  createTemplatePathway,
+);
+router.get(
+  "/template",
+  authMiddleware,
+  roleMiddleware(["admin", "reviewer"]),
+  getTemplatePathways,
+);
 
-// Create / Read Collections
-router.post("/template", authMiddleware, roleMiddleware(["admin", "reviewer"]), createTemplatePathway);
-router.get("/template", authMiddleware, roleMiddleware(["admin", "reviewer"]), getTemplatePathways);
+// Add Step to Template
+router.post(
+  "/template/:templateId/steps",
+  authMiddleware,
+  roleMiddleware(["admin", "reviewer"]),
+  addStepToTemplate,
+);
 
-// Read / Update / Delete Document
-router.get("/template/:id", authMiddleware, roleMiddleware(["admin", "reviewer"]), getTemplateById);
-router.put("/template/:id", authMiddleware, roleMiddleware(["admin", "reviewer"]), updateTemplate);
-router.delete("/template/:id", authMiddleware, roleMiddleware(["admin", "reviewer"]), deleteTemplatePathway);
+// Delete & Update Status
+router.delete(
+  "/template/:id",
+  authMiddleware,
+  roleMiddleware(["admin", "reviewer"]),
+  deleteTemplatePathway,
+);
+router.put(
+  "/template/:id/status",
+  authMiddleware,
+  roleMiddleware(["admin", "reviewer"]),
+  updateTemplateStatus,
+);
 
-// Specific Node Operations
-router.post("/template/:templateId/steps", authMiddleware, roleMiddleware(["admin", "reviewer"]), addStepToTemplate);
-router.put("/template/:id/status", authMiddleware, roleMiddleware(["admin", "reviewer"]), updateTemplateStatus);
+// Get Single & Update Entire Template (For the Edit Page)
+router.get(
+  "/template/:id",
+  authMiddleware,
+  roleMiddleware(["admin", "reviewer"]),
+  getTemplateById,
+);
+router.put(
+  "/template/:id",
+  authMiddleware,
+  roleMiddleware(["admin", "reviewer"]),
+  updateTemplate,
+);
+
+// 2. ADD TO THE STUDENT ROUTES SECTION:
+// ==============================
+
+// NEW ENROLLMENT ROUTES:
+router.get("/published", authMiddleware, getPublishedTemplates);
+router.post("/enroll/:templateId", authMiddleware, enrollInTemplate);
+router.put("/my/sync", authMiddleware, syncPathwaySteps);
+router.post("/recommend", authMiddleware, recommendPathway);
+router.delete("/my/:id", authMiddleware, deleteMyPathway);
+
+// ==========================================
+//          AI PATHWAY GENERATION
+// ==========================================
+router.post("/generate-suggestions", authMiddleware, roleMiddleware(["admin", "reviewer"]), generatePathwaySuggestions);
 
 module.exports = router;

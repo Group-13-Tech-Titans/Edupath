@@ -3,107 +3,118 @@ import axios from "axios";
 import { Link } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 
-// --- CONFIGURATION CONSTANTS ---
-const API_BASE_URL = import.meta.env.BACKEND_URL || "http://localhost:5000";
-const STATUS = {
-  PUBLISHED: "published",
-  DRAFT: "draft"
-};
-
 const ReviewerPathwayList = () => {
   const [templates, setTemplates] = useState([]);
-  const [specializations, setSpecializations] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [templateToDelete, setTemplateToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    fetchInitialData();
+    fetchTemplates();
   }, []);
 
-  /**
-   * Fetches both Master Templates and Specializations concurrently.
-   * The backend automatically filters the templates based on the Reviewer's RBAC token.
-   */
-  const fetchInitialData = async () => {
+  const fetchTemplates = async () => {
     try {
       const token = localStorage.getItem("edupath_token");
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      // Promise.all fetches both endpoints simultaneously to halve network wait time
-      const [pathwayRes, specRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/api/pathway/template?summary=true`, config),
-        axios.get(`${API_BASE_URL}/api/specializations`, config).catch(() => ({ data: { specializations: [] } }))
-      ]);
-
-      setTemplates(pathwayRes.data.templates || []);
-      setSpecializations(specRes.data.specializations || []);
+      const { data } = await axios.get(
+        import.meta.env.VITE_API_URL + "/api/pathway/template",
+        config,
+      );
+      setTemplates(data.templates);
+      setLoading(false);
     } catch (err) {
-      console.error("Fetch Data Error:", err);
-      setError("Failed to load pathways. Please check your connection.");
-    } finally {
-      setIsLoading(false);
+      console.error(err);
+      setError("Failed to load pathways.");
+      setLoading(false);
     }
   };
 
-  /**
-   * Cross-references the pathway's slug/name with the database to ensure perfect formatting.
-   * @param {string} val - The raw pathway name or slug
-   * @returns {string} The formatted name
-   */
-  const getPathwayName = (val) => {
-    if (!val) return "";
-    
-    // 1. Try to find exact match in DB Dictionary
-    const found = specializations.find(s => s.slug === val || s.name === val);
-    if (found) return found.name;
-    
-    // 2. Fallback formatting if DB lookup fails
-    if (val.includes(" ")) return val; 
-    if (val.toLowerCase() === "ui-ux") return "UI/UX Design";
-    return val.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  const handleDeleteClick = (template) => {
+    setTemplateToDelete(template);
   };
 
-  const handleDelete = async (id) => {
-    if (!globalThis.confirm("Are you sure you want to delete this pathway? This cannot be undone.")) return;
+  const confirmDelete = async () => {
+    if (!templateToDelete) return;
+    setIsDeleting(true);
 
     try {
       const token = localStorage.getItem("edupath_token");
-      await axios.delete(`${API_BASE_URL}/api/pathway/template/${id}`, {
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/pathway/template/${templateToDelete._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Optimistically update the UI
-      setTemplates(prev => prev.filter((t) => t._id !== id));
+      // Remove from UI
+      setTemplates(templates.filter((t) => t._id !== templateToDelete._id));
+      setTemplateToDelete(null);
     } catch (err) {
       alert(err?.response?.data?.message || "Failed to delete pathway");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   const toggleStatus = async (id, currentStatus) => {
-    const newStatus = currentStatus === STATUS.PUBLISHED ? STATUS.DRAFT : STATUS.PUBLISHED;
+    const newStatus = currentStatus === "published" ? "draft" : "published";
 
     try {
       const token = localStorage.getItem("edupath_token");
+
       await axios.put(
-        `${API_BASE_URL}/api/pathway/template/${id}/status`,
+        `${import.meta.env.VITE_API_URL}/api/pathway/template/${id}/status`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } },
       );
 
-      // Optimistically update the local state array
-      setTemplates(prev => prev.map((t) => (t._id === id ? { ...t, status: newStatus } : t)));
+      // Update UI
+      setTemplates(
+        templates.map((t) => (t._id === id ? { ...t, status: newStatus } : t)),
+      );
     } catch (err) {
       console.error("Status Update Error:", err);
-      alert(err?.response?.data?.message || "Failed to update status.");
+      alert(
+        err?.response?.data?.message ||
+          err?.response?.data?.error ||
+          "Failed to update status. Check console.",
+      );
     }
   };
 
   return (
     <PageShell>
+      {/* Delete Confirmation Popup */}
+      {templateToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl animate-in zoom-in-95 duration-300">
+            <h3 className="text-xl font-bold text-slate-800 mb-2">Delete Pathway?</h3>
+            <p className="text-sm text-slate-600 mb-6">
+              Are you sure you want to delete the <span className="font-semibold text-slate-800">"{templateToDelete.pathName}"</span> template? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setTemplateToDelete(null)}
+                disabled={isDeleting}
+                className="flex-1 rounded-xl bg-slate-100 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-200 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="flex-1 rounded-xl bg-red-500 py-2.5 text-sm font-semibold text-white hover:bg-red-600 transition-colors disabled:opacity-70"
+              >
+                {isDeleting ? "Deleting..." : "Yes, Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mx-auto max-w-5xl space-y-6 pb-12">
-        
         {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-[28px] border border-black/5 bg-white/70 p-6 shadow-sm backdrop-blur">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-[28px] border border-black/5 bg-white/70 p-6 shadow-[0_18px_50px_rgba(0,0,0,0.08)] backdrop-blur">
           <div>
             <h1 className="text-2xl font-semibold text-text-dark">
               My Specialization Pathways
@@ -113,77 +124,83 @@ const ReviewerPathwayList = () => {
             </p>
           </div>
           <Link
-            to="/reviewer/pathway-builder" 
-            className="rounded-full bg-primary px-6 py-2.5 font-semibold text-white shadow hover:brightness-95 transition-all active:scale-95"
+            to="/reviewer/pathway-builder"
+            className="rounded-full bg-primary px-6 py-2.5 font-semibold text-white shadow hover:brightness-95"
           >
             + Create New Pathway
           </Link>
         </div>
 
-        {/* Error State */}
         {error && (
-          <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-600 border border-red-100 font-semibold text-center">
+          <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-600 border border-red-100">
             {error}
           </div>
         )}
 
-        {/* Loading State */}
-        {isLoading && (
-          <div className="text-center py-10 text-slate-500 font-bold animate-pulse">
+        {/* Loading & Empty States */}
+        {loading && (
+          <div className="text-center py-10 text-muted">
             Loading pathways...
           </div>
         )}
-
-        {/* Empty State */}
-        {!isLoading && templates.length === 0 && !error && (
-          <div className="rounded-[28px] border-2 border-dashed border-slate-200 bg-white/50 p-12 text-center text-slate-500 font-semibold">
+        {!loading && templates.length === 0 && !error && (
+          <div className="rounded-[28px] border border-dashed border-black/10 bg-white/50 p-12 text-center text-muted">
             No pathways found. Click "Create New Pathway" to build your first curriculum.
           </div>
         )}
 
         {/* Template Grid */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {!isLoading && templates.map((template) => (
+          {!loading &&
+            templates.map((template) => (
               <div
                 key={template._id}
-                className="flex flex-col justify-between rounded-[24px] border border-black/5 bg-white/80 p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-1"
+                className="flex flex-col justify-between rounded-[24px] border border-black/5 bg-white/80 p-5 shadow-sm transition-shadow hover:shadow-md"
               >
                 <div>
-                  <div className="mb-3 flex items-center justify-between">
-                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black uppercase tracking-wider text-emerald-700">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
                       {template.level}
                     </span>
-                    
+
+                    {/* Clickable Status Toggle */}
                     <button
-                      onClick={() => toggleStatus(template._id, template.status)}
-                      className={`text-xs font-black uppercase tracking-wider hover:underline transition-colors ${
-                        template.status === STATUS.PUBLISHED
-                          ? "text-primary"
+                      onClick={() =>
+                        toggleStatus(template._id, template.status)
+                      }
+                      className={`text-xs font-bold hover:underline ${
+                        template.status === "published"
+                          ? "text-emerald-500"
                           : "text-amber-500"
                       }`}
                     >
-                      {template.status === STATUS.PUBLISHED ? "ACTIVE" : "DRAFT"}
+                      {template.status === "published" ? "ACTIVE" : "DISABLED"}
                     </button>
                   </div>
-                  
-                  <h3 className="text-lg font-bold text-slate-800 line-clamp-2">
-                    {getPathwayName(template.pathName)}
+
+                  <h3 className="text-lg font-semibold text-text-dark line-clamp-2">
+                    {template.pathName}
                   </h3>
-                  <p className="mt-2 text-sm text-slate-500 font-medium">
-                    {template.steps.length} {template.steps.length === 1 ? "Step" : "Steps"} included
+                  <p className="mt-1 text-xs font-semibold text-primary">
+                    {template.specialization}
+                  </p>
+                  <p className="mt-2 text-sm text-muted">
+                    {template.steps.length}{" "}
+                    {template.steps.length === 1 ? "Step" : "Steps"} included
                   </p>
                 </div>
-                
-                <div className="mt-5 flex items-center gap-2 border-t border-slate-100 pt-4">
+
+                <div className="mt-5 flex items-center gap-2 border-t border-black/5 pt-4">
+                  {/* Replace the alert button with a Link */}
                   <Link
                     to={`/reviewer/pathway-edit/${template._id}`}
-                    className="flex-1 rounded-full bg-slate-100 py-2.5 text-center text-sm font-bold text-slate-700 hover:bg-slate-200 transition-colors active:scale-95"
+                    className="flex-1 rounded-full bg-black/5 py-2 text-center text-sm font-semibold text-text-dark hover:bg-black/10 transition-colors"
                   >
                     Edit
                   </Link>
                   <button
-                    onClick={() => handleDelete(template._id)}
-                    className="flex-1 rounded-full bg-red-50 py-2.5 text-sm font-bold text-red-600 hover:bg-red-100 transition-colors active:scale-95"
+                    onClick={() => handleDeleteClick(template)}
+                    className="flex-1 rounded-full bg-red-50 py-2 text-sm font-semibold text-red-600 hover:bg-red-100 transition-colors"
                   >
                     Delete
                   </button>

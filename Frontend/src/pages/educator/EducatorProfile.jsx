@@ -15,6 +15,8 @@ const EducatorProfile = () => {
   const payoutRef = useRef(null);
   const notificationsRef = useRef(null);
   const deactivateRef = useRef(null);
+  const contactRef = useRef(null);
+  const contactAdminRef = useRef(null);
 
   const [activeSection, setActiveSection] = useState("profile");
   // Scrolls to a selected settings section
@@ -114,6 +116,122 @@ const EducatorProfile = () => {
     newPassword: "",
     confirmPassword: ""
   });
+
+  // ----- Specialization Request -----
+  const [specializationsList, setSpecializationsList] = useState([]);
+  const [specializationForm, setSpecializationForm] = useState({ requestedSpecialization: "", reason: "" });
+  const [pendingRequest, setPendingRequest] = useState(null);
+  const [specMsg, setSpecMsg] = useState(null);
+  const [submittingSpec, setSubmittingSpec] = useState(false);
+
+  // ----- Contact Admin -----
+  const [contactForm, setContactForm] = useState({ subject: "", message: "" });
+  const [contactMsg, setContactMsg] = useState(null);
+  const [submittingContact, setSubmittingContact] = useState(false);
+
+  const handleContactSubmit = async () => {
+    setContactMsg(null);
+    if (!contactForm.subject.trim() || !contactForm.message.trim()) {
+      setContactMsg({ type: "error", text: "Please fill out both Subject and Message." });
+      return;
+    }
+
+    setSubmittingContact(true);
+    try {
+      const token = localStorage.getItem("edupath_token");
+      const res = await fetch("http://localhost:5000/api/specializations/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          subject: contactForm.subject,
+          message: contactForm.message
+        })
+      });
+      
+      let data = {};
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      } else if (!res.ok) {
+        throw new Error("Server returned an invalid response (not JSON). Did you restart the backend server?");
+      }
+
+      if (res.ok) {
+        setContactMsg({ type: "success", text: "Message sent to admin successfully." });
+        setContactForm({ subject: "", message: "" });
+      } else {
+        setContactMsg({ type: "error", text: data.message || "Failed to send message." });
+      }
+    } catch (err) {
+      console.error("Contact Submit Error:", err);
+      setContactMsg({ type: "error", text: err.message === "Failed to fetch" ? "Network error. Is the server running?" : (err.message || "An error occurred while sending.") });
+    } finally {
+      setSubmittingContact(false);
+    }
+  };
+
+  // Fetch specializations and current pending request
+  useEffect(() => {
+    const fetchSpecData = async () => {
+      try {
+        const token = localStorage.getItem("edupath_token");
+        const headers = { Authorization: `Bearer ${token}` };
+        
+        const [specRes, reqRes] = await Promise.all([
+          fetch("http://localhost:5000/api/specializations", { headers }),
+          fetch("http://localhost:5000/api/specializations/requests/my", { headers })
+        ]);
+
+        if (specRes.ok) {
+          const specData = await specRes.json();
+          setSpecializationsList(specData.specializations || []);
+        }
+        if (reqRes.ok) {
+          const reqData = await reqRes.json();
+          setPendingRequest(reqData.request || null);
+        }
+      } catch (err) {
+        console.error("Failed to fetch specialization data", err);
+      }
+    };
+    if (currentUser) fetchSpecData();
+  }, [currentUser]);
+
+  const handleSpecializationSubmit = async () => {
+    setSpecMsg(null);
+    if (!profileForm.contact || !specializationForm.requestedSpecialization || !specializationForm.reason.trim()) {
+      setSpecMsg({ type: "error", text: "Please fill out all fields (contact, specialization, reason)." });
+      return;
+    }
+
+    setSubmittingSpec(true);
+    try {
+      const token = localStorage.getItem("edupath_token");
+      const res = await fetch("http://localhost:5000/api/specializations/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          name: `${profileForm.firstName} ${profileForm.lastName}`.trim(),
+          email: profileForm.email,
+          contactNumber: profileForm.contact,
+          requestedSpecialization: specializationForm.requestedSpecialization,
+          reason: specializationForm.reason
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSpecMsg({ type: "success", text: "Request submitted successfully." });
+        setPendingRequest(data.request);
+        setSpecializationForm({ requestedSpecialization: "", reason: "" });
+      } else {
+        setSpecMsg({ type: "error", text: data.message || "Failed to submit request." });
+      }
+    } catch (err) {
+      setSpecMsg({ type: "error", text: "An error occurred while submitting." });
+    } finally {
+      setSubmittingSpec(false);
+    }
+  };
 
   // ----- Notifications -----
   const [notifications, setNotifications] = useState({
@@ -404,6 +522,18 @@ const EducatorProfile = () => {
               subtitle="Email Alerts"
               active={activeSection === "notifications"}
               onClick={() => scrollToSection("notifications", notificationsRef)}
+            />
+            <SideItem
+              title="Specialization Change"
+              subtitle="Request New Specialization"
+              active={activeSection === "contact"}
+              onClick={() => scrollToSection("contact", contactRef)}
+            />
+            <SideItem
+              title="Contact Admin"
+              subtitle="Send a Message"
+              active={activeSection === "contactAdmin"}
+              onClick={() => scrollToSection("contactAdmin", contactAdminRef)}
             />
           </div>
 
@@ -702,6 +832,131 @@ const EducatorProfile = () => {
               </div>
             </section>
             
+            {/* Specialization Change */}
+            <section ref={contactRef} className="glass-card p-6 space-y-4">
+              <div>
+                <h2 className="font-semibold text-text-dark">Specialization Change</h2>
+                <p className="text-xs text-muted mt-1">
+                  Request a change to your primary specialization.
+                </p>
+              </div>
+
+              {pendingRequest ? (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <p className="text-sm font-medium text-amber-700">
+                    You currently have a pending request for specialization change (Requested: {pendingRequest.requestedSpecialization}).
+                  </p>
+                  <p className="text-xs text-amber-600 mt-1">
+                    Please wait for an admin to approve or reject your previous request before submitting another.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelCls}>Name</label>
+                      <input className={`${inputCls} bg-gray-50 opacity-80 cursor-not-allowed`} value={`${profileForm.firstName} ${profileForm.lastName}`.trim()} readOnly />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Email</label>
+                      <input className={`${inputCls} bg-gray-50 opacity-80 cursor-not-allowed`} value={profileForm.email} readOnly />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Contact Number</label>
+                      <input
+                        className={inputCls}
+                        value={profileForm.contact}
+                        onChange={(e) => setProfileForm((p) => ({ ...p, contact: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelCls}>New Specialization</label>
+                      <select
+                        className={inputCls}
+                        value={specializationForm.requestedSpecialization}
+                        onChange={(e) => setSpecializationForm((s) => ({ ...s, requestedSpecialization: e.target.value }))}
+                      >
+                        <option value="">Select Specialization</option>
+                        {specializationsList.map((spec) => (
+                          <option key={spec._id} value={spec.name}>
+                            {spec.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={labelCls}>Reason for Change</label>
+                    <textarea
+                      className={inputCls}
+                      rows={3}
+                      value={specializationForm.reason}
+                      onChange={(e) => setSpecializationForm((s) => ({ ...s, reason: e.target.value }))}
+                    />
+                  </div>
+
+                  <FeedbackBanner msg={specMsg} />
+
+                  <div className="flex justify-end gap-3">
+                    <button
+                      type="button"
+                      className="btn-primary px-6 py-2 text-sm"
+                      onClick={handleSpecializationSubmit}
+                      disabled={submittingSpec}
+                    >
+                      {submittingSpec ? "Submitting..." : "Submit Request"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* Contact Admin */}
+            <section ref={contactAdminRef} className="glass-card p-6 space-y-4">
+              <div>
+                <h2 className="font-semibold text-text-dark">Contact Admin</h2>
+                <p className="text-xs text-muted mt-1">
+                  Send a message directly to the admin team.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className={labelCls}>Subject</label>
+                  <input
+                    className={inputCls}
+                    placeholder="Enter subject"
+                    value={contactForm.subject}
+                    onChange={(e) => setContactForm((c) => ({ ...c, subject: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Message</label>
+                  <textarea
+                    className={inputCls}
+                    rows={4}
+                    placeholder="Describe your concern or request..."
+                    value={contactForm.message}
+                    onChange={(e) => setContactForm((c) => ({ ...c, message: e.target.value }))}
+                  />
+                </div>
+
+                <FeedbackBanner msg={contactMsg} />
+
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    className="btn-primary px-6 py-2 text-sm"
+                    onClick={handleContactSubmit}
+                    disabled={submittingContact}
+                  >
+                    {submittingContact ? "Sending..." : "Send Message"}
+                  </button>
+                </div>
+              </div>
+            </section>
+
           </div>
         </div>
       </div>

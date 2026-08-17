@@ -1,8 +1,3 @@
-/**
- * STEP QUIZ ROUTES
- * Endpoints for initializing and submitting pathway step assessments.
- */
-
 const express = require("express");
 const router = express.Router();
 

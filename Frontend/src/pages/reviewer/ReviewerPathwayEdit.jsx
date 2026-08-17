@@ -1,340 +1,43 @@
 import React, { useState, useEffect } from "react";
-import PropTypes from 'prop-types';
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
+import { CheckCircle2, Plus, Trash2, ArrowRight, Settings, BookOpen, Layout } from "lucide-react";
 import PageShell from "../../components/PageShell.jsx";
 
-// --- CONFIGURATION CONSTANTS ---
-const API_BASE_URL = "http://localhost:5000/api";
-const PATHWAY_LEVELS = ["Beginner", "Intermediate", "Advanced"];
-const VISIBLE_COURSE_STATUSES = new Set(["approve", "approved", "published", "pending"]);
-const RESOURCE_TYPES = {
-  VIDEO: "video",
-  PDF: "pdf",
-  LINK: "link"
-};
-
-const generateId = () => Date.now().toString(36) + Math.random().toString(36).substring(2);
-
-// Converts "full-stack-development" into "Full Stack Development" for the UI
-const formatSpecializationName = (slug) => {
-  if (!slug) return "Loading specialization...";
-  if (slug === "Specialization Not Found") return slug;
-  if (slug.includes(" ")) return slug;
-  
-  return slug
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-};
-
-
-const transformStepFromDB = (step) => ({
-  ...step,
-  id: step._id || generateId(),
-  resources: (step.resources || []).map(r => ({ ...r, id: r._id || generateId() })),
-  linkedCourses: (step.linkedCourses || []).map(lc => ({ ...lc, id: lc._id || generateId() })),
-  quiz: (step.quiz || []).map(q => ({
-    ...q,
-    id: q._id || generateId(),
-    options: q.options.map(opt => ({ id: generateId(), text: opt })) 
-  }))
-});
-
-const transformStepForDB = (step, index) => {
-  const formattedQuiz = (step.quiz || []).map(q => ({
-    ...q,
-    options: q.options.map(opt => opt.text) 
-  }));
-  const { id, _id, ...stepData } = step;
-  return { 
-    ...stepData, 
-    order: index + 1,
-    quiz: formattedQuiz 
-  };
-};
-
-// handle pathway step resources
-const ResourceItem = ({ res, index, stepIndex, isUploading, onResourceChange, onRemove, onFileUpload }) => {
-  return (
-    <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
-      <label htmlFor={`res-type-${res.id}`} className="sr-only">Resource Type</label>
-      <select
-        id={`res-type-${res.id}`} 
-        value={res.type || RESOURCE_TYPES.VIDEO}
-        onChange={(e) => onResourceChange(stepIndex, index, "type", e.target.value)}
-        className="w-full sm:w-auto rounded-md border border-black/10 px-2 py-1.5 text-xs outline-none focus:border-primary bg-white"
-      >
-        <option value={RESOURCE_TYPES.VIDEO}>🎥 Video</option>
-        <option value={RESOURCE_TYPES.PDF}>📄 PDF Document</option>
-        <option value={RESOURCE_TYPES.LINK}>🔗 External Link</option>
-      </select>
-
-      <label htmlFor={`res-title-${res.id}`} className="sr-only">Resource Title</label>
-      <input
-        id={`res-title-${res.id}`} 
-        type="text"
-        placeholder="Link Title (e.g. Read PDF)"
-        value={res.title}
-        onChange={(e) => onResourceChange(stepIndex, index, "title", e.target.value)}
-        className="flex-1 min-w-[120px] rounded-md border border-black/10 px-3 py-1.5 text-xs outline-none focus:border-primary"
-      />
-
-      <div className="flex-1 min-w-[160px] flex items-center gap-1">
-        {res.type === RESOURCE_TYPES.PDF ? (
-          <>
-            <label htmlFor={`res-url-pdf-${res.id}`} className="sr-only">PDF URL</label>
-            <input
-              id={`res-url-pdf-${res.id}`}
-              type="text"
-              placeholder="Upload a PDF file →"
-              value={res.url}
-              readOnly 
-              className="w-full rounded-md border border-black/10 px-3 py-1.5 text-xs outline-none bg-slate-50 text-slate-500 cursor-not-allowed"
-            />
-            <label htmlFor={`upload-${res.id}`} className={`shrink-0 cursor-pointer bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-1.5 rounded-md text-xs font-bold transition-colors ${isUploading ? "opacity-50 pointer-events-none" : ""}`}>
-              {isUploading ? "⏳ Uploading..." : "⬆️ Upload PDF"}
-              <input id={`upload-${res.id}`} type="file" className="hidden" accept=".pdf" onChange={(e) => onFileUpload(e, stepIndex, index)} />
-            </label>
-          </>
-        ) : (
-          <>
-            <label htmlFor={`res-url-link-${res.id}`} className="sr-only">External URL</label>
-            <input
-              id={`res-url-link-${res.id}`}
-              type="text"
-              placeholder="Paste URL here (https://...)"
-              value={res.url}
-              onChange={(e) => onResourceChange(stepIndex, index, "url", e.target.value)}
-              className="w-full rounded-md border border-black/10 px-3 py-1.5 text-xs outline-none focus:border-primary bg-white"
-            />
-          </>
-        )}
-      </div>
-
-      <button type="button" onClick={() => onRemove(stepIndex, index)} className="text-red-500 hover:bg-red-50 p-1.5 rounded-md transition-colors font-bold shrink-0">✕</button>
-    </div>
-  );
-};
-
-ResourceItem.propTypes = {
-  res: PropTypes.object.isRequired,
-  index: PropTypes.number.isRequired,
-  stepIndex: PropTypes.number.isRequired,
-  isUploading: PropTypes.bool.isRequired,
-  onResourceChange: PropTypes.func.isRequired,
-  onRemove: PropTypes.func.isRequired,
-  onFileUpload: PropTypes.func.isRequired,
-};
-
-// show linked course in step
-const LinkedCourseItem = ({ c, index, stepIndex, onRemove }) => (
-  <div className="flex items-center justify-between bg-blue-50/50 p-3 rounded-xl border border-blue-100">
-    <div className="flex items-center gap-3">
-      <div className="w-10 h-10 rounded-lg bg-slate-200 overflow-hidden shrink-0">
-        <img src={c.thumbnail} alt="thumb" className="w-full h-full object-cover" />
-      </div>
-      <div>
-        <p className="text-sm font-bold text-slate-800">{c.title}</p>
-        <p className="text-xs text-slate-500">{c.educatorName}</p>
-      </div>
-    </div>
-    <button onClick={() => onRemove(stepIndex, index)} type="button" className="text-red-400 hover:bg-red-50 p-2 rounded-lg font-bold transition-colors">✕</button>
-  </div>
-);
-
-LinkedCourseItem.propTypes = {
-  c: PropTypes.object.isRequired,
-  index: PropTypes.number.isRequired,
-  stepIndex: PropTypes.number.isRequired,
-  onRemove: PropTypes.func.isRequired,
-};
-
-// show quizzes in step
-const QuizItem = ({ q, qIndex, stepIndex, stepIdentifier, onChange, onOptionChange, onRemove }) => (
-  <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100 relative">
-    <button type="button" onClick={() => onRemove(stepIndex, qIndex)} className="absolute top-2 right-2 text-red-400 hover:bg-red-50 p-1.5 rounded-md font-bold text-xs">✕ Remove</button>
-    
-    <label htmlFor={`quiz-q-${q.id}`} className="text-xs font-semibold text-emerald-800 mb-1 block">Question {qIndex + 1}</label>
-    <input 
-      id={`quiz-q-${q.id}`}
-      type="text" 
-      placeholder="Enter question here..." 
-      value={q.question} 
-      onChange={(e) => onChange(stepIndex, qIndex, "question", e.target.value)} 
-      className="w-full mb-3 rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-emerald-500 bg-white" 
-    />
-    
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-      {q.options.map((opt, optIndex) => (
-        <div key={opt.id} className="flex items-center gap-2">
-          <label htmlFor={`quiz-opt-radio-${opt.id}`} className="sr-only">Set Correct Answer</label>
-          <input 
-            id={`quiz-opt-radio-${opt.id}`}
-            type="radio" 
-            name={`correct-ans-${stepIdentifier}-${q.id}`} 
-            checked={q.correctAnswerIndex === optIndex} 
-            onChange={() => onChange(stepIndex, qIndex, "correctAnswerIndex", optIndex)} 
-            className="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer" 
-          />
-          <label htmlFor={`quiz-opt-text-${opt.id}`} className="sr-only">Option Text</label>
-          <input 
-            id={`quiz-opt-text-${opt.id}`}
-            type="text" 
-            placeholder={`Option ${optIndex + 1}`} 
-            value={opt.text} 
-            onChange={(e) => onOptionChange(stepIndex, qIndex, optIndex, e.target.value)} 
-            className={`flex-1 rounded-md border px-3 py-1.5 text-xs outline-none focus:border-emerald-500 bg-white ${q.correctAnswerIndex === optIndex ? "border-emerald-400 bg-emerald-50/50" : "border-black/10"}`} 
-          />
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
-QuizItem.propTypes = {
-  q: PropTypes.object.isRequired,
-  qIndex: PropTypes.number.isRequired,
-  stepIndex: PropTypes.number.isRequired,
-  stepIdentifier: PropTypes.string.isRequired,
-  onChange: PropTypes.func.isRequired,
-  onOptionChange: PropTypes.func.isRequired,
-  onRemove: PropTypes.func.isRequired,
-};
-
-const CourseSelectionPage = ({ onClose, onSelect }) => {
-  const [dbCourses, setDbCourses] = useState([]);
-  const [search, setSearch] = useState("");
-  const [isLoadingCourses, setIsLoadingCourses] = useState(true);
-
-  useEffect(() => {
-    const fetchAllCourses = async () => {
-      try {
-        const token = localStorage.getItem("edupath_token");
-        const config = { headers: { Authorization: `Bearer ${token}` } };
-        const { data } = await axios.get(`${API_BASE_URL}/courses`, config);
-        setDbCourses(data.courses || data || []);
-      } catch (err) {
-        console.error("Failed to fetch courses for selector:", err);
-      } finally {
-        setIsLoadingCourses(false);
-      }
-    };
-    fetchAllCourses();
-  }, []);
-
-  const filteredCourses = dbCourses.filter((course) => {
-    const status = (course.status || "").toLowerCase();
-    const isVisible = VISIBLE_COURSE_STATUSES.has(status);
-    const matchesSearch = (course.title || "").toLowerCase().includes(search.toLowerCase());
-    return isVisible && matchesSearch;
-  });
-
-  return (
-    <div className="min-h-[calc(100vh-80px)] bg-emerald-50/50 px-4 py-8 sm:px-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-8 bg-white p-6 rounded-3xl shadow-sm border border-emerald-100/50">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">Select a Platform Course</h1>
-            <p className="text-slate-500 text-sm mt-1">Browse and attach existing EduPath courses to your pathway step.</p>
-          </div>
-          <button onClick={onClose} className="bg-slate-100 text-slate-600 px-6 py-3 rounded-full font-bold hover:bg-slate-200 transition active:scale-95">
-            ← Back to Builder
-          </button>
-        </div>
-
-        <div className="mb-8">
-            <label htmlFor="courseSearch" className="sr-only">Search Courses</label>
-            <input
-                id="courseSearch"
-                type="text"
-                placeholder="Search by course title..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-white border border-emerald-100 p-4 rounded-2xl shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-lg"
-            />
-        </div>
-
-        {isLoadingCourses ? (
-          <div className="text-center py-10 text-slate-500 font-bold">Fetching courses from database...</div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCourses.length === 0 ? (
-              <p className="col-span-full text-center text-slate-500 py-10 italic">No courses found matching your search.</p>
-            ) : (
-              filteredCourses.map((course) => (
-                <div key={course.id || course._id} className="bg-white rounded-[24px] shadow-sm border border-slate-100 overflow-hidden flex flex-col hover:shadow-xl transition-all duration-300">
-                  <img src={course.thumbnailUrl || course.thumbnail || "https://placehold.co/600x400?text=No+Image"} alt="course" className="w-full h-48 object-cover bg-slate-100" />
-                  <div className="p-6 flex flex-col flex-1">
-                    <h3 className="font-bold text-lg text-slate-800 line-clamp-2 mb-2">{course.title}</h3>
-                    <p className="text-sm text-slate-500 mb-6">{course.educatorName}</p>
-                    <div className="mt-auto flex items-center justify-between">
-                      <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${course.status === "pending" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
-                        {course.status ? course.status.toUpperCase() : "ALL LEVELS"}
-                      </span>
-                      <button onClick={() => onSelect(course)} className="bg-primary/10 text-primary hover:bg-primary hover:text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors active:scale-95">
-                        + Select Course
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-CourseSelectionPage.propTypes = {
-    onClose: PropTypes.func.isRequired,
-    onSelect: PropTypes.func.isRequired,
-};
-
+// Helper to generate a unique ID for new steps added during editing
+const generateId = () =>
+  Date.now().toString(36) + Math.random().toString(36).substring(2);
 
 const ReviewerPathwayEdit = () => {
-  const { id } = useParams();
+  const { id } = useParams(); // Get the ID from the URL
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [uploadingFile, setUploadingFile] = useState(null); 
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
-  const [activeCourseSelector, setActiveCourseSelector] = useState({ isActive: false, stepIndex: null });
-
-  const [pathway, setPathway] = useState({ pathName: "", level: "Beginner" });
+  const [pathway, setPathway] = useState({ pathName: "", specialization: "", level: "Beginner" });
   const [steps, setSteps] = useState([]);
 
+  // Fetch data on load
   useEffect(() => {
-    const fetchTemplateAndSpecializations = async () => {
+    const fetchTemplate = async () => {
       try {
         const token = localStorage.getItem("edupath_token");
-        const config = { headers: { Authorization: `Bearer ${token}` } };
-        
-        // Parallel requests for better performance
-        const [profileRes, templateRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/auth/me`, config).catch((e) => {
-            // SonarLint S2486: Handled the error properly
-            console.error("Profile fetch failed:", e);
-            setError("Warning: Could not verify your assigned specialization.");
-            return { data: {} };
-          }),
-          axios.get(`${API_BASE_URL}/pathway/template/${id}`, config)
-        ]);
-
-        // Reviewer Validation
-        const userData = profileRes.data?.user || profileRes.data;
-        const rawSlug = userData?.specializationTag || templateRes.data.template.pathName;
+        const { data } = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/pathway/template/${id}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
 
         setPathway({
-          pathName: rawSlug || "Specialization Not Found",
-          level: templateRes.data.template.level,
+          pathName: data.template.pathName,
+          specialization: data.template.specialization || "Unknown Specialization",
+          level: data.template.level,
         });
-
-        // Adapter Pattern: Format data for React UI
-        setSteps((templateRes.data.template.steps || []).map(transformStepFromDB));
+        setSteps(data.template.steps || []);
         setLoading(false);
       } catch (err) {
         console.error("Error fetching template:", err);
@@ -342,11 +45,12 @@ const ReviewerPathwayEdit = () => {
         setLoading(false);
       }
     };
-    fetchTemplateAndSpecializations();
+    fetchTemplate();
   }, [id]);
 
-  // --- STATE HANDLERS ---
-  const handlePathwayChange = (e) => setPathway({ ...pathway, [e.target.name]: e.target.value });
+  const handlePathwayChange = (e) => {
+    setPathway({ ...pathway, [e.target.name]: e.target.value });
+  };
 
   const handleStepChange = (index, field, value) => {
     const newSteps = [...steps];
@@ -355,15 +59,28 @@ const ReviewerPathwayEdit = () => {
   };
 
   const addStep = () => {
-    setSteps([...steps, { id: generateId(), title: "", description: "", type: "course", resources: [], linkedCourses: [], quiz: [] }]);
+    setSteps([
+      ...steps,
+      {
+        id: generateId(),
+        title: "",
+        description: "",
+        type: "course",
+        resources: [],
+        quiz: [],
+      },
+    ]);
   };
 
-  const removeStep = (index) => setSteps(steps.filter((_, i) => i !== index));
+  const removeStep = (index) => {
+    setSteps(steps.filter((_, i) => i !== index));
+  };
 
+  // 🟢 NEW HELPER FUNCTIONS FOR MULTIPLE RESOURCES
   const addResourceToStep = (stepIndex) => {
     const newSteps = [...steps];
     if (!newSteps[stepIndex].resources) newSteps[stepIndex].resources = [];
-    newSteps[stepIndex].resources.push({ id: generateId(), title: "", url: "", type: RESOURCE_TYPES.VIDEO });
+    newSteps[stepIndex].resources.push({ title: "", url: "", type: "video" });
     setSteps(newSteps);
   };
 
@@ -379,82 +96,10 @@ const ReviewerPathwayEdit = () => {
     setSteps(newSteps);
   };
 
-  const handleFileUpload = async (event, stepIndex, resIndex) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    setUploadingFile({ stepIndex, resIndex });
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("contentType", "Document");
-    formData.append("itemName", file.name);
-
-    try {
-      const token = localStorage.getItem("edupath_token");
-      const res = await axios.post(`${API_BASE_URL}/upload/content`, formData, {
-        headers: { "Content-Type": "multipart/form-data", Authorization: `Bearer ${token}` },
-      });
-
-      if (res.data.success) {
-        const newSteps = [...steps];
-        newSteps[stepIndex].resources[resIndex].url = res.data.item.url;
-        if (!newSteps[stepIndex].resources[resIndex].title) 
-          newSteps[stepIndex].resources[resIndex].title = file.name;
-        if (file.name.toLowerCase().endsWith(".pdf")) 
-          newSteps[stepIndex].resources[resIndex].type = RESOURCE_TYPES.PDF;
-        
-        setSteps(newSteps);
-        setError(""); 
-      }
-    } catch (err) {
-      setError(`Upload failed: ${err.response?.data?.message || err.message}`);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } finally {
-      setUploadingFile(null);
-      event.target.value = null; 
-    }
-  };
-
-  const openCourseSelector = (stepIndex) => setActiveCourseSelector({ isActive: true, stepIndex });
-
-  const handleAttachCourse = (course) => {
-    const newSteps = [...steps];
-    const stepIdx = activeCourseSelector.stepIndex;
-
-    if (!newSteps[stepIdx].linkedCourses) 
-      newSteps[stepIdx].linkedCourses = [];
-    const courseId = course._id || course.id;
-    
-    if (!newSteps[stepIdx].linkedCourses.some((c) => c.courseId === courseId)) {
-      newSteps[stepIdx].linkedCourses.push({
-        id: generateId(),
-        courseId: courseId,
-        title: course.title,
-        thumbnail: course.thumbnailUrl || course.thumbnail || "https://placehold.co/600x400?text=Course",
-        educatorName: course.educatorName || course.createdByEducatorEmail || "EduPath Educator",
-      });
-    }
-
-    setSteps(newSteps);
-    setActiveCourseSelector({ isActive: false, stepIndex: null });
-  };
-
-  const removeLinkedCourse = (stepIndex, courseIndex) => {
-    const newSteps = [...steps];
-    newSteps[stepIndex].linkedCourses.splice(courseIndex, 1);
-    setSteps(newSteps);
-  };
-
   const addQuizQuestion = (stepIndex) => {
     const newSteps = [...steps];
     if (!newSteps[stepIndex].quiz) newSteps[stepIndex].quiz = [];
-    newSteps[stepIndex].quiz.push({
-      id: generateId(),
-      question: "",
-      options: [{ id: generateId(), text: "" }, { id: generateId(), text: "" }, { id: generateId(), text: "" }, { id: generateId(), text: "" }],
-      correctAnswerIndex: 0,
-    });
+    newSteps[stepIndex].quiz.push({ question: "", options: ["", "", "", ""], correctAnswerIndex: 0 });
     setSteps(newSteps);
   };
 
@@ -466,7 +111,7 @@ const ReviewerPathwayEdit = () => {
 
   const handleQuizOptionChange = (stepIndex, qIndex, optIndex, value) => {
     const newSteps = [...steps];
-    newSteps[stepIndex].quiz[qIndex].options[optIndex].text = value;
+    newSteps[stepIndex].quiz[qIndex].options[optIndex] = value;
     setSteps(newSteps);
   };
 
@@ -476,98 +121,92 @@ const ReviewerPathwayEdit = () => {
     setSteps(newSteps);
   };
 
-  // --- VALIDATION LOGIC ---
-  const validateResource = (res, stepIndex, resIndex) => {
-    if (!res.title.trim()) 
-      return `Please provide a Title for Learning Material #${resIndex + 1} in Step ${stepIndex + 1}.`;
-    
-    if (!res.url.trim()) {
-      return res.type === RESOURCE_TYPES.PDF
-        ? `Please upload the PDF document for "${res.title}" in Step ${stepIndex + 1}.`
-        : `Please paste a URL for "${res.title}" in Step ${stepIndex + 1}.`;
-    }
-
-    if (!/^(https?:\/\/)/i.test(res.url.trim())) {
-      return `The URL for "${res.title}" in Step ${stepIndex + 1} is invalid. It must start with http:// or https://`;
-    }
-    return null;
-  };
-
-  const validateStep = (step, index) => {
-    if (!step.title.trim() || !step.description.trim()) 
-      return `Please fill out both the Title and Description for Step ${index + 1}.`;
-    
-    const resources = step.resources || [];
-    for (let j = 0; j < resources.length; j++) {
-      const err = validateResource(resources[j], index, j);
-      if (err) return err;
-    }
-    return null;
-  };
-
-  const validatePathwayPayload = () => {
-    if (!pathway.pathName?.trim() || pathway.pathName === "Loading specialization..." || pathway.pathName === "Specialization Not Found") {
-        return "Valid Specialization required.";
-    }
-    if (steps.length === 0) 
-      return "You must add at least one step to the curriculum.";
-
-    for (let i = 0; i < steps.length; i++) {
-      const err = validateStep(steps[i], i);
-      if (err) return err;
-    }
-    return null;
-  };
-
-  // --- SUBMISSION ---
   const handleUpdatePathway = async () => {
     setError("");
 
-    const validationError = validatePathwayPayload();
-    if (validationError) {
-        setError(validationError);
-        window.scrollTo({ top: 0, behavior: "smooth" }); 
-        return;
-    }
+    if (!pathway.pathName.trim())
+      return setError("Please enter a Pathway Name.");
+    if (steps.length === 0) return setError("Add at least one step.");
 
-    // Formats UI Objects back to DB Schema before saving
-    const formattedSteps = steps.map(transformStepForDB);
+    // Fix the order numbers before sending
+    const formattedSteps = steps.map((step, index) => {
+      if (!step.title.trim() || !step.description.trim()) {
+        setError(
+          `Please fill out Title and Description for Step ${index + 1}.`,
+        );
+        throw new Error("Validation Failed");
+      }
+
+      // Strip out the frontend-only 'id' for new steps (keep _id if it exists)
+      const { id, ...stepData } = step;
+
+      return { ...stepData, order: index + 1 }; // Ensure order is exactly right
+    });
 
     try {
       setSaving(true);
       const token = localStorage.getItem("edupath_token");
 
       await axios.put(
-        `${API_BASE_URL}/pathway/template/${id}`,
-        { pathName: pathway.pathName, level: pathway.level, steps: formattedSteps },
+        `${import.meta.env.VITE_API_URL}/api/pathway/template/${id}`,
+        {
+          pathName: pathway.pathName,
+          level: pathway.level,
+          steps: formattedSteps,
+        },
         { headers: { Authorization: `Bearer ${token}` } },
       );
 
       setSaving(false);
-      navigate("/reviewer/pathways"); 
+      setShowSuccessPopup(true);
+      setTimeout(() => {
+        navigate("/reviewer/pathways");
+      }, 2500);
     } catch (err) {
-      setError(err?.response?.data?.message || "Failed to update pathway");
+      if (err.message !== "Validation Failed") {
+        setError(err?.response?.data?.message || "Failed to update pathway");
+      }
       setSaving(false);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
-  if (loading) return <PageShell><div className="p-10 text-center">Loading editor...</div></PageShell>;
-
-  if (activeCourseSelector.isActive) {
+  if (loading)
     return (
       <PageShell>
-        <CourseSelectionPage onClose={() => setActiveCourseSelector({ isActive: false, stepIndex: null })} onSelect={handleAttachCourse} />
+        <div className="p-10 text-center">Loading editor...</div>
       </PageShell>
     );
-  }
 
   return (
     <PageShell>
-      <div className="mx-auto max-w-4xl space-y-6 pb-12">
-        <div className="rounded-[28px] border border-black/5 bg-white/70 p-6 shadow-sm backdrop-blur">
-          <h1 className="text-2xl font-semibold text-text-dark">Edit Pathway</h1>
-          <p className="mt-1 text-sm text-muted">Modify this master curriculum.</p>
+      {/* Success Popup Overlay */}
+      {showSuccessPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="flex flex-col items-center justify-center bg-white rounded-3xl p-10 shadow-2xl animate-in zoom-in-95 duration-500 max-w-sm mx-4 text-center border border-primary/20">
+            <div className="h-20 w-20 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
+              <CheckCircle2 className="h-10 w-10 text-emerald-500 animate-in spin-in-[180deg] duration-700 delay-100" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">Pathway Updated!</h2>
+            <p className="text-sm text-slate-500">Your curriculum template has been successfully updated and saved.</p>
+          </div>
+        </div>
+      )}
+
+      <div className="mx-auto max-w-4xl space-y-8 pb-12 pt-6">
+        {/* Header */}
+        <div className="flex items-center gap-4 border-b border-primary/10 pb-6">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/30">
+            <Layout className="h-7 w-7" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">
+              Edit Pathway
+            </h1>
+            <p className="mt-1 text-sm font-medium text-slate-500">
+              Modify this master course and its steps.
+            </p>
+          </div>
         </div>
 
         {error && (
@@ -576,160 +215,290 @@ const ReviewerPathwayEdit = () => {
           </div>
         )}
 
-        <div className="rounded-[28px] border border-black/5 bg-white/70 p-6 shadow-sm backdrop-blur">
-          <h2 className="text-lg font-semibold text-text-dark mb-4">1. Pathway Details</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
+        {/* Pathway Details Section */}
+        <div className="rounded-[32px] border border-primary/10 bg-white p-8 shadow-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Settings className="h-4 w-4" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-800">
+              1. Pathway Details
+            </h2>
+          </div>
+          
+          <div className="grid gap-6 sm:grid-cols-2">
             <div>
-              <label htmlFor="pathName" className="mb-1 block text-sm font-medium text-text-dark">
-                Assigned Specialization
+              <label
+                htmlFor="pathName"
+                className="mb-1.5 block text-sm font-bold text-slate-700"
+              >
+                Pathway Name
               </label>
-              {/* Locked Input - Reviewers cannot alter their Specialization */}
               <input
                 id="pathName"
                 type="text"
                 name="pathName"
-                value={formatSpecializationName(pathway.pathName)}
-                disabled 
-                className="w-full rounded-xl border border-black/10 bg-gray-100 text-gray-500 cursor-not-allowed px-4 py-2 text-sm outline-none"
+                value={pathway.pathName}
+                onChange={handlePathwayChange}
+                placeholder="e.g., Intro to React"
+                className="w-full rounded-2xl border-0 bg-slate-50 px-4 py-3.5 text-sm font-medium text-slate-800 outline-none ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-primary transition-all shadow-sm"
               />
             </div>
             <div>
-              <label htmlFor="level" className="mb-1 block text-sm font-medium text-text-dark">Level</label>
+              <label
+                className="mb-1.5 block text-sm font-bold text-slate-700"
+              >
+                Assigned Specialization
+              </label>
+              <input
+                type="text"
+                value={pathway.specialization}
+                disabled // 🔥 LOCKED INPUT
+                className="w-full rounded-2xl border border-black/10 bg-gray-100 text-gray-500 cursor-not-allowed px-4 py-3.5 text-sm outline-none"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="level"
+                className="mb-1.5 block text-sm font-bold text-slate-700"
+              >
+                Level
+              </label>
               <select
                 id="level"
                 name="level"
                 value={pathway.level}
                 onChange={handlePathwayChange}
-                className="w-full rounded-xl border border-black/10 bg-white/50 px-4 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="w-full rounded-2xl border-0 bg-slate-50 px-4 py-3.5 text-sm font-medium text-slate-800 outline-none ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-primary transition-all shadow-sm cursor-pointer"
               >
-                {PATHWAY_LEVELS.map(level => (
-                  <option key={level} value={level}>{level}</option>
-                ))}
+                <option value="Beginner">Beginner</option>
+                <option value="Intermediate">Intermediate</option>
+                <option value="Advanced">Advanced</option>
               </select>
             </div>
           </div>
         </div>
 
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-text-dark pl-2">2. Curriculum Steps</h2>
+        {/* Steps Section */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-3 pl-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <BookOpen className="h-4 w-4" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-800">
+              2. Curriculum Steps
+            </h2>
+          </div>
 
           {steps.map((step, index) => {
-            const stepIdentifier = step.id;
+            // Determine a unique identifier for this step to use in keys and input IDs
+            const stepIdentifier = step._id || step.id;
 
             return (
-              <div key={stepIdentifier} className="relative rounded-[22px] border border-black/5 bg-white/80 p-5 shadow-sm">
-                <div className="mb-4 flex items-center justify-between border-b border-black/5 pb-3">
-                  <span className="font-semibold text-primary">Step {index + 1}</span>
-                  {steps.length > 1 && (
-                    <button onClick={() => removeStep(index)} className="text-xs font-semibold text-red-500 hover:text-red-700 hover:underline">
-                      Remove Step
-                    </button>
-                  )}
+              <div
+                key={stepIdentifier}
+                className="relative rounded-[32px] border border-primary/10 bg-white p-8 shadow-sm transition-all hover:shadow-md"
+              >
+                <div className="mb-6 flex items-center justify-between border-b border-primary/5 pb-4">
+                  <span className="flex items-center gap-2 text-lg font-bold text-slate-800">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-xs text-primary">
+                      {index + 1}
+                    </span>
+                    Step {index + 1}
+                  </span>
+                  <button
+                    onClick={() => removeStep(index)}
+                    className="text-xs font-semibold text-red-500 hover:text-red-700 hover:underline"
+                  >
+                    Remove Step
+                  </button>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-6 sm:grid-cols-2">
                   <div className="sm:col-span-2">
-                    <label htmlFor={`step-title-${stepIdentifier}`} className="mb-1 block text-xs font-medium text-text-dark">Step Title</label>
+                    <label
+                      htmlFor={`step-title-${stepIdentifier}`}
+                      className="mb-1.5 block text-sm font-bold text-slate-700"
+                    >
+                      Step Title
+                    </label>
                     <input
                       id={`step-title-${stepIdentifier}`}
                       type="text"
                       value={step.title}
-                      onChange={(e) => handleStepChange(index, "title", e.target.value)}
+                      onChange={(e) =>
+                        handleStepChange(index, "title", e.target.value)
+                      }
                       placeholder="e.g., Introduction to React"
-                      className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                      className="w-full rounded-2xl border-0 bg-slate-50 px-4 py-3.5 text-sm font-medium text-slate-800 outline-none ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-primary transition-all shadow-sm"
                     />
                   </div>
                   <div className="sm:col-span-2">
-                    <label htmlFor={`step-desc-${stepIdentifier}`} className="mb-1 block text-xs font-medium text-text-dark">Description</label>
+                    <label
+                      htmlFor={`step-desc-${stepIdentifier}`}
+                      className="mb-1.5 block text-sm font-bold text-slate-700"
+                    >
+                      Description
+                    </label>
                     <textarea
-                      id={`step-desc-${stepIdentifier}`} 
+                      id={`step-desc-${stepIdentifier}`}
                       rows={2}
                       value={step.description}
-                      onChange={(e) => handleStepChange(index, "description", e.target.value)}
-                      className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                      onChange={(e) =>
+                        handleStepChange(index, "description", e.target.value)
+                      }
+                      className="w-full rounded-2xl border-0 bg-slate-50 px-4 py-3.5 text-sm font-medium text-slate-800 outline-none ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-primary transition-all shadow-sm"
                     />
                   </div>
 
-                  {/* RESOURCES */}
+                  {/* 🟢 NEW: Multiple Resources UI (Replaced the old single input) */}
                   <div className="sm:col-span-2 pt-2 border-t border-black/5 mt-2">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="block text-xs font-bold text-text-dark uppercase tracking-wider">Learning Materials</span>
-                      <button onClick={() => addResourceToStep(index)} type="button" className="text-[10px] font-bold bg-primary/10 text-primary px-3 py-1 rounded-full hover:bg-primary/20 transition-colors">
-                        + ADD LINK / FILE
+                      <label className="block text-xs font-bold text-text-dark uppercase tracking-wider">
+                        Learning Materials
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => addResourceToStep(index)}
+                        className="text-[10px] font-bold bg-primary/10 text-primary px-3 py-1 rounded-full hover:bg-primary/20 transition-colors"
+                      >
+                        + ADD LINK
                       </button>
                     </div>
 
                     <div className="space-y-2">
-                      {(step.resources?.length > 0) ? (
-                        step.resources.map((res, resIndex) => (
-                          <ResourceItem 
-                            key={res.id} 
-                            res={res} 
-                            index={resIndex} 
-                            stepIndex={index} 
-                            isUploading={uploadingFile?.stepIndex === index && uploadingFile?.resIndex === resIndex} 
-                            onResourceChange={handleResourceChange} 
-                            onRemove={removeResourceFromStep} 
-                            onFileUpload={handleFileUpload} 
+                      {(step.resources || []).map((res, resIndex) => (
+                        <div
+                          key={resIndex}
+                          className="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-100"
+                        >
+                          {/* 🟢 NEW: Content Type Selector for this specific link */}
+                          <select
+                            value={res.type || "video"}
+                            onChange={(e) =>
+                              handleResourceChange(
+                                index,
+                                resIndex,
+                                "type",
+                                e.target.value,
+                              )
+                            }
+                            className="w-full sm:w-auto rounded-md border border-black/10 px-2 py-1.5 text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-white"
+                          >
+                            <option value="video">🎥 Video</option>
+                            <option value="read">📖 Reading / PDF</option>
+                            <option value="project">💻 Project</option>
+                            <option value="quiz">📝 Quiz</option>
+                          </select>
+
+                          <input
+                            type="text"
+                            placeholder="Link Title (e.g. Watch Video)"
+                            value={res.title}
+                            onChange={(e) =>
+                              handleResourceChange(
+                                index,
+                                resIndex,
+                                "title",
+                                e.target.value,
+                              )
+                            }
+                            className="flex-1 min-w-[120px] rounded-md border border-black/10 px-3 py-1.5 text-xs outline-none focus:border-primary"
                           />
-                        ))
-                      ) : (
-                        <p className="text-xs text-muted italic">No materials added yet.</p>
+                          <input
+                            type="text"
+                            placeholder="https://..."
+                            value={res.url}
+                            onChange={(e) =>
+                              handleResourceChange(
+                                index,
+                                resIndex,
+                                "url",
+                                e.target.value,
+                              )
+                            }
+                            className="flex-1 min-w-[120px] rounded-md border border-black/10 px-3 py-1.5 text-xs outline-none focus:border-primary"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              removeResourceFromStep(index, resIndex)
+                            }
+                            className="text-red-500 hover:bg-red-50 p-1.5 rounded-md transition-colors font-bold"
+                            title="Remove link"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                      {(!step.resources || step.resources.length === 0) && (
+                        <p className="text-xs text-muted italic">
+                          No materials added yet.
+                        </p>
                       )}
                     </div>
                   </div>
-
-                  {/* PLATFORM COURSES */}
+                  {/* 🟢 NEW: QUIZ SECTION */}
                   <div className="sm:col-span-2 pt-4 border-t border-black/10 mt-4">
                     <div className="flex items-center justify-between mb-3">
-                      <span className="block text-xs font-bold text-text-dark uppercase tracking-wider">Platform Courses</span>
-                      <button onClick={() => openCourseSelector(index)} type="button" className="text-[10px] font-bold bg-blue-100 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-200 transition-colors">+ ADD COURSE</button>
-                    </div>
-
-                    <div className="space-y-2">
-                      {(step.linkedCourses?.length > 0) ? (
-                        step.linkedCourses.map((c, cIndex) => (
-                          <LinkedCourseItem 
-                            key={c.id} 
-                            c={c} 
-                            index={cIndex} 
-                            stepIndex={index} 
-                            onRemove={removeLinkedCourse} 
-                          />
-                        ))
-                      ) : (
-                        <p className="text-xs text-muted italic">No internal courses linked yet.</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* QUIZZES */}
-                  <div className="sm:col-span-2 pt-4 border-t border-black/10 mt-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="block text-xs font-bold text-text-dark uppercase tracking-wider">Step Assessment (Quiz)</span>
-                      <button type="button" onClick={() => addQuizQuestion(index)} className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full hover:bg-emerald-200 transition-colors">+ ADD QUESTION</button>
+                      <label className="block text-xs font-bold text-text-dark uppercase tracking-wider">Step Assessment (Quiz)</label>
+                      <button
+                        type="button"
+                        onClick={() => addQuizQuestion(index)}
+                        className="flex items-center gap-1.5 text-xs font-bold bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full hover:bg-emerald-200 transition-colors shadow-sm"
+                      >
+                        <Plus className="h-3 w-3" /> ADD QUESTION
+                      </button>
                     </div>
 
                     <div className="space-y-4">
-                      {(step.quiz?.length > 0) ? (
-                        step.quiz.map((q, qIndex) => (
-                          <QuizItem 
-                            key={q.id} 
-                            q={q} 
-                            qIndex={qIndex} 
-                            stepIndex={index} 
-                            stepIdentifier={stepIdentifier} 
-                            onChange={handleQuizChange} 
-                            onOptionChange={handleQuizOptionChange} 
-                            onRemove={removeQuizQuestion} 
+                      {(step.quiz || []).map((q, qIndex) => (
+                        <div key={qIndex} className="bg-emerald-50/80 p-5 rounded-2xl border border-emerald-100/60 relative shadow-sm">
+                          <button
+                            type="button"
+                            onClick={() => removeQuizQuestion(index, qIndex)}
+                            className="absolute top-3 right-3 text-red-400 hover:bg-red-100 hover:text-red-600 p-2 rounded-xl font-bold text-xs transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                          
+                          <label className="text-xs font-semibold text-emerald-800 mb-1 block">Question {qIndex + 1}</label>
+                          <input
+                            type="text"
+                            placeholder="Enter question here..."
+                            value={q.question}
+                            onChange={(e) => handleQuizChange(index, qIndex, "question", e.target.value)}
+                            className="w-full mb-3 rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-emerald-500"
                           />
-                        ))
-                      ) : (
-                        <p className="text-xs text-muted italic">No assessment added.</p>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {q.options.map((opt, optIndex) => (
+                              <div key={optIndex} className="flex items-center gap-2">
+                                <input
+                                  type="radio"
+                                  name={`correct-ans-${stepIdentifier}-${qIndex}`}
+                                  checked={q.correctAnswerIndex === optIndex}
+                                  onChange={() => handleQuizChange(index, qIndex, "correctAnswerIndex", optIndex)}
+                                  className="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
+                                  title="Mark as correct answer"
+                                />
+                                <input
+                                  type="text"
+                                  placeholder={`Option ${optIndex + 1}`}
+                                  value={opt}
+                                  onChange={(e) => handleQuizOptionChange(index, qIndex, optIndex, e.target.value)}
+                                  className={`flex-1 rounded-md border px-3 py-1.5 text-xs outline-none focus:border-emerald-500 ${q.correctAnswerIndex === optIndex ? 'border-emerald-400 bg-emerald-50/50' : 'border-black/10'}`}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      {(!step.quiz || step.quiz.length === 0) && (
+                        <p className="text-xs text-muted italic">No assessment added. Step will be completable without a quiz.</p>
                       )}
                     </div>
                   </div>
-
                 </div>
               </div>
             );
@@ -737,19 +506,21 @@ const ReviewerPathwayEdit = () => {
 
           <button
             onClick={addStep}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-[22px] border-2 border-dashed border-primary/40 bg-primary/5 py-4 text-sm font-semibold text-primary hover:bg-primary/10 hover:border-primary/60 transition-colors"
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-[28px] border-2 border-dashed border-primary/30 bg-primary/5 py-5 text-sm font-bold text-primary hover:bg-primary/10 hover:border-primary/50 transition-all active:scale-[0.99]"
           >
-            <span>+</span> Add Another Step
+            <Plus className="h-5 w-5" /> Add Another Step
           </button>
         </div>
 
-        <div className="flex justify-end pt-4">
+        {/* Save Actions */}
+        <div className="flex justify-end pt-8 pb-10">
           <button
             onClick={handleUpdatePathway}
             disabled={saving}
-            className="rounded-full bg-primary px-8 py-3 font-semibold text-white shadow-md hover:brightness-95 disabled:opacity-70"
+            className="flex items-center gap-2 rounded-full bg-primary px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary/30 hover:brightness-110 hover:-translate-y-0.5 transition-all disabled:opacity-70 disabled:hover:translate-y-0 disabled:shadow-none"
           >
-            {saving ? "Updating..." : "Save Changes"}
+            {saving ? "Updating Template..." : "Update Template"}
+            {!saving && <ArrowRight className="h-4 w-4" />}
           </button>
         </div>
       </div>

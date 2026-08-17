@@ -4,12 +4,12 @@ import { AnimatePresence } from "framer-motion";
 import PlainLayout from "./components/layouts/PlainLayout.jsx";
 import StudentLayout from "./components/layouts/StudentLayout.jsx";
 import EducatorLayout from "./components/layouts/EducatorLayout.jsx";
-import AdminLayout from "./components/layouts/AdminLayout.jsx";
+import AdminLayout from "./components/layouts/admin-layouts/AdminLayout.jsx";
 import ReviewerLayout from "./components/layouts/ReviewerLayout.jsx";
 import MentorLayout from "./components/layouts/MentorLayout.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
-import Home from "./pages/Home.jsx";
+import Home from "./pages/Genaral/LandingPage/LandingBloomPro.jsx";
 import Login from "./pages/Login.jsx";
 import Signup from "./pages/Signup.jsx";
 import SignupRole from "./pages/SignupRole.jsx";
@@ -40,15 +40,20 @@ import EducatorProfile from "./pages/educator/EducatorProfile.jsx";
 import EducatorVerificationPendingPage from "./pages/educator/EducatorVerificationPendingPage.jsx";
 import MentorTerms from "./pages/educator/MentorTerms.jsx";
 
-import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
-import AdminReviewers from "./pages/admin/AdminReviewers.jsx";
-import AdminViewCourses from "./pages/admin/AdminViewCourses.jsx";
-import AdminVerifyEducators from "./pages/admin/AdminVerifyEducators.jsx";
-import AdminReviewDashboard from "./pages/admin/AdminReviewDashboard.jsx";
-import AdminProfile from "./pages/admin/AdminProfile.jsx";
-import AdminPathwayBuilder from "./pages/admin/AdminPathwayBuilder.jsx";
-import AdminPathwayList from "./pages/admin/AdminPathwayList.jsx";
-import AdminPathwayEdit from "./pages/admin/AdminPathwayEdit.jsx";
+import AdminDashboard from "./pages/admin/General Pages/AdminDashboard/AdminDashboard.jsx"; //admin dashboard page
+import AdminReviewers from "./pages/admin/Reviewers Management/createReviewer/AdminReviewers.jsx";
+import AdminViewCourses from "./pages/admin/Course Management/AdminViewPendingCourses/AdminViewCourses.jsx"; //admin pending courses list page
+import AdminVerifyEducators from "./pages/admin/Educator Management/educatorVerify/AdminVerifyEducators.jsx"; 
+import AdminEducatorList from "./pages/admin/Educator Management/educatorList/AdminEducatorList.jsx";
+import AdminProfile from "./pages/admin/General Pages/AdminProfile/AdminProfile.jsx"; //admin profile page
+
+import AdminPathwayBuilder from "./pages/admin/Pathway Management/AdminPathwayBuilder.jsx";
+import AdminPathwayList from "./pages/admin/Pathway Management/AdminPathwayList.jsx";
+import AdminPathwayEdit from "./pages/admin/Pathway Management/AdminPathwayEdit.jsx";
+
+import AdminEducatorReview from './pages/admin/Educator Management/educatorViewDetails/AdminEducatorReview.jsx';
+import AdminSpecializations from './pages/admin/Reviewers Management/specializations/AdminSpecializations.jsx'; 
+import AdminCourseReview from './pages/admin/Course Management/AdminCourseReview/AdminCourseReview.jsx';// Admin course review page
 
 import ReviewerDashboard from "./pages/reviewer/ReviewerDashboard.jsx";
 import ReviewerQueue from "./pages/reviewer/ReviewerQueue.jsx";
@@ -124,13 +129,16 @@ const App = () => {
             <Route path="reviewers" element={<AdminReviewers />} />
             <Route path="approvals" element={<AdminViewCourses />} />
             <Route path="verify-educators" element={<AdminVerifyEducators />} />
-            <Route path="review-dashboard" element={<AdminReviewDashboard />} />
+            <Route path="educators" element={<AdminEducatorList />} />
             <Route path="queue" element={<ReviewerQueue />} />
             <Route path="queue/:id" element={<ReviewerCourseReview />} />
             <Route path="profile" element={<AdminProfile />} />
             <Route path="pathway-builder" element={<AdminPathwayBuilder />} />
             <Route path="pathways" element={<AdminPathwayList />} />
             <Route path="pathway-edit/:id" element={<AdminPathwayEdit />} />
+            <Route path="/admin/verify-educator/:id" element={<AdminEducatorReview />} />
+            <Route path="/admin/specializations" element={<AdminSpecializations />} />
+            <Route path="/admin/course-rating/:id" element={<AdminCourseReview />} />
           </Route>
         </Route>
 
