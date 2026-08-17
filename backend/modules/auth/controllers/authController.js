@@ -248,7 +248,7 @@ exports.getCurrentUser = (req, res) => {
 // Handle user profile update
 exports.updateProfile = async (req, res) => {
   try {
-    const { name, role, password, profile, status, specializationTag, isMentor } = req.body;
+    const { name, role, password, profile, status, specializationTag, isMentor, avatar } = req.body;
 
     // Build update object dynamically to prevent overwriting with nulls
     const updates = {};
@@ -258,11 +258,12 @@ exports.updateProfile = async (req, res) => {
     if (specializationTag != null) updates.specializationTag = specializationTag;
     if (profile != null) updates.profile = profile;
     if (isMentor != null) updates.isMentor = isMentor;
+    if (avatar != null) updates.avatar = avatar;
     if (password && password.length >= 6) {
       updates.password = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
     }
 
-    const user = await User.findByIdAndUpdate(req.user._id, { $set: updates }, { returnDocument: 'after' }).select("-password");
+    const user = await User.findByIdAndUpdate(req.user._id, { $set: updates }, { new: true }).select("-password");
 
     const safe = user.toObject();
     safe.id = safe._id.toString();
