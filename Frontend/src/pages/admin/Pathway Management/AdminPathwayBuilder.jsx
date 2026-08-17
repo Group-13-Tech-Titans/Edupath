@@ -533,7 +533,7 @@ const AdminPathwayBuilder = () => {
                               <div key={optIndex} className="flex items-center gap-2">
                                 <input
                                   type="radio"
-                                  name={`correct-ans-${stepIdentifier}-${qIndex}`}
+                                  name={`correct-ans-${step.id}-${qIndex}`}
                                   checked={q.correctAnswerIndex === optIndex}
                                   onChange={() => handleQuizChange(index, qIndex, "correctAnswerIndex", optIndex)}
                                   className="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
