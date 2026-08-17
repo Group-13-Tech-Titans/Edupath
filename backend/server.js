@@ -8,8 +8,12 @@ const app = express();
 
 connectDB();
 
-app.use(cors());
-app.use(cors({ origin: 'http://localhost:5173' }));
+app.use(cors({ 
+  origin: [
+    'http://localhost:5173', 
+    'https://edupath-2qyu-j7k3cchhg-yasindugunasekaras-projects.vercel.app'
+  ] 
+}));
 
 // Increase the limit to 50mb to allow large Base64 images to pass through
 app.use(express.json({ limit: '50mb' }));
