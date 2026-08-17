@@ -300,26 +300,6 @@ const StudentDashboard = () => {
 
         {renderPathwayContent()}
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4">
-          <StatCard
-            icon="📚"
-            title="Active Courses"
-            value={approvedCourses.length}
-            themeClass="bg-blue-50 text-blue-500"
-          />
-          <StatCard
-            icon="✅"
-            title="Lessons Done"
-            value={completedCount}
-            themeClass="bg-emerald-50 text-emerald-500"
-          />
-          <StatCard
-            icon="🔥"
-            title="Study Streak"
-            value="7 Days"
-            themeClass="bg-orange-50 text-orange-500"
-          />
-        </div>
 
         {/* 🤝 MENTORSHIP SESSIONS */}
         <div className="pt-4">

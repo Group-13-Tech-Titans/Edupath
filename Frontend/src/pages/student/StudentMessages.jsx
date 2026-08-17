@@ -123,9 +123,13 @@ export default function StudentMessages() {
   }, [location.state?.mentorId, conversations, eligibleMentors, activeConv?.mentorId]);
 
   // Scroll to bottom
+  const chatContainerRef = useRef(null);
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: "smooth"
+      });
     }
   }, [messages]);
 
@@ -382,7 +386,7 @@ export default function StudentMessages() {
                     </Link>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto px-8 py-6 flex flex-col gap-5 bg-[#fbfcfd] custom-scrollbar">
+                  <div ref={chatContainerRef} className="flex-1 overflow-y-auto px-8 py-6 flex flex-col gap-5 bg-[#fbfcfd] custom-scrollbar">
                     {msgLoading ? (
                       <div className="flex flex-1 items-center justify-center flex-col gap-2">
                         <div className="w-6 h-6 border-3 border-emerald-100 border-t-[#5DD9C1] rounded-full animate-spin"></div>
