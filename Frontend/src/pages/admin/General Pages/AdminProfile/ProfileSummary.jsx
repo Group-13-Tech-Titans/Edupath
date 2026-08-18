@@ -2,7 +2,7 @@ import React from "react";
 import { InfoRow } from "./ProfileSharedUI";
 import RegisteredAdmins from "./RegisteredAdmins";
 
-export default function ProfileSummary({ profile }) {
+export default function ProfileSummary({ profile, adminListRefreshKey }) {
   
   // Helper function to generate initials from full name 
   const getInitials = (name) => {
@@ -52,7 +52,7 @@ export default function ProfileSummary({ profile }) {
       </div>
       
       <div className="flex-1 min-h-0">
-        <RegisteredAdmins />
+        <RegisteredAdmins refreshKey={adminListRefreshKey} />
       </div>
     </div>
   );

@@ -1,10 +1,4 @@
-/**
- * EduPath Email Templates
- * All templates return { subject, html, text }
- * Use inline CSS — better email client compatibility.
- */
-
-const BASE_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+const BASE_URL = process.env.FRONTEND_URL;
 
 const wrapper = (content) => `
 <!DOCTYPE html>
@@ -56,17 +50,20 @@ const infoBox = (rows) => {
       <tr>
         <td style="padding:8px 12px;font-size:12px;font-weight:600;color:#7a9e99;width:40%;border-bottom:1px solid #f0f7f5;">${label}</td>
         <td style="padding:8px 12px;font-size:13px;color:#1a2e2b;border-bottom:1px solid #f0f7f5;">${value}</td>
-      </tr>`
+      </tr>`,
     )
     .join("");
   return `<table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fffe;border:1px solid #e0f2ee;border-radius:10px;margin:16px 0;overflow:hidden;">${cells}</table>`;
 };
 
-// ─────────────────────────────────────────────
-// 1. Welcome — new account created
-// ─────────────────────────────────────────────
+//  Welcome — new account created
 exports.welcomeEmail = ({ name, email, role }) => {
-  const roleLabel = role === "educator" ? "Educator" : role === "reviewer" ? "Reviewer" : "Student";
+  const roleLabel =
+    role === "educator"
+      ? "Educator"
+      : role === "reviewer"
+        ? "Reviewer"
+        : "Student";
   return {
     subject: "Welcome to EduPath! Your account is ready.",
     html: wrapper(`
@@ -80,13 +77,11 @@ exports.welcomeEmail = ({ name, email, role }) => {
       ${para("You can now log in and start exploring courses, or if you're an educator, publish your first course.")}
       ${btn(`${BASE_URL}/login`, "Go to Login")}
     `),
-    text: `Welcome to EduPath, ${name || email}! Your account (${email}) has been created. Login at ${BASE_URL}/login`
+    text: `Welcome to EduPath, ${name || email}! Your account (${email}) has been created. Login at ${BASE_URL}/login`,
   };
 };
 
-// ─────────────────────────────────────────────
-// 2. Password changed
-// ─────────────────────────────────────────────
+//  Password changed
 exports.passwordChangedEmail = ({ name, email }) => ({
   subject: "Your EduPath password was changed",
   html: wrapper(`
@@ -101,12 +96,10 @@ exports.passwordChangedEmail = ({ name, email }) => ({
     ${para("<strong>If you did NOT make this change</strong>, your account may be compromised. Please use the forgot password link to secure your account immediately.")}
     ${btn(`${BASE_URL}/forgot-password`, "Secure My Account")}
   `),
-  text: `Hi ${name || email}, your EduPath password was changed. If this wasn't you, visit ${BASE_URL}/forgot-password`
+  text: `Hi ${name || email}, your EduPath password was changed. If this wasn't you, visit ${BASE_URL}/forgot-password`,
 });
 
-// ─────────────────────────────────────────────
-// 3. Course submitted for review
-// ─────────────────────────────────────────────
+// Course submitted for review
 exports.loginOtpEmail = ({ name, email, otp }) => ({
   subject: "Your EduPath login verification code",
   html: wrapper(`
@@ -119,10 +112,16 @@ exports.loginOtpEmail = ({ name, email, otp }) => ({
     ${para("This code expires in 10 minutes.")}
     ${para("If you did not try to sign in, you can ignore this email.")}
   `),
-  text: `Hi ${name || email}, your EduPath login verification code is ${otp}. It expires in 10 minutes.`
+  text: `Hi ${name || email}, your EduPath login verification code is ${otp}. It expires in 10 minutes.`,
 });
 
-exports.courseSubmittedEmail = ({ educatorName, educatorEmail, courseTitle, category, level }) => ({
+exports.courseSubmittedEmail = ({
+  educatorName,
+  educatorEmail,
+  courseTitle,
+  category,
+  level,
+}) => ({
   subject: `Your course "${courseTitle}" has been submitted for review`,
   html: wrapper(`
     ${heading("Course Submitted for Review")}
@@ -138,13 +137,19 @@ exports.courseSubmittedEmail = ({ educatorName, educatorEmail, courseTitle, cate
     ${para("In the meantime, you can check the status of your course from your educator dashboard.")}
     ${btn(`${BASE_URL}/educator/courses`, "View My Courses")}
   `),
-  text: `Hi ${educatorName}, your course "${courseTitle}" has been submitted for review. You'll be notified once reviewed.`
+  text: `Hi ${educatorName}, your course "${courseTitle}" has been submitted for review. You'll be notified once reviewed.`,
 });
 
-// ─────────────────────────────────────────────
-// 4. Course review decision (approved or rejected)
-// ─────────────────────────────────────────────
-exports.courseReviewedEmail = ({ educatorName, educatorEmail, courseTitle, decision, rating, notes, reviewerName }) => {
+//  Course review decision (approved or rejected)
+exports.courseReviewedEmail = ({
+  educatorName,
+  educatorEmail,
+  courseTitle,
+  decision,
+  rating,
+  notes,
+  reviewerName,
+}) => {
   const approved = decision === "approved";
   const decisionLabel = approved ? "Approved ✓" : "Rejected";
   const decisionColor = approved ? "#1ebea5" : "#e05c5c";
@@ -159,26 +164,75 @@ exports.courseReviewedEmail = ({ educatorName, educatorEmail, courseTitle, decis
       ${para(`Your course has been reviewed. Here is the outcome:`)}
       ${infoBox([
         ["Course Title", courseTitle],
-        ["Decision", `<span style="color:${decisionColor};font-weight:700;">${decisionLabel}</span>`],
-        ["Reviewer Rating", rating ? `${"★".repeat(rating)}${"☆".repeat(5 - rating)} (${rating}/5)` : "—"],
+        [
+          "Decision",
+          `<span style="color:${decisionColor};font-weight:700;">${decisionLabel}</span>`,
+        ],
+        [
+          "Reviewer Rating",
+          rating
+            ? `${"★".repeat(rating)}${"☆".repeat(5 - rating)} (${rating}/5)`
+            : "—",
+        ],
         ["Reviewed By", reviewerName || "EduPath Reviewer"],
         ["Date", new Date().toLocaleString()],
       ])}
-      ${notes ? `
+      ${
+        notes
+          ? `
         <div style="background:${decisionBg};border:1px solid ${decisionBorder};border-radius:10px;padding:16px;margin:16px 0;">
           <p style="margin:0 0 6px;font-size:12px;font-weight:700;color:${decisionColor};">Reviewer Notes</p>
           <p style="margin:0;font-size:13px;color:#3a5450;line-height:1.6;">${notes}</p>
-        </div>` : ""}
-      ${approved
-        ? para("Your course is now live and visible to students. Congratulations!")
-        : para("Please review the feedback above, make the necessary improvements, and resubmit your course from the educator dashboard.")
+        </div>`
+          : ""
+      }
+      ${
+        approved
+          ? para(
+              "Your course is now live and visible to students. Congratulations!",
+            )
+          : para(
+              "Please review the feedback above, make the necessary improvements, and resubmit your course from the educator dashboard.",
+            )
       }
       ${btn(
-        approved ? `${BASE_URL}/educator/courses` : `${BASE_URL}/educator/courses`,
-        approved ? "View Published Course" : "Edit & Resubmit"
+        approved
+          ? `${BASE_URL}/educator/courses`
+          : `${BASE_URL}/educator/courses`,
+        approved ? "View Published Course" : "Edit & Resubmit",
       )}
     `),
-    text: `Hi ${educatorName}, your course "${courseTitle}" has been ${decision}. ${notes ? `Reviewer notes: ${notes}` : ""}`
+    text: `Hi ${educatorName}, your course "${courseTitle}" has been ${decision}. ${notes ? `Reviewer notes: ${notes}` : ""}`,
+  };
+};
+
+//  Educator Verification Result (Sent to Educator)
+exports.educatorVerificationResultEmail = ({ educatorName, status }) => {
+  const isApproved =
+    status.toLowerCase() === "approved" || status.toLowerCase() === "verified";
+  const decisionLabel = isApproved ? "Approved ✓" : "Rejected";
+  const decisionColor = isApproved ? "#1ebea5" : "#e05c5c";
+
+  return {
+    subject: `Update on your EduPath Educator Application: ${decisionLabel}`,
+    html: wrapper(`
+      ${heading("Educator Application Update")}
+      ${para(`Hi ${educatorName || "Educator"},`)}
+      ${para(`We have reviewed your application to become an educator on EduPath. Your account has been <span style="color:${decisionColor};font-weight:700;text-transform:uppercase;">${status}</span>.`)}
+      
+      ${
+        isApproved
+          ? para(
+              "Congratulations! You can now log in to your Educator Dashboard, set up your profile, and start publishing courses for students worldwide.",
+            )
+          : para(
+              "Unfortunately, we cannot approve your educator application at this time. Please ensure your profile details are complete. If you have questions, please contact our support team.",
+            )
+      }
+      
+      ${btn(`${BASE_URL}/login`, "Go to EduPath")}
+    `),
+    text: `Hi ${educatorName || "Educator"}, your educator application has been ${status}. Please log in to your account for more details.`,
   };
 };
 
@@ -205,7 +259,7 @@ exports.reviewerAccountCreatedEmail = ({ name, email, plainPassword }) => {
   };
 };
 
-// Admin Account Created (Sent to new Admin)
+//  Admin Account Created (Sent to new Admin)
 exports.adminAccountCreatedEmail = ({ name, email, plainPassword }) => {
   return {
     subject: "Welcome to EduPath! Your Admin Account Details",
