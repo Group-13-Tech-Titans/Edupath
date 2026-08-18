@@ -30,6 +30,30 @@ export default function CoursesSection() {
       students: "5.2k",
       image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=600",
     },
+    {
+      id: 4,
+      title: "Advanced Machine Learning",
+      category: "AI",
+      rating: 4.9,
+      students: "4.1k",
+      image: "https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?auto=format&fit=crop&q=80&w=600",
+    },
+    {
+      id: 5,
+      title: "Cloud Architecture on AWS",
+      category: "Cloud",
+      rating: 4.8,
+      students: "6.7k",
+      image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=600",
+    },
+    {
+      id: 6,
+      title: "Cybersecurity Fundamentals",
+      category: "Security",
+      rating: 4.9,
+      students: "9.2k",
+      image: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=600",
+    },
   ];
 
   return (
@@ -57,10 +81,10 @@ export default function CoursesSection() {
           whileInView="show"
           viewport={{ once: true, amount: 0.1 }}
           variants={stagger}
-          className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3"
+          className="grid gap-6 auto-cols-[85%] grid-flow-col overflow-x-auto snap-x pb-8 sm:auto-cols-auto sm:grid-flow-row sm:grid-cols-2 lg:grid-cols-3 sm:overflow-x-visible sm:pb-0 scrollbar-hide"
         >
           {featuredCourses.map((course) => (
-            <motion.div key={course.id} variants={fadeUp} className="group flex flex-col overflow-hidden rounded-[30px] border border-black/5 bg-white shadow-sm transition-all hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)]">
+            <motion.div key={course.id} variants={fadeUp} className="snap-start group flex flex-col overflow-hidden rounded-[30px] border border-black/5 bg-white shadow-sm transition-all hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)]">
               <div className="relative h-56 w-full overflow-hidden">
                 <img src={course.image} alt={course.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 <div className="absolute top-4 left-4 rounded-full bg-white/90 backdrop-blur-md px-3 py-1 text-xs font-bold text-slate-800 shadow-sm">
