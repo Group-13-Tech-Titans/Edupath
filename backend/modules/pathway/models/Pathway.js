@@ -18,6 +18,13 @@ const stepSchema = new mongoose.Schema({
     correctAnswerIndex: { type: Number, default: 0 } // 0, 1, 2, or 3
   }],
 
+  linkedCourses: [{
+    courseId: String,
+    title: String,
+    thumbnail: String,
+    educatorName: String,
+  }],
+
   // User progress trackers (used when assigned to a student)
   isCompleted: { type: Boolean, default: false },
   isUnlocked: { type: Boolean, default: false },

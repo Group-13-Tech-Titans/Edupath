@@ -1,5 +1,5 @@
 const Pathway = require("../models/Pathway");
-const User = require("../../auth/models/User");
+const User = require("../../auth/models/User.js");
 const { generatePathway, generatePathwayTopics } = require("../../../services/aiService");
 
 function getReviewerSpecializationTags(user) {
@@ -143,16 +143,23 @@ exports.getMyPathway = async (req, res) => {
 exports.syncPathwaySteps = async (req, res) => {
   try {
     // Notice we are expecting the full 'steps' array now from the frontend
-    const { steps } = req.body;
+    const { pathwayId, steps } = req.body;
 
     if (!steps || steps.length === 0) {
       return res.json({ success: true, message: "No steps to sync" });
     }
 
+    // Build query - always scope to the current user
+    const query = { userId: req.user._id, isTemplate: false };
+    // If a specific pathwayId is provided, target that exact pathway
+    if (pathwayId) {
+      query._id = pathwayId;
+    }
+
     // $set completely replaces the student's old steps array with the newly synced one.
     // This is 100% atomic and permanently prevents duplicate race conditions.
     const pathway = await Pathway.findOneAndUpdate(
-      { userId: req.user._id, isTemplate: false },
+      query,
       { $set: { steps: steps } },
       { new: true },
     );
@@ -229,7 +236,7 @@ exports.addStepToTemplate = async (req, res) => {
     const { templateId } = req.params;
     
     // 🟢 FIXED: We must explicitly extract the new 'resources' and 'quiz' arrays!
-    const { title, description, type, resources, quiz, order } = req.body;
+    const { title, description, type, resources, linkedCourses, quiz, order } = req.body;
 
     let query = { _id: templateId, isTemplate: true };
     // 🛡️ SECURITY: Ensure reviewers only edit their own specializations
@@ -252,6 +259,7 @@ exports.addStepToTemplate = async (req, res) => {
       description,
       type,
       resources: resources || [], // Save learning materials
+      linkedCourses: linkedCourses || [], // Save platform courses
       quiz: quiz || [],           // Save the quizzes
       order,
       isUnlocked: true,
@@ -382,10 +390,19 @@ exports.updateTemplateStatus = async (req, res) => {
 // ✅ GET PUBLISHED TEMPLATES (For Students to browse)
 exports.getPublishedTemplates = async (req, res) => {
   try {
-    const templates = await Pathway.find({
-      isTemplate: true,
-      status: "published",
-    });
+    const { templateId, pathName, level } = req.query;
+    const query = { isTemplate: true, status: "published" };
+
+    // If a specific templateId is requested, filter by it directly
+    if (templateId) {
+      query._id = templateId;
+    } else {
+      // Otherwise filter by pathName and/or level if provided
+      if (pathName) query.pathName = pathName;
+      if (level) query.level = level;
+    }
+
+    const templates = await Pathway.find(query);
     res.status(200).json({ success: true, templates });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -434,6 +451,7 @@ exports.enrollInTemplate = async (req, res) => {
       description: step.description,
       type: step.type,
       resources: step.resources || [],
+      linkedCourses: step.linkedCourses || [],
       quiz: step.quiz || [],
       order: step.order || index + 1,
       isUnlocked: index === 0,
@@ -542,8 +560,7 @@ exports.deleteMyPathway = async (req, res) => {
     // 1. Delete the specific student's active pathway
     const pathway = await Pathway.findOneAndDelete({
       _id: pathwayId,
-      userId: req.user._id,
-      isTemplate: false
+      userId: req.user._id
     });
 
     if (!pathway) {

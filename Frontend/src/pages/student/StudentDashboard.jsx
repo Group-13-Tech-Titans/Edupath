@@ -50,8 +50,8 @@ StatCard.propTypes = {
 };
 
 const PathwayCard = ({ pathway, index, pathwayName, onResume, onDelete }) => {
-  const totalSteps = pathway.totalSteps !== undefined ? pathway.totalSteps : (pathway.steps?.length || 0);
-  const completedSteps = pathway.completedSteps !== undefined ? pathway.completedSteps : (pathway.steps?.filter((s) => s.isCompleted).length || 0);
+  const totalSteps = pathway.steps ? pathway.steps.length : 0;
+  const completedSteps = pathway.steps ? pathway.steps.filter((s) => s.isCompleted).length : 0;
   const pathwayProgress = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
   const bgGradient = GRADIENTS[index % GRADIENTS.length];
   const icon = getPathwayIcon(index);
