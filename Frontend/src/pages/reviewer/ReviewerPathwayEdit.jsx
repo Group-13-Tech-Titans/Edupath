@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
-import { CheckCircle2, Plus, Trash2, ArrowRight, Settings, BookOpen, Layout } from "lucide-react";
+import { CheckCircle2, Plus, Trash2, ArrowRight, ArrowLeft, Settings, BookOpen, Layout } from "lucide-react";
 import PageShell from "../../components/PageShell.jsx";
 import CourseSelectionPage from "../../components/CourseSelectionPage.jsx";
 
@@ -238,6 +238,15 @@ const ReviewerPathwayEdit = () => {
       )}
 
       <div className="mx-auto max-w-4xl space-y-8 pb-12 pt-6">
+        {/* Back Button */}
+        <button 
+          onClick={() => navigate("/reviewer/pathways")} 
+          className="flex items-center text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors -mb-2"
+        >
+          <ArrowLeft className="h-4 w-4 mr-1.5" />
+          Back to Pathways
+        </button>
+
         {/* Header */}
         <div className="flex items-center gap-4 border-b border-primary/10 pb-6">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/30">
