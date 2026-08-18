@@ -4,7 +4,7 @@ import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 import MentorProfileModal from "../../components/MentorProfileModal.jsx";
 import { getSpecializations } from "../../api/specializationApi.js";
-import { getMyResources } from "../../api/mentorApi.js";
+import { getMyResources, getConversations } from "../../api/mentorApi.js";
 
 export default function StudentMentor() {
   const navigate = useNavigate();
@@ -36,6 +36,9 @@ export default function StudentMentor() {
   // Shared Resources
   const [sharedResources, setSharedResources] = useState([]);
   const [isLoadingSharedResources, setIsLoadingSharedResources] = useState(true);
+
+  // Unread messages map
+  const [unreadMap, setUnreadMap] = useState({});
 
   // Notifications / My Requests
   const myRequests = useMemo(() => {
@@ -113,6 +116,21 @@ export default function StudentMentor() {
       .finally(() => {
         setIsLoadingSharedResources(false);
       });
+  }, []);
+
+  // Fetch conversations to determine unread messages
+  useEffect(() => {
+    getConversations()
+      .then(conversations => {
+        if (Array.isArray(conversations)) {
+          const map = {};
+          conversations.forEach(c => {
+            map[c.mentorId] = c.studentUnreadCount || 0;
+          });
+          setUnreadMap(map);
+        }
+      })
+      .catch(err => console.error("Failed to fetch conversations for unread map:", err));
   }, []);
 
   const handleChange = (e) => {
@@ -202,6 +220,7 @@ export default function StudentMentor() {
                       onViewDetails={() => setSelectedRequestDetails(req)} 
                       navigate={navigate}
                       onFindAnother={() => setIsModalOpen(true)}
+                      hasUnread={unreadMap[req.mentorId] > 0}
                     />
                   ))
                 ) : (
@@ -460,7 +479,7 @@ function StatBox({ value, label }) {
   );
 }
 
-function SessionCard({ req, onViewDetails, navigate, onFindAnother }) {
+function SessionCard({ req, onViewDetails, navigate, onFindAnother, hasUnread }) {
   // Determine styles and actions based on status
   let statusColor = "bg-slate-100 text-slate-600 border-slate-200";
   let statusText = req.status;
@@ -528,9 +547,15 @@ function SessionCard({ req, onViewDetails, navigate, onFindAnother }) {
             )}
             <button 
               onClick={() => navigate("/student/messages", { state: { mentorId: req.mentorId } })}
-              className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:border-slate-300 rounded-lg shadow-sm transition-colors"
+              className="relative px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:border-slate-300 rounded-lg shadow-sm transition-colors"
             >
               Chat
+              {hasUnread && (
+                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                </span>
+              )}
             </button>
           </>
         )}
