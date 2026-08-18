@@ -1,7 +1,8 @@
-import React, { useMemo, useEffect } from "react";
+import React, { useMemo, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
+import axios from "axios";
 
 const normalizeStatus = (status) => {
   const s = String(status ?? "").toLowerCase().trim();
@@ -19,21 +20,45 @@ const statusMeta = (st) => {
   return                        { label: "Rejected",        cls: "bg-rose-50 text-rose-600 border-rose-200" };
 };
 
-const StatCard = ({ label, value }) => (
+const StatCard = ({ label, value, sub }) => (
   <div className="glass-card p-5">
     <div>
-      <p className="text-xs text-muted">{label}</p>
-      <p className="mt-0.5 text-2xl font-semibold text-text-dark">{value}</p>
+      <p className="text-xs text-muted font-medium">{label}</p>
+      <p className="mt-0.5 text-2xl font-black text-text-dark tracking-tight">{value}</p>
+      {sub && <p className="mt-1 text-[11px] text-muted">{sub}</p>}
     </div>
   </div>
 );
 
 const EducatorDashboard = () => {
   const { currentUser, courses, fetchMyCourses } = useApp();
+  const [earningsData, setEarningsData] = useState(null);
+  const [loadingEarnings, setLoadingEarnings] = useState(true);
 
   useEffect(() => {
     fetchMyCourses();
   }, [fetchMyCourses]);
+
+  // Fetch real-time educator earnings & enrollments
+  useEffect(() => {
+    const fetchEarnings = async () => {
+      try {
+        setLoadingEarnings(true);
+        const token = localStorage.getItem("edupath_token");
+        const res = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL || "http://localhost:5000/api"}/educator/earnings`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setEarningsData(res.data.stats);
+      } catch (err) {
+        console.error("Failed to load educator earnings:", err);
+      } finally {
+        setLoadingEarnings(false);
+      }
+    };
+
+    fetchEarnings();
+  }, []);
 
   const myCourses = useMemo(
     () => courses.filter((c) => c.createdByEducatorEmail === currentUser?.email),
@@ -50,6 +75,37 @@ const EducatorDashboard = () => {
     [myCourses]
   );
 
+  // Real enrolled student count across courses
+  const realEnrolledCount = useMemo(() => {
+    if (earningsData?.totalStudentsEnrolled !== undefined) {
+      return earningsData.totalStudentsEnrolled;
+    }
+    return myCourses.reduce((sum, c) => sum + (c.enrolledCount || c.enrolledStudents?.length || 0), 0);
+  }, [earningsData, myCourses]);
+
+  // Real earnings ($1 per enrolled student)
+  const totalEarnedFormatted = useMemo(() => {
+    if (earningsData?.totalEarnedUSD !== undefined) {
+      return `$${earningsData.totalEarnedUSD.toFixed(2)}`;
+    }
+    return `$${(realEnrolledCount * 1.0).toFixed(2)}`;
+  }, [earningsData, realEnrolledCount]);
+
+  const monthlyEarnedFormatted = useMemo(() => {
+    if (earningsData?.thisMonthEarnedUSD !== undefined) {
+      return `$${earningsData.thisMonthEarnedUSD.toFixed(2)}`;
+    }
+    // Fallback using frontend state
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnrolled = myCourses.reduce((sum, c) => {
+      const students = Array.isArray(c.enrolledStudents) ? c.enrolledStudents : [];
+      const thisMonth = students.filter(s => s.enrolledAt && new Date(s.enrolledAt) >= startOfMonth).length;
+      return sum + thisMonth;
+    }, 0);
+    return `$${(monthEnrolled * 1.0).toFixed(2)}`;
+  }, [earningsData, myCourses]);
+
   const courseRows = useMemo(() => {
     return myCourses
       .filter((c) => !c.trashedAt)
@@ -59,6 +115,7 @@ const EducatorDashboard = () => {
         const st = normalizeStatus(c.status);
         const { label, cls } = statusMeta(st);
 
+        const enrolledNum = c.enrolledCount || c.enrolledStudents?.length || 0;
         const reviewNotes = c.review?.notes || null;
         const reviewerName = c.review?.reviewerName || null;
         const reviewRating = c.review?.rating ?? c.rating ?? null;
@@ -67,10 +124,10 @@ const EducatorDashboard = () => {
           st === "draft"    ? "Not submitted yet - continue editing" :
           st === "pending"  ? "Pending admin review" :
           st === "rejected" ? "Requires changes - see feedback below" :
-          `Rating ${reviewRating ?? "-"} - ${c.level ?? "All levels"}`;
+          `👥 ${enrolledNum} enrolled ($${enrolledNum * 1} earned) • ${c.level ?? "All levels"}`;
 
         return {
-          id: c.id,
+          id: c.id || c._id,
           title: c.title,
           meta,
           statusLabel: label,
@@ -93,10 +150,11 @@ const EducatorDashboard = () => {
         <div className="glass-card p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-lg font-semibold text-text-dark">Educator Dashboard</h1>
-            <p className="mt-1 text-xs text-muted">Track your courses, earnings and performance.</p>
+            <p className="mt-1 text-xs text-muted">
+              Track your courses, real student enrollments, and $1/student monthly earnings.
+            </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            {/* 🟢 CONDITIONAL MENTOR BUTTON */}
             {currentUser?.isMentor ? (
               <Link to="/mentor" className="rounded-full border-2 border-teal-500 bg-white px-6 py-2 text-sm text-center font-bold text-teal-600 hover:bg-teal-50 transition">
                 Switch to Mentor 🔄
@@ -112,12 +170,35 @@ const EducatorDashboard = () => {
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Real Metrics Stats */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Published Courses" value={publishedCount} />
-          <StatCard label="Active Students"   value="1,248" />
-          <StatCard label="Monthly Earnings"  value="Rs 182,000" />
-          <StatCard label="Pending Reviews"   value={pendingCount} />
+          <StatCard label="Published Courses" value={publishedCount} sub="Approved by reviewer" />
+          <StatCard label="Total Enrolled Students" value={realEnrolledCount} sub="All registered learners" />
+          <StatCard label="This Month Earnings" value={monthlyEarnedFormatted} sub="Withdraws 3rd week (15th–21st)" />
+          <StatCard label="Total Lifetime Earnings" value={totalEarnedFormatted} sub="$1.00 USD per student" />
+        </div>
+
+        {/* Payout Quick Action Banner */}
+        <div className="glass-card p-5 bg-gradient-to-r from-emerald-50 to-teal-50/60 border border-emerald-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-lg font-black shadow-sm">
+              💵
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">
+                Educator Revenue Model: $1.00 Per Enrolled Student
+              </h3>
+              <p className="text-xs text-slate-600 mt-0.5">
+                Courses have no fee for students. Withdraw your earnings directly to your bank account or card during the 3rd week of every month (15th to 21st).
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/educator/payouts"
+            className="btn-primary bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 text-xs font-bold whitespace-nowrap shadow-sm"
+          >
+            Manage Payouts &rarr;
+          </Link>
         </div>
 
         {/* Your Courses */}
@@ -135,7 +216,7 @@ const EducatorDashboard = () => {
           {courseRows.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-black/10 bg-white/50 px-6 py-12 text-center">
               <p className="text-sm font-medium text-muted">No courses yet.</p>
-              <p className="mt-1 text-xs text-muted">Create your first course to get started.</p>
+              <p className="mt-1 text-xs text-muted">Create your first course to start earning $1 per student.</p>
               <Link to="/educator/publish" className="btn-primary mt-4 inline-flex px-6 py-2 text-xs">
                 + Create Course
               </Link>
@@ -193,23 +274,6 @@ const EducatorDashboard = () => {
               ))}
             </div>
           )}
-        </div>
-
-        {/* Course Performance */}
-        <div className="glass-card p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="font-semibold text-text-dark">Course Performance</h2>
-              <p className="mt-0.5 text-xs text-muted">Revenue and enrollment trends.</p>
-            </div>
-          </div>
-          <div className="rounded-2xl border border-dashed border-black/10 bg-white/50 px-4 py-20 text-center">
-            <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-xl">
-              Chart
-            </div>
-            <p className="text-sm font-medium text-muted">Analytics coming soon</p>
-            <p className="mt-1 text-xs text-muted">Revenue and enrollment charts will appear here.</p>
-          </div>
         </div>
 
       </div>

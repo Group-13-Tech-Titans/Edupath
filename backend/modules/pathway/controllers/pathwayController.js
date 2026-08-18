@@ -1,23 +1,7 @@
 const Pathway = require("../models/Pathway");
 const User = require("../../auth/models/User");
 const { generatePathway, generatePathwayTopics } = require("../../../services/aiService");
-
-function getReviewerSpecializationTags(user) {
-  const profile = user.profile || {};
-  const values = [
-    ...(Array.isArray(user.specializationTags) ? user.specializationTags : []),
-    user.specializationTag,
-    ...(Array.isArray(profile.specializationTags) ? profile.specializationTags : []),
-    ...(Array.isArray(profile.specializations) ? profile.specializations.map((item) => item?.slug || item?.name || item) : []),
-    profile.specialization?.slug,
-    profile.specialization?.name,
-    ...(Array.isArray(profile.domains) ? profile.domains : []),
-    ...(Array.isArray(user.domains) ? user.domains : []),
-    ...(Array.isArray(user.subjects) ? user.subjects : [])
-  ];
-
-  return [...new Set(values.filter(Boolean).map((value) => String(value).trim()))];
-}
+const subscriptionService = require("../../subscription/services/subscriptionService");
 
 // ==========================================
 //          STUDENT LOGIC (EXISTING)
@@ -43,6 +27,24 @@ exports.createPathway = async (req, res) => {
       });
     }
 
+    // 🛡️ Subscription Limits Validation
+    const subStatus = await subscriptionService.normalizeUserSubscription(user);
+    if (!subStatus.isPremium && (user.lifetimePathwaysCreatedCount || 0) >= 3) {
+      return res.status(403).json({
+        message: "You have reached the lifetime limit of 3 pathways for the Free plan. Even if you delete a pathway, you cannot create another on Free. Upgrade to Premium for up to 20 active pathways!",
+        limitReached: true,
+        limitType: "pathway_lifetime"
+      });
+    }
+
+    if (subStatus.isPremium && subStatus.activePathwaysCount >= 20) {
+      return res.status(403).json({
+        message: "You have reached the maximum limit of 20 active pathways on Premium. Please delete an existing pathway to create a new one.",
+        limitReached: true,
+        limitType: "pathway_active"
+      });
+    }
+
     // 🔥 Generate new pathway (AI or static)
     const steps = await generatePathway({
       path: user.learningPath,
@@ -65,6 +67,10 @@ exports.createPathway = async (req, res) => {
       status: "in-progress",
       steps: formattedSteps,
     });
+
+    // Increment lifetime created count
+    user.lifetimePathwaysCreatedCount = (user.lifetimePathwaysCreatedCount || 0) + 1;
+    await user.save();
 
     res.json({ message: "New pathway created", pathway });
   } catch (err) {
@@ -172,29 +178,27 @@ exports.syncPathwaySteps = async (req, res) => {
 // ✅ CREATE TEMPLATE PATHWAY (Admin & Reviewer)
 exports.createTemplatePathway = async (req, res) => {
   try {
-    let { pathName, level, specialization } = req.body;
+    let { pathName, level } = req.body;
 
     // 🛡️ SECURITY: Enforce Reviewer Specialization
     if (req.user.role === "reviewer") {
-      const allowed = getReviewerSpecializationTags(req.user);
-      if (!specialization || !allowed.includes(specialization)) {
-        specialization = allowed[0] || "Specialization Not Found";
+      // If they didn't provide a pathName, default to their specialization
+      if (!pathName) {
+        pathName = req.user.specializationTag;
       }
-    } else if (req.user.role === "admin") {
-      if (!specialization) {
-        return res.status(400).json({ success: false, message: "Specialization is required." });
+      // If they tried to create a pathway outside their specialization, block it
+      else if (pathName !== req.user.specializationTag) {
+        return res.status(403).json({
+          success: false,
+          message: `Reviewers can only create pathways for their specialization: ${req.user.specializationTag}`,
+        });
       }
-    }
-
-    if (!pathName) {
-      return res.status(400).json({ success: false, message: "Pathway Name is required." });
     }
 
     const template = await Pathway.create({
       isTemplate: true,
       createdBy: req.user._id,
       pathName,
-      specialization,
       level,
       status: "draft",
       steps: [],
@@ -213,7 +217,7 @@ exports.getTemplatePathways = async (req, res) => {
 
     // 🛡️ SECURITY: Reviewers only see templates matching their specialization
     if (req.user.role === "reviewer") {
-      query.specialization = { $in: getReviewerSpecializationTags(req.user) };
+      query.pathName = req.user.specializationTag;
     }
 
     const templates = await Pathway.find(query);
@@ -234,7 +238,7 @@ exports.addStepToTemplate = async (req, res) => {
     let query = { _id: templateId, isTemplate: true };
     // 🛡️ SECURITY: Ensure reviewers only edit their own specializations
     if (req.user.role === "reviewer") {
-      query.specialization = { $in: getReviewerSpecializationTags(req.user) };
+      query.pathName = req.user.specializationTag;
     }
 
     const template = await Pathway.findOne(query);
@@ -273,7 +277,7 @@ exports.getTemplateById = async (req, res) => {
   try {
     let query = { _id: req.params.id, isTemplate: true };
     if (req.user.role === "reviewer")
-      query.specialization = { $in: getReviewerSpecializationTags(req.user) };
+      query.pathName = req.user.specializationTag;
 
     const template = await Pathway.findOne(query);
     if (!template) {
@@ -291,24 +295,27 @@ exports.getTemplateById = async (req, res) => {
 // ✅ UPDATE ENTIRE TEMPLATE & STEPS (Admin & Reviewer)
 exports.updateTemplate = async (req, res) => {
   try {
-    const { pathName, level, steps, specialization } = req.body;
+    const { pathName, level, steps } = req.body;
 
     let query = { _id: req.params.id, isTemplate: true };
-    
-    let updateData = { pathName, level, steps };
 
     // 🛡️ SECURITY: Reviewer Checks
     if (req.user.role === "reviewer") {
-      query.specialization = { $in: getReviewerSpecializationTags(req.user) }; // Must belong to their specialization
-      // Reviewers cannot change the specialization of an existing pathway. 
-      // It remains locked to their specializationTag.
-    } else {
-      if (specialization) updateData.specialization = specialization;
+      query.pathName = req.user.specializationTag; // Must belong to their specialization
+
+      // Block them from attempting to rename the pathway to a different specialization
+      if (pathName && pathName !== req.user.specializationTag) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "Reviewers cannot change the specialization topic of a pathway.",
+        });
+      }
     }
 
     const template = await Pathway.findOneAndUpdate(
       query,
-      updateData,
+      { pathName, level, steps },
       { returnDocument: "after", runValidators: true },
     );
 
@@ -332,7 +339,7 @@ exports.deleteTemplatePathway = async (req, res) => {
   try {
     let query = { _id: req.params.id, isTemplate: true };
     if (req.user.role === "reviewer")
-      query.specialization = { $in: getReviewerSpecializationTags(req.user) };
+      query.pathName = req.user.specializationTag;
 
     const template = await Pathway.findOneAndDelete(query);
 
@@ -358,7 +365,7 @@ exports.updateTemplateStatus = async (req, res) => {
 
     let query = { _id: req.params.id, isTemplate: true };
     if (req.user.role === "reviewer")
-      query.specialization = { $in: getReviewerSpecializationTags(req.user) };
+      query.pathName = req.user.specializationTag;
 
     const template = await Pathway.findOneAndUpdate(
       query,
@@ -396,43 +403,96 @@ exports.getPublishedTemplates = async (req, res) => {
 exports.enrollInTemplate = async (req, res) => {
   try {
     const { templateId } = req.params;
+    const { pathName, level } = req.body || {};
 
-    // 1. Find the published template
-    const template = await Pathway.findOne({
-      _id: templateId,
-      isTemplate: true,
-      status: "published",
-    });
+    let template = null;
+    if (templateId && templateId !== "undefined" && templateId !== "auto" && templateId.match(/^[0-9a-fA-F]{24}$/)) {
+      template = await Pathway.findOne({
+        _id: templateId,
+        isTemplate: true
+      });
+    }
+
+    // Fallback: look up by pathName and level or user's learning path
     if (!template) {
-      return res
-        .status(404)
-        .json({ message: "Template not found or not available" });
+      const searchPath = pathName || req.user.learningPath || "Web Development";
+      const searchLevel = level || req.user.level || "Beginner";
+      const pathRegex = new RegExp(searchPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+
+      template = await Pathway.findOne({
+        isTemplate: true,
+        status: "published",
+        pathName: pathRegex
+      });
+
+      if (!template) {
+        template = await Pathway.findOne({ isTemplate: true, status: "published" });
+      }
+
+      if (!template) {
+        const generatedSteps = await generatePathway({ path: searchPath, level: searchLevel });
+        template = await Pathway.create({
+          isTemplate: true,
+          status: "published",
+          pathName: searchPath,
+          level: searchLevel,
+          steps: generatedSteps.map((s, idx) => ({
+            ...s,
+            order: idx + 1,
+            isUnlocked: idx === 0,
+            isCompleted: false
+          }))
+        });
+      }
     }
 
     // 2. Check if student is already enrolled in this specific pathway
     const existing = await Pathway.findOne({
       userId: req.user._id,
-      originalTemplateId: template._id, // <-- Changed this line
+      $or: [
+        { originalTemplateId: String(template._id) },
+        { pathName: template.pathName, level: template.level }
+      ],
       isTemplate: false,
     });
     if (existing) {
-      return res.status(400).json({ message: "You are already enrolled in this specific pathway." });
+      return res.status(200).json({
+        success: true,
+        alreadyEnrolled: true,
+        message: "You are already enrolled in this pathway.",
+        pathway: existing
+      });
     }
 
-    // 2.5 Check if user has reached the max limit of 3 pathways
+    // 2.5 Check subscription limits (Free: 3 lifetime, Premium: 20 active)
+    const subStatus = await subscriptionService.normalizeUserSubscription(req.user);
+    if (!subStatus.isPremium && (req.user.lifetimePathwaysCreatedCount || 0) >= 3) {
+      return res.status(403).json({
+        success: false,
+        message: "You have reached the lifetime limit of 3 pathways for the Free plan. Upgrade to Premium for up to 20 active pathways!",
+        limitReached: true,
+        limitType: "pathway_lifetime"
+      });
+    }
+
     const activePathwaysCount = await Pathway.countDocuments({
       userId: req.user._id,
       isTemplate: false,
     });
-    if (activePathwaysCount >= 3) {
-      return res.status(400).json({ message: "You can only have up to 3 active pathways." });
+    if (subStatus.isPremium && activePathwaysCount >= 20) {
+      return res.status(403).json({
+        success: false,
+        message: "You have reached the maximum limit of 20 active pathways on Premium. Please delete an existing pathway to enroll in a new one.",
+        limitReached: true,
+        limitType: "pathway_active"
+      });
     }
 
     // 3. Copy and format the steps for the student (Unlock only the first one)
-    const formattedSteps = template.steps.map((step, index) => ({
+    const formattedSteps = (template.steps || []).map((step, index) => ({
       title: step.title,
       description: step.description,
-      type: step.type,
+      type: step.type || "course",
       resources: step.resources || [],
       quiz: step.quiz || [],
       order: step.order || index + 1,
@@ -444,12 +504,16 @@ exports.enrollInTemplate = async (req, res) => {
     const newPathway = await Pathway.create({
       userId: req.user._id,
       isTemplate: false,
-      originalTemplateId: template._id, // <-- ADD THIS LINE HERE
+      originalTemplateId: String(template._id),
       pathName: template.pathName,
       level: template.level,
       status: "in-progress",
       steps: formattedSteps,
     });
+
+    // Increment user lifetime pathway creation counter
+    req.user.lifetimePathwaysCreatedCount = (req.user.lifetimePathwaysCreatedCount || 0) + 1;
+    await req.user.save();
 
     res.status(201).json({
       success: true,
@@ -457,7 +521,8 @@ exports.enrollInTemplate = async (req, res) => {
       pathway: newPathway,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("ENROLL IN TEMPLATE ERROR:", err);
+    res.status(500).json({ success: false, message: err.message, error: err.message });
   }
 };
 
@@ -470,36 +535,54 @@ exports.recommendPathway = async (req, res) => {
       return res.status(400).json({ message: "Missing required path data." });
     }
 
-    // 🟢 FOOLPROOF FIX: No need to require() the User model!
-    // Since authMiddleware already gave us the user document, we just update and save it.
     req.user.quizCompleted = true;
     req.user.learningPath = pathName;
     req.user.level = level;
     
-    await req.user.save(); // Saves directly to MongoDB!
+    await req.user.save();
 
-    // Search for the exact matching published Template
+    const pathRegex = new RegExp(pathName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+    const levelRegex = new RegExp(level.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+
+    // Search for matching published Template
     let matchingTemplate = await Pathway.findOne({
       isTemplate: true,
       status: "published",
-      pathName: pathName,
-      level: level
+      pathName: pathRegex,
+      level: levelRegex
     });
 
-    // Fallback 1: If that specific level isn't found, find ANY published template for that path
+    // Fallback 1: Match by pathName alone
     if (!matchingTemplate) {
       matchingTemplate = await Pathway.findOne({
         isTemplate: true,
         status: "published",
-        pathName: pathName
+        pathName: pathRegex
       });
     }
 
-    // Final Fallback: Just give them the first published template available
+    // Fallback 2: Any published template
     if (!matchingTemplate) {
       matchingTemplate = await Pathway.findOne({
         isTemplate: true,
         status: "published"
+      });
+    }
+
+    // Fallback 3: Generate automatically if no template exists at all
+    if (!matchingTemplate) {
+      const generatedSteps = await generatePathway({ path: pathName, level });
+      matchingTemplate = await Pathway.create({
+        isTemplate: true,
+        status: "published",
+        pathName: pathName,
+        level: level,
+        steps: generatedSteps.map((s, idx) => ({
+          ...s,
+          order: idx + 1,
+          isUnlocked: idx === 0,
+          isCompleted: false
+        }))
       });
     }
 
@@ -511,7 +594,7 @@ exports.recommendPathway = async (req, res) => {
 
   } catch (err) {
     console.error("RECOMMENDATION ERROR:", err.message); 
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, message: err.message, error: err.message });
   }
 };
 

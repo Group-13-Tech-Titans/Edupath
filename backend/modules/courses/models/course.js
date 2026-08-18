@@ -15,6 +15,13 @@ const courseSchema = new mongoose.Schema({
   createdByEducatorEmail: { type: String, required: true },
   status: { type: String, enum: ["draft", "pending", "approved", "rejected"], default: "pending" },
   trashedAt: { type: Date, default: null },
+  enrolledCount: { type: Number, default: 0 },
+  enrolledStudents: [{
+    studentId: String,
+    studentEmail: String,
+    studentName: String,
+    enrolledAt: Date
+  }],
   content: { type: mongoose.Schema.Types.Mixed, default: {} },
   review: {
     decision: { type: String },

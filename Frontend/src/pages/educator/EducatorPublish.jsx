@@ -581,26 +581,14 @@ const EducatorPublish = () => {
                 </select>
               </div>
 
-              {/* Price */}
-              {/* Lets the educator enter the price */}
-              <div>
-                <label className="font-semibold text-text-dark">Price (LKR)</label>
-                <input
-                  name="price"
-                  value={form.price}
-                  onChange={handleDecimalChange}
-                  disabled={!isVerified}
-                  inputMode="decimal"
-                  placeholder="Eg: 1200 or 1200.50"
-                  className={`mt-2 w-full rounded-2xl border bg-white px-4 py-2.5 outline-none ring-primary/40 focus:ring disabled:cursor-not-allowed disabled:bg-gray-100 ${
-                    fieldErrors.price ? "border-rose-300 ring-rose-200" : "border-black/10"
-                  }`}
-                />
-                {fieldErrors.price ? (
-                  <p className="mt-1 text-[11px] font-medium text-rose-500">{fieldErrors.price}</p>
-                ) : (
-                  <p className="mt-1 text-[11px] text-muted">Use numbers only. Price must be less than 5000.</p>
-                )}
+              {/* Revenue Model Banner */}
+              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+                <p className="text-[13px] font-semibold text-primary">
+                  💰 Zero Course Fee • $1.00 USD / Enrolled Student
+                </p>
+                <p className="mt-1 text-[11px] text-primary/80 leading-relaxed">
+                  EduPath courses are free to enroll for students. You earn <strong>$1.00 USD</strong> for every real student who enrolls. Monthly withdrawals open during the <strong>3rd week of every month (15th to 21st)</strong>.
+                </p>
               </div>
 
               {/* Duration */}

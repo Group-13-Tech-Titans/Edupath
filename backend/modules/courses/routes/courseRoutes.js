@@ -5,6 +5,7 @@ const roleMiddleware = require("../../../middleware/roleMiddleware");
 const sendEmail = require("../../../utils/sendEmail");
 const { courseSubmittedEmail, courseReviewedEmail } = require("../../../utils/emailTemplates");
 const User = require("../../auth/models/User");
+const { getIO } = require("../../../utils/socketManager");
 
 const router = express.Router();
 
@@ -302,8 +303,88 @@ router.post("/enroll/:id", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "You are already enrolled in this course." });
     }
 
-    user.enrolledCourses.push({ courseId });
+    // Enforce 10-course monthly quota for Free plan users
+    const isPremium = user.subscription?.plan === "premium";
+    const currentWatchedCount = user.courseMonthlyUsage?.coursesWatched?.length || 0;
+
+    if (!isPremium && currentWatchedCount >= 10) {
+      return res.status(403).json({ 
+        message: "Monthly course limit reached. Please upgrade to Premium to enroll in more courses this month.",
+        limitReached: true 
+      });
+    }
+
+    user.enrolledCourses.push({ courseId, enrolledAt: new Date() });
+    
+    // Also track this enrollment in the monthly usage quota
+    if (!user.courseMonthlyUsage) {
+      user.courseMonthlyUsage = { cycleStartDate: new Date(), coursesWatched: [] };
+    }
+    if (!user.courseMonthlyUsage.coursesWatched) {
+      user.courseMonthlyUsage.coursesWatched = [];
+    }
+    // Only add if not already in the array (though we already check general enrollment above)
+    const alreadyInQuota = user.courseMonthlyUsage.coursesWatched.find(c => String(c.courseId) === String(courseId));
+    if (!alreadyInQuota) {
+      user.courseMonthlyUsage.coursesWatched.push({ courseId, firstWatchedAt: new Date() });
+    }
+
     await user.save();
+
+    // ─── Real-time payout update for the educator ───────────────────────────
+    try {
+      const course = await Course.findById(courseId).lean();
+      if (course?.createdByEducatorEmail) {
+        // Find the educator by their email to get their _id (room key)
+        const educator = await User.findOne({ email: course.createdByEducatorEmail }).lean();
+        if (educator) {
+          // Recalculate the educator's balance on-the-fly so the update is accurate
+          const educatorDoc = await User.findById(educator._id);
+          const allCourses = await Course.find({
+            createdByEducatorEmail: course.createdByEducatorEmail,
+            trashedAt: null
+          });
+          const courseIds = allCourses.map((c) => String(c._id));
+          const allEnrolledUsers = await User.find({
+            "enrolledCourses.courseId": { $in: courseIds }
+          }).lean();
+
+          let totalStudents = 0;
+          for (const c of allCourses) {
+            const studentsForCourse = allEnrolledUsers.filter((u) =>
+              Array.isArray(u.enrolledCourses) &&
+              u.enrolledCourses.some((ec) => String(ec.courseId) === String(c._id))
+            );
+            totalStudents += Math.max(c.enrolledCount || 0, studentsForCourse.length);
+          }
+
+          const withdrawnUSD = (educatorDoc?.educatorEarnings?.withdrawals || []).reduce(
+            (sum, w) => sum + (Number(w.amountUSD) || 0), 0
+          );
+          const totalEarnedUSD = totalStudents * 1.0;
+          const currentBalanceUSD = Math.max(0, totalEarnedUSD - withdrawnUSD);
+
+          // Emit to the educator's private socket room
+          const io = getIO();
+          io.to(String(educator._id)).emit("educator_new_enrollment", {
+            courseId: String(courseId),
+            courseTitle: course.title || "A course",
+            studentName: user.name || "A student",
+            enrolledAt: new Date().toISOString(),
+            stats: {
+              totalStudentsEnrolled: totalStudents,
+              totalEarnedUSD,
+              currentBalanceUSD,
+              withdrawnUSD
+            }
+          });
+        }
+      }
+    } catch (socketErr) {
+      // Non-critical — do not fail the enrollment if socket emit fails
+      console.warn("Socket emit error (non-fatal):", socketErr.message);
+    }
+    // ────────────────────────────────────────────────────────────────────────
 
     const safeUser = user.toObject();
     delete safeUser.password;
