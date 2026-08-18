@@ -55,16 +55,18 @@ exports.createAdminUser = async (req, res) => {
       });
 
 
-      // Send the email 
-      await sendEmail({
+      // Send the email asynchronously (don't await) so it doesn't block the UI
+      sendEmail({
         to: newUser.email,
         subject: emailContent.subject,
         text: emailContent.text,
         html: emailContent.html
-      });
-      console.log(`✅ Account credentials emailed to Admin: ${newUser.email}`);
+      })
+      .then(() => console.log(`✅ Account credentials emailed to Admin: ${newUser.email}`))
+      .catch((emailError) => console.error("⚠️ Failed to send credentials email:", emailError.message));
+      
     } catch (emailError) {
-      console.error("⚠️ Failed to send credentials email:", emailError.message);
+      console.error("⚠️ Error generating email content:", emailError.message);
     }
 
     // Remove password from response for security
@@ -74,8 +76,7 @@ exports.createAdminUser = async (req, res) => {
     
     return res.status(201).json({ 
       message: "Admin created and credentials sent via email", 
-      user: safe,
-      temporaryPassword: generatedPassword
+      user: safe
     });
   } catch (err) {
     res.status(500).json({ message: "User creation failed", error: err.message });

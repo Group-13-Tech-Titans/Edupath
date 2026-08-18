@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { Loader2, CheckCircle2 } from "lucide-react";
 
 //create new admin modal component
-export default function CreateAdminModal({ onClose, createAdminApi, getAuthHeader, showToast }) {
+export default function CreateAdminModal({ onClose, onAdminCreated, createAdminApi, getAuthHeader, showToast }) {
   const [newAdminForm, setNewAdminForm] = useState({ fullName: "", email: "" });
   const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
-  const [createdPassword, setCreatedPassword] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const handleCreateAdminSubmit = async (e) => {
     e.preventDefault();
@@ -18,15 +19,13 @@ export default function CreateAdminModal({ onClose, createAdminApi, getAuthHeade
         role: "admin",
       };
 
-      const response = await axios.post(createAdminApi, payload, getAuthHeader());
+      await axios.post(createAdminApi, payload, getAuthHeader());
       
-      if (response.data.temporaryPassword) {
-        setCreatedPassword(response.data.temporaryPassword);
-        showToast("success", "Admin created successfully!");
-      } else {
-        showToast("success", "New Admin created successfully! Password sent to email.");
-        onClose();
-      }
+      setIsSuccess(true);
+      setTimeout(() => {
+        if(onAdminCreated) onAdminCreated();
+        else onClose();
+      }, 2000);
     } catch (err) {
       showToast("error", err.response?.data?.message || "Failed to create Admin.");
     } finally {
@@ -39,16 +38,11 @@ export default function CreateAdminModal({ onClose, createAdminApi, getAuthHeade
       <div className="w-full max-w-md rounded-[26px] bg-white p-6 shadow-2xl">
         <h3 className="text-xl font-bold text-slate-900 mb-2">Create New Admin</h3>
         
-        {createdPassword ? (
-          <div className="mt-4 p-4 bg-emerald-50 border border-emerald-100 rounded-xl text-center">
-            <p className="text-sm font-semibold text-emerald-800 mb-2">Admin Account Created!</p>
-            <p className="text-xs text-slate-600 mb-3">Please copy this temporary password and send it to the new admin manually if the email does not arrive.</p>
-            <div className="bg-white px-4 py-3 rounded-lg border border-emerald-200 font-mono text-lg font-bold tracking-wider text-emerald-900 mb-4 select-all">
-              {createdPassword}
-            </div>
-            <button onClick={onClose} className="w-full rounded-full bg-slate-800 py-2.5 font-semibold text-white hover:bg-slate-700 transition">
-              Close
-            </button>
+        {isSuccess ? (
+          <div className="flex flex-col items-center justify-center py-8 text-center animate-in fade-in zoom-in duration-300">
+            <CheckCircle2 className="h-16 w-16 text-emerald-500 mb-4" />
+            <h4 className="text-lg font-bold text-slate-900 mb-2">Admin Created Successfully!</h4>
+            <p className="text-sm text-slate-500">The temporary password has been sent to their email.</p>
           </div>
         ) : (
           <>
@@ -90,9 +84,16 @@ export default function CreateAdminModal({ onClose, createAdminApi, getAuthHeade
                 <button 
                   type="submit" 
                   disabled={isCreatingAdmin} 
-                  className="flex-1 rounded-full bg-slate-800 py-3 font-semibold text-white shadow-md hover:bg-slate-700 transition disabled:opacity-70"
+                  className="flex-1 rounded-full bg-slate-800 py-3 font-semibold text-white shadow-md hover:bg-slate-700 transition disabled:opacity-70 flex items-center justify-center gap-2"
                 >
-                  {isCreatingAdmin ? "Creating..." : "Confirm & Create"}
+                  {isCreatingAdmin ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    "Confirm & Create"
+                  )}
                 </button>
               </div>
             </form>

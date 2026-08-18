@@ -36,6 +36,7 @@ export default function AdminProfile() {
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [toast, setToast] = useState(null);
   const [showCreateAdmin, setShowCreateAdmin] = useState(false);
+  const [adminListRefreshKey, setAdminListRefreshKey] = useState(0);
 
   //helper function to JWT auth header for API requests
   const getAuthHeader = () => ({
@@ -46,7 +47,7 @@ export default function AdminProfile() {
 
   // Helper function to show toast notifications
   const showToast = (type, text) => {
-    toast({ type, text });
+    setToast({ type, text });
     setTimeout(() => setToast(null), 2500); // Auto-dismiss after 2.5 seconds
   };
 
@@ -124,7 +125,7 @@ export default function AdminProfile() {
     <PageShell>
       {/* Shows success or error popups dynamically */}
       {toast && (
-        <div className="fixed right-4 top-20 z-50">
+        <div className="fixed right-4 top-20 z-[100]">
           <div className={`rounded-2xl border px-4 py-3 text-sm shadow-lg backdrop-blur bg-white/80 ${toast.type === "success" ? "border-emerald-200 text-emerald-700" : "border-red-200 text-red-600"}`}>
             {toast.text}
           </div>
@@ -148,7 +149,7 @@ export default function AdminProfile() {
         />
       {/* profile summary */}
         <div className="grid gap-6 lg:grid-cols-3">
-          <ProfileSummary profile={profile} />
+          <ProfileSummary profile={profile} adminListRefreshKey={adminListRefreshKey} />
 
           <div className="lg:col-span-2 space-y-6">
             {/* profile edit form */}
@@ -173,6 +174,10 @@ export default function AdminProfile() {
       {showCreateAdmin && (
         <CreateAdminModal
           onClose={() => setShowCreateAdmin(false)}
+          onAdminCreated={() => {
+            setAdminListRefreshKey(prev => prev + 1);
+            setShowCreateAdmin(false);
+          }}
           createAdminApi={CREATE_ADMIN_API}
           getAuthHeader={getAuthHeader}
           showToast={showToast}

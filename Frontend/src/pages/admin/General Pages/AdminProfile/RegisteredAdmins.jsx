@@ -3,7 +3,7 @@ import { Loader2, Shield } from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-const RegisteredAdmins = () => {
+const RegisteredAdmins = ({ refreshKey }) => {
   const [admins, setAdmins] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -32,7 +32,7 @@ const RegisteredAdmins = () => {
     };
 
     fetchAdmins();
-  }, []);
+  }, [refreshKey]);
 
   const getInitials = (name) => {
     if (!name) return "A";
