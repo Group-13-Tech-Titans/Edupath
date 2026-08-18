@@ -68,11 +68,15 @@ exports.googleLogin = async (req, res) => {
     // Issue JWT for stateless session management
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
+    // Strip password hash from the object before sending to client
+    const safe = user.toObject();
+    delete safe.password;
+    safe.id = safe._id.toString();
+
     res.json({
       message: "Google login success",
       token,
-      // Only send necessary data back, never the whole user object
-      user: { id: user._id, name: user.name, email: user.email, role: user.role, avatar: user.avatar, status: user.status },
+      user: safe,
     });
 
   } catch (err) {
@@ -105,10 +109,15 @@ exports.selectRole = async (req, res) => {
     // Re-issue JWT because the payload (role) has changed
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
+    // Strip password hash from the object before sending to client
+    const safe = user.toObject();
+    delete safe.password;
+    safe.id = safe._id.toString();
+
     return res.json({
       message: "Role updated",
       token,
-      user: { id: user._id.toString(), name: user.name, email: user.email, role: user.role }
+      user: safe
     });
   } catch (err) {
     return res.status(500).json({ message: "Server error", error: err.message });

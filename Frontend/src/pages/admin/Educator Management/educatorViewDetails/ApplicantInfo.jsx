@@ -57,10 +57,10 @@ export default function ApplicantInfo({ educator, fullName }) {
           value={expertise} 
         />
         
-        {/* Application Date (using createdAt or updatedAt as fallback) */}
+        {/* Application Date (using updatedAt or createdAt as fallback) */}
         <DetailField 
           label="Application Date" 
-          value={educator?.createdAt || educator?.updatedAt ? new Date(educator.createdAt || educator.updatedAt).toLocaleString() : "Unknown"} 
+          value={educator?.updatedAt || educator?.createdAt ? new Date(educator.updatedAt || educator.createdAt).toLocaleString() : "Unknown"} 
         />
       </div> 
 

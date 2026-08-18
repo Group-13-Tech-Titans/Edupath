@@ -45,6 +45,17 @@ const ProtectedRoute = ({ allowedRoles }) => {
     return <Navigate to={`/signup/${currentUser.role}`} replace />;
   }
 
+  // THE VERIFICATION INTERCEPTOR
+  // Ensure pending or rejected educators cannot bypass to the dashboard
+  if (
+    currentUser.role === "educator" &&
+    (currentUser.status === "PENDING_VERIFICATION" || currentUser.status === "REJECTED") &&
+    !location.pathname.includes("/verification-pending") &&
+    !location.pathname.includes("/signup")
+  ) {
+    return <Navigate to="/verification-pending" replace />;
+  }
+
   // AUTHORIZATION CHECK (Dual-Role Aware)
   if (allowedRoles) {
     // Check if they have the primary role OR if they are an educator with the mentor VIP pass

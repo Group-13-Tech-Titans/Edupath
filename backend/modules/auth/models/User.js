@@ -45,6 +45,6 @@ const userSchema = new mongoose.Schema({
   googleId: { type: String },
   avatar: { type: String },
   isVerified: { type: Boolean, default: false },
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model("User", userSchema);
