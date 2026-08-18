@@ -9,7 +9,7 @@ const nodemailer = require("nodemailer");// use to send emails
 // Transporter uses SMTP (Simple Mail Transfer Protocol) to connect to an email service provider like Gmail
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 465,
+  port: 587,
   secure: true,
   // Force Node.js to use IPv4 for this specific connection
   family: 4, 
