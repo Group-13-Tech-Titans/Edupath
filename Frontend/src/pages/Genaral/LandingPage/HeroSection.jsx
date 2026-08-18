@@ -60,7 +60,7 @@ export default function HeroSection({ scrollToId }) {
                 to="/signup" 
                 className="flex items-center justify-center rounded-xl bg-[#2b9d62] px-8 py-4 text-lg font-bold text-white shadow-[0_10px_20px_rgba(43,157,98,0.25)] transition-transform hover:-translate-y-1 hover:shadow-[0_15px_30px_rgba(43,157,98,0.35)]"
               >
-                Start Free Now.
+                Start Free Now
               </Link>
             </motion.div>
 
