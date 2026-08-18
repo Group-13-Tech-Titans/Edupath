@@ -3,13 +3,15 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useApp } from "../../context/AppProvider.jsx";
 
 const MentorNavbar = () => {
-  const { logout, unreadMessagesCount } = useApp();
+  const { logout, unreadMessagesCount, state } = useApp();
   const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
+
+  const pendingRequestsCount = state.mentorRequests?.filter(req => req.status === "pending").length || 0;
 
   const navLinkClass = ({ isActive }) =>
     `font-medium transition-colors ${
@@ -31,7 +33,14 @@ const MentorNavbar = () => {
           My Students
         </NavLink>
         <NavLink to="/mentor/sessions" className={navLinkClass}>
-          Sessions
+          <span className="relative inline-flex items-center">
+            Sessions
+            {pendingRequestsCount > 0 && (
+              <span className="absolute -right-5 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
+                {pendingRequestsCount > 9 ? "9+" : pendingRequestsCount}
+              </span>
+            )}
+          </span>
         </NavLink>
         <NavLink to="/mentor/resources" className={navLinkClass}>
           Resources
