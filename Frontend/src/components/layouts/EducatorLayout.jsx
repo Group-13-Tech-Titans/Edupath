@@ -68,11 +68,22 @@ const EducatorLayout = () => {
                 title="Go to profile"
               >
                 {profileImage ? (
-                  <img
-                    src={profileImage}
-                    alt="Profile"
-                    className="h-full w-full object-cover"
-                  />
+                  <>
+                    <img
+                      src={profileImage}
+                      alt="Profile"
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = "none";
+                        if (e.target.nextSibling) {
+                          e.target.nextSibling.style.display = "flex";
+                        }
+                      }}
+                    />
+                    <span className="hidden h-full w-full items-center justify-center">
+                      {userInitial}
+                    </span>
+                  </>
                 ) : (
                   <span className="flex h-full w-full items-center justify-center">
                     {userInitial}
@@ -149,11 +160,22 @@ const EducatorLayout = () => {
                       title="Go to profile"
                     >
                       {profileImage ? (
-                        <img
-                          src={profileImage}
-                          alt="Profile"
-                          className="h-full w-full object-cover"
-                        />
+                        <>
+                          <img
+                            src={profileImage}
+                            alt="Profile"
+                            className="h-full w-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = "none";
+                              if (e.target.nextSibling) {
+                                e.target.nextSibling.style.display = "flex";
+                              }
+                            }}
+                          />
+                          <span className="hidden h-full w-full items-center justify-center">
+                            {userInitial}
+                          </span>
+                        </>
                       ) : (
                         <span className="flex h-full w-full items-center justify-center">
                           {userInitial}

@@ -33,17 +33,25 @@ const AdminVerifyEducators = () => {
         });
         if (res.ok) {
           const data = await res.json();
-          // Map backend User object to RequestCard format
-          const mapped = (data.educators || []).map(ed => ({
-            _id: ed._id,
-            fullName: ed.name || "Unknown",
-            email: ed.email,
-            field: ed.specializationTags?.[0] || ed.profile?.specialization || "N/A",
-            educationLevel: ed.profile?.educationLevel || "N/A",
-            courseCount: 0,
-            submittedAt: ed.createdAt,
-            docs: ed.profile?.documents || {}
-          }));
+          const mapped = (data.educators || []).map(ed => {
+            const fallbackDate = ed._id ? new Date(parseInt(ed._id.substring(0, 8), 16) * 1000).toISOString() : null;
+            return {
+              ...ed,
+              _id: ed._id,
+              fullName: ed.profile?.fullName || ed.name || "Unknown",
+              email: ed.email,
+              field: ed.specializationTag || ed.profile?.specializationTag || ed.specializationTags?.[0] || ed.profile?.specialization || "N/A",
+              educationLevel: ed.profile?.educationLevel || "N/A",
+              courseCount: 0,
+              submittedAt: ed.updatedAt || ed.createdAt || fallbackDate,
+              createdAt: ed.createdAt || fallbackDate,
+              updatedAt: ed.updatedAt || ed.createdAt || fallbackDate,
+              docs: {
+                ...(ed.profile?.documents || {}),
+                portfolio: ed.profile?.documents?.portfolio || ed.profile?.credentialsLink || ed.credentialsLink || null
+              }
+            };
+          });
           setRequests(mapped);
         }
       } catch (err) {
@@ -427,7 +435,6 @@ const RequestCard = ({ educator, navigate }) => {
 
             <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
               <MiniPill label={`Field: ${educator.field || "N/A"}`} />
-              <MiniPill label={`Level: ${educator.educationLevel || "N/A"}`} />
               <MiniPill label={`Courses: ${educator.courseCount ?? 0}`} />
               <MiniPill
                 label={`Submitted: ${
@@ -439,8 +446,6 @@ const RequestCard = ({ educator, navigate }) => {
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-muted">
-              <DocLine label="NIC" ok={!!educator.docs?.nic} />
-              <DocLine label="Certificates" ok={!!educator.docs?.certificate} />
               <DocLink label="Portfolio" url={educator.docs?.portfolio} />
             </div>
           </div>
@@ -459,16 +464,6 @@ const RequestCard = ({ educator, navigate }) => {
 
 const MiniPill = ({ label }) => (
   <span className="rounded-full bg-black/5 px-3 py-1">{label}</span>
-);
-
-const DocLine = ({ label, ok }) => (
-  <span
-    className={`rounded-full px-3 py-1 ${
-      ok ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-    }`}
-  >
-    {label}: {ok ? "Provided" : "Missing"}
-  </span>
 );
 
 const DocLink = ({ label, url }) => (
