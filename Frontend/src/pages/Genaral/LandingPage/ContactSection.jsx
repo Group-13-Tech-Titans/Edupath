@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { fadeUp, stagger, ContactPill, Input } from "./LandingSharedUI";
+import { MapPin, Mail, Clock, MessageCircle } from "lucide-react";
 
 // Modern Contact Section
 export default function ContactSection() {
@@ -68,10 +69,10 @@ export default function ContactSection() {
             </div>
 
             <motion.div variants={fadeUp} className="grid gap-4 sm:grid-cols-2 pt-6 border-t border-slate-100">
-              <ContactPill icon="📍" title="Location" text="Sri Lanka" />
-              <ContactPill icon="📧" title="Email" text="support@edupath.app" />
-              <ContactPill icon="⏰" title="Hours" text="24/7 Access" />
-              <ContactPill icon="💬" title="Support" text="Fast response" />
+              <ContactPill icon={<MapPin className="h-5 w-5" />} title="Location" text="Sri Lanka" />
+              <ContactPill icon={<Mail className="h-5 w-5" />} title="Email" text="support@edupath.app" />
+              <ContactPill icon={<Clock className="h-5 w-5" />} title="Hours" text="24/7 Access" />
+              <ContactPill icon={<MessageCircle className="h-5 w-5" />} title="Support" text="Fast response" />
             </motion.div>
           </div>
 
