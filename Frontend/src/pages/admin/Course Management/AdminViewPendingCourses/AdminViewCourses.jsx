@@ -17,9 +17,17 @@ export default function AdminViewCourses() {
   const navigate = useNavigate();
 
   // Component states
-  const [courses, setCourses] = useState([]); // List of pending courses
-  const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0 }); // Course counts
-  const [isLoading, setIsLoading] = useState(true); // Loading status
+  const [courses, setCourses] = useState(() => {
+    const cached = localStorage.getItem("admin_pending_courses");
+    return cached ? JSON.parse(cached) : [];
+  }); // List of pending courses
+  const [stats, setStats] = useState(() => {
+    const cached = localStorage.getItem("admin_course_stats");
+    return cached ? JSON.parse(cached) : { pending: 0, approved: 0, rejected: 0 };
+  }); // Course counts
+  const [isLoading, setIsLoading] = useState(() => {
+    return !localStorage.getItem("admin_pending_courses");
+  }); // Loading status
   const [error, setError] = useState(""); // Error messages
 
   // Helper to get auth token
@@ -31,7 +39,9 @@ export default function AdminViewCourses() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setIsLoading(true);
+        if (!localStorage.getItem("admin_pending_courses")) {
+          setIsLoading(true);
+        }
         setError("");
         
         // Fetch both pending courses and stats at the same time
@@ -40,8 +50,14 @@ export default function AdminViewCourses() {
           axios.get(COURSE_STATS_API, getAuthHeader())
         ]);
         
-        setCourses(pendingRes.data.courses || pendingRes.data || []);
-        setStats(statsRes.data.stats || { pending: 0, approved: 0, rejected: 0 });
+        const newCourses = pendingRes.data.courses || pendingRes.data || [];
+        const newStats = statsRes.data.stats || { pending: 0, approved: 0, rejected: 0 };
+
+        setCourses(newCourses);
+        setStats(newStats);
+
+        localStorage.setItem("admin_pending_courses", JSON.stringify(newCourses));
+        localStorage.setItem("admin_course_stats", JSON.stringify(newStats));
 
       } catch (err) {
         console.error("Fetch error:", err);

@@ -28,6 +28,8 @@ import StudentDashboard from "./pages/student/StudentDashboard.jsx"
 import PathFinder from "./pages/student/PathFinder.jsx";
 import StudentMessages from "./pages/student/StudentMessages.jsx";
 import StudentResources from "./pages/student/StudentResources.jsx";
+import StudentPlans from "./pages/student/StudentPlans.jsx";
+import StudentExploreCourses from "./pages/student/StudentExploreCourses.jsx";
 
 import EducatorDashboard from "./pages/educator/EducatorDashboard.jsx";
 import EducatorCourses from "./pages/educator/EducatorCourses.jsx";
@@ -96,6 +98,7 @@ const App = () => {
         <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
           <Route path="/student" element={<StudentLayout />}>
             <Route index element={<StudentDashboard />} />
+            <Route path="explore" element={<StudentExploreCourses />} />
             <Route path="courses" element={<StudentCourses />} />
             <Route path="courses/:id" element={<StudentCourseDetail />} />
             <Route path="mentor" element={<StudentMentor />} />
@@ -105,6 +108,7 @@ const App = () => {
             <Route path="/student/journey/step/:stepOrder" element={<StudentStepDetail />} />
             <Route path="messages" element={<StudentMessages />} />
             <Route path="resources" element={<StudentResources />} />
+            <Route path="plans" element={<StudentPlans />} />
           </Route>
         </Route>
 

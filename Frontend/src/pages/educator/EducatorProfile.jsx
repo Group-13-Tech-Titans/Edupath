@@ -3,12 +3,26 @@ import { useLocation, useNavigate } from "react-router-dom";
 import PageShell from "../../components/PageShell.jsx";
 import { useApp } from "../../context/AppProvider.jsx";
 import { passwordRegex } from "../../utils/validation.js";
+import axios from "axios";
+import { DollarSign, TrendingUp, ArrowDownToLine, CreditCard, Building, CheckCircle2, Receipt } from "lucide-react";
+
+const LKR_RATE = 310.0;
+const formatDual = (usdVal) => {
+  const usd = Number(usdVal || 0);
+  const lkr = usd * LKR_RATE;
+  return {
+    usdStr: `$${usd.toFixed(2)} USD`,
+    lkrStr: `Rs. ${lkr.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR`,
+    combinedStr: `$${usd.toFixed(2)} USD (Rs. ${lkr.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR)`
+  };
+};
 
 // Builds the educator account settings page
 const EducatorProfile = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { currentUser, updateUserProfile, logoutAllDevices } = useApp();
+  const { currentUser, updateUserProfile, logoutAllDevices, refreshCurrentUser } = useApp();
+
 
   const profileRef = useRef(null);
   const securityRef = useRef(null);
@@ -109,6 +123,28 @@ const EducatorProfile = () => {
     branch: "",
     billingAddress: ""
   });
+  const [earningsData, setEarningsData] = useState(null);
+
+  // Fetch earnings and payout history for profile
+  useEffect(() => {
+    const loadEarnings = async () => {
+      try {
+        const token = localStorage.getItem("edupath_token");
+        const res = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL || "http://localhost:5000/api"}/educator/earnings`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (res.data.success) {
+          setEarningsData(res.data);
+        }
+      } catch (err) {
+        console.error("Failed to load earnings in profile:", err);
+      }
+    };
+    loadEarnings();
+    if (refreshCurrentUser) refreshCurrentUser();
+  }, [refreshCurrentUser]);
+
 
   // ----- Security form -----
   const [securityForm, setSecurityForm] = useState({
@@ -402,6 +438,7 @@ const EducatorProfile = () => {
     });
     setSavingPayout(false);
     if (result.success) {
+      if (refreshCurrentUser) await refreshCurrentUser();
       setPayoutMsg({ type: "success", text: "Payout details saved successfully." });
     } else {
       setPayoutMsg({ type: "error", text: result.message || "Failed to save payout details." });
@@ -717,75 +754,212 @@ const EducatorProfile = () => {
               </div>
             </section>
 
-            {/* Payout Details */}
-            <section id="payout-details" ref={payoutRef} className="glass-card p-6 space-y-4">
+            {/* Payout Details & Earnings Summary */}
+            <section id="payout-details" ref={payoutRef} className="glass-card p-6 space-y-6">
               <div>
-                <h2 className="font-semibold text-text-dark">Payout Details</h2>
-                <p className="text-xs text-muted mt-1">
-                  Please ensure your bank details are accurate as this is where your earnings will be forwarded to
-                </p>
-              </div>
-
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Bank Name</label>
-                  <input
-                    className={inputCls}
-                    value={payoutForm.bankName}
-                    onChange={(e) => setPayoutForm((p) => ({ ...p, bankName: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className={labelCls}>Account Number</label>
-                  <input
-                    className={inputCls}
-                    value={payoutForm.accountNumber}
-                    onChange={(e) => setPayoutForm((p) => ({ ...p, accountNumber: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className={labelCls}>Account Holder Name</label>
-                  <input
-                    className={inputCls}
-                    value={payoutForm.accountHolder}
-                    onChange={(e) => setPayoutForm((p) => ({ ...p, accountHolder: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className={labelCls}>Branch</label>
-                  <input
-                    className={inputCls}
-                    value={payoutForm.branch}
-                    onChange={(e) => setPayoutForm((p) => ({ ...p, branch: e.target.value }))}
-                  />
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <h2 className="font-semibold text-text-dark text-lg">Payout &amp; Earnings Overview</h2>
+                    <p className="text-xs text-muted mt-0.5">
+                      Your current earnings, payout balance, and configured disbursement methods.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/educator/payouts")}
+                    className="btn-soft px-4 py-1.5 text-xs font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Manage Payouts</span> &rarr;
+                  </button>
                 </div>
               </div>
 
-              <div>
-                <label className={labelCls}>Billing Address (Optional)</label>
-                <textarea
-                  className={inputCls}
-                  rows={3}
-                  value={payoutForm.billingAddress}
-                  onChange={(e) => setPayoutForm((p) => ({ ...p, billingAddress: e.target.value }))}
-                />
+              {/* Earnings Stat Cards (USD & LKR) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="rounded-2xl p-4 bg-emerald-50/60 border border-emerald-200">
+                  <p className="text-xs font-medium text-emerald-800">Available Balance</p>
+                  <p className="text-xl font-black text-emerald-700 mt-1">
+                    {formatDual(earningsData?.stats?.currentBalanceUSD ?? currentUser?.educatorEarnings?.currentBalanceUSD).usdStr}
+                  </p>
+                  <p className="text-[11px] font-semibold text-emerald-600 mt-0.5">
+                    {formatDual(earningsData?.stats?.currentBalanceUSD ?? currentUser?.educatorEarnings?.currentBalanceUSD).lkrStr}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl p-4 bg-slate-50 border border-black/5">
+                  <p className="text-xs font-medium text-slate-500">Total Lifetime Earned</p>
+                  <p className="text-xl font-black text-slate-900 mt-1">
+                    {formatDual(earningsData?.stats?.totalEarnedUSD ?? currentUser?.educatorEarnings?.totalEarnedUSD).usdStr}
+                  </p>
+                  <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
+                    {formatDual(earningsData?.stats?.totalEarnedUSD ?? currentUser?.educatorEarnings?.totalEarnedUSD).lkrStr}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl p-4 bg-slate-50 border border-black/5">
+                  <p className="text-xs font-medium text-slate-500">Total Withdrawn</p>
+                  <p className="text-xl font-black text-slate-900 mt-1">
+                    {formatDual(earningsData?.stats?.withdrawnUSD ?? currentUser?.educatorEarnings?.withdrawnUSD).usdStr}
+                  </p>
+                  <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
+                    {formatDual(earningsData?.stats?.withdrawnUSD ?? currentUser?.educatorEarnings?.withdrawnUSD).lkrStr}
+                  </p>
+                </div>
               </div>
 
-              <FeedbackBanner msg={payoutMsg} />
+              {/* Bank Payout Method Form */}
+              <div className="pt-2">
+                <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                  <Building className="w-4 h-4 text-blue-600" />
+                  Bank Account Payout Details
+                </h3>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelCls}>Bank Name</label>
+                    <input
+                      className={inputCls}
+                      placeholder="e.g. Commercial Bank of Ceylon"
+                      value={payoutForm.bankName}
+                      onChange={(e) => setPayoutForm((p) => ({ ...p, bankName: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Account Number</label>
+                    <input
+                      className={inputCls}
+                      placeholder="e.g. 8001234567"
+                      value={payoutForm.accountNumber}
+                      onChange={(e) => setPayoutForm((p) => ({ ...p, accountNumber: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Account Holder Name</label>
+                    <input
+                      className={inputCls}
+                      placeholder="Name on bank account"
+                      value={payoutForm.accountHolder}
+                      onChange={(e) => setPayoutForm((p) => ({ ...p, accountHolder: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Branch</label>
+                    <input
+                      className={inputCls}
+                      placeholder="e.g. Colombo Main"
+                      value={payoutForm.branch}
+                      onChange={(e) => setPayoutForm((p) => ({ ...p, branch: e.target.value }))}
+                    />
+                  </div>
+                </div>
 
-              {/* Holds payout reset and save buttons */}
-              <div className="flex justify-end gap-3">
-                <button type="button" className="btn-soft px-6 py-2 text-sm" onClick={handleResetPayout}>
-                  Reset
-                </button>
-                <button
-                  type="button"
-                  className="btn-primary px-6 py-2 text-sm"
-                  onClick={handleSavePayout}
-                  disabled={savingPayout}
-                >
-                  {savingPayout ? "Saving..." : "Update Changes"}
-                </button>
+                <div className="mt-4">
+                  <label className={labelCls}>Billing Address (Optional)</label>
+                  <textarea
+                    className={inputCls}
+                    rows={2}
+                    placeholder="Your official address for tax & payout billing"
+                    value={payoutForm.billingAddress}
+                    onChange={(e) => setPayoutForm((p) => ({ ...p, billingAddress: e.target.value }))}
+                  />
+                </div>
+
+                <FeedbackBanner msg={payoutMsg} />
+
+                <div className="flex justify-end gap-3 mt-4">
+                  <button type="button" className="btn-soft px-6 py-2 text-sm" onClick={handleResetPayout}>
+                    Reset
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-primary px-6 py-2 text-sm"
+                    onClick={handleSavePayout}
+                    disabled={savingPayout}
+                  >
+                    {savingPayout ? "Saving..." : "Save Bank Details"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Card Payout Info (If configured) */}
+              {currentUser?.profile?.cardPayout?.cardNumber && (
+                <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-200 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center font-bold">
+                      <CreditCard className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-purple-900">Direct Card Payout Configured</h4>
+                      <p className="text-[11px] text-purple-700 font-mono">
+                        Card ending in ****{currentUser.profile.cardPayout.cardNumber.slice(-4)} ({currentUser.profile.cardPayout.cardHolder || "Direct Card"})
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-black bg-purple-200 text-purple-900 px-2.5 py-1 rounded-full">
+                    Active
+                  </span>
+                </div>
+              )}
+
+              {/* Recent Withdrawal & Payout History */}
+              <div className="pt-2">
+                <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                  <Receipt className="w-4 h-4 text-emerald-600" />
+                  Recent Payout History
+                </h3>
+
+                {(() => {
+                  const historyList = earningsData?.withdrawals || currentUser?.educatorEarnings?.withdrawals || [];
+                  if (historyList.length === 0) {
+                    return (
+                      <div className="rounded-xl border border-dashed border-black/10 bg-slate-50/50 p-6 text-center text-xs text-slate-500">
+                        No recent payouts recorded. Payouts disburse during the 3rd week of every month (15th to 21st).
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="overflow-x-auto rounded-2xl border border-black/5">
+                      <table className="min-w-full text-left text-xs">
+                        <thead className="border-b border-black/5 bg-slate-50">
+                          <tr>
+                            <th className="px-4 py-2.5 font-semibold text-slate-600">Date</th>
+                            <th className="px-4 py-2.5 font-semibold text-slate-600">Payout Ref</th>
+                            <th className="px-4 py-2.5 font-semibold text-slate-600">Destination</th>
+                            <th className="px-4 py-2.5 font-semibold text-slate-600">Amount (USD &amp; LKR)</th>
+                            <th className="px-4 py-2.5 font-semibold text-slate-600">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-black/5 bg-white">
+                          {historyList.slice(0, 5).map((w) => {
+                            const wDual = formatDual(w.amountUSD);
+                            return (
+                              <tr key={w.payoutId || w.reference || w._id} className="hover:bg-slate-50">
+                                <td className="px-4 py-2.5 text-slate-600">
+                                  {new Date(w.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                                </td>
+                                <td className="px-4 py-2.5 font-mono font-bold text-slate-900">
+                                  {w.payoutId || w.reference}
+                                </td>
+                                <td className="px-4 py-2.5 text-slate-700">
+                                  {w.destination || (w.method === "card" ? "Card Transfer" : "Bank Transfer")}
+                                </td>
+                                <td className="px-4 py-2.5">
+                                  <span className="font-bold text-emerald-700">{wDual.usdStr}</span>
+                                  <span className="text-[10px] text-slate-500 ml-1">({wDual.lkrStr})</span>
+                                </td>
+                                <td className="px-4 py-2.5">
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                    <CheckCircle2 className="w-3 h-3" />
+                                    <span>{w.status || "Completed"}</span>
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
               </div>
             </section>
 

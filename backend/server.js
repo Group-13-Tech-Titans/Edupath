@@ -8,29 +8,29 @@ const dns = require("dns");
 
 // Force IPv4 first to prevent ENETUNREACH IPv6 errors on Render/cloud hosts
 if (dns.setDefaultResultOrder) {
-  dns.setDefaultResultOrder('ipv4first');
+    dns.setDefaultResultOrder('ipv4first');
 }
 
 // Use Google Public DNS
 dns.setServers([
-  "8.8.8.8",
-  "8.8.4.4"
+    "8.8.8.8",
+    "8.8.4.4"
 ]);
 
 const app = express();
 
 connectDB();
 
-app.use(cors({ 
-  origin: function (origin, callback) {
-    const allowedOrigins = ['http://localhost:5173'];
-    // Allow any origin that matches the Vercel preview domain pattern
-    if (!origin || allowedOrigins.includes(origin) || /^https:\/\/edupath-.*\.vercel\.app$/.test(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+app.use(cors({
+    origin: function (origin, callback) {
+        const allowedOrigins = ['http://localhost:5173'];
+        // Allow any origin that matches the Vercel preview domain pattern
+        if (!origin || allowedOrigins.includes(origin) || /^https:\/\/edupath-.*\.vercel\.app$/.test(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
     }
-  }
 }));
 
 // Increase the limit to 50mb to allow large Base64 images to pass through
@@ -50,6 +50,7 @@ app.use("/api/pathway", require("./modules/pathway/routes/pathwayRoutes"));
 app.use("/api/step-quiz", require("./modules/quiz/routes/stepQuizRoutes"));
 
 app.use("/api/courses", require("./modules/courses/routes/courseRoutes"));
+app.use("/api/educator", require("./modules/courses/routes/educatorRoutes"));
 
 app.use("/api/upload", require("./modules/upload/routes/uploadRoutes"));
 
@@ -57,6 +58,9 @@ app.use("/api/specializations", require("./modules/specializations/routes/specia
 
 // Mentor routes
 app.use("/api/mentor", require("./modules/mentor/routes/mentorRoutes"));
+
+// Subscription routes (premium plans, PayHere, usage limits)
+app.use("/api/subscription", require("./modules/subscription/routes/subscriptionRoutes"));
 
 app.get("/test", (req, res) => {
   res.send("Working");

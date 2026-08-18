@@ -416,13 +416,14 @@ const EducatorEditCourse = () => {
                 </select>
               </div>
 
-              {/* Price */}
-              {/* Lets the educator edit the price */}
-              <div>
-                <label className="font-semibold text-text-dark">Price (LKR)</label>
-                <input name="price" value={form.price} onChange={handleNumberChange}
-                  disabled={!isVerified} inputMode="numeric" placeholder="Eg: 5000"
-                  className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-4 py-2.5 outline-none ring-primary/40 focus:ring disabled:cursor-not-allowed disabled:bg-gray-100" />
+              {/* Revenue Model Banner */}
+              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+                <p className="text-[13px] font-semibold text-primary">
+                  💰 Zero Course Fee • $1.00 USD / Enrolled Student
+                </p>
+                <p className="mt-1 text-[11px] text-primary/80 leading-relaxed">
+                  EduPath courses are free to enroll for students. You earn <strong>$1.00 USD</strong> for every real student who enrolls. Monthly withdrawals open during the <strong>3rd week of every month (15th to 21st)</strong>.
+                </p>
               </div>
 
               {/* Duration */}

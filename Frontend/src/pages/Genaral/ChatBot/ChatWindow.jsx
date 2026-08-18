@@ -72,7 +72,7 @@ export default function ChatWindow({ onClose }) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 20, scale: 0.95 }}
       transition={{ duration: 0.3 }}
-      className="absolute bottom-20 left-0 w-[360px] h-[650px] max-h-[85vh] flex flex-col rounded-3xl bg-[#efeae2] shadow-[0_20px_50px_rgba(0,0,0,0.2)] overflow-hidden z-50 origin-bottom-left"
+      className="absolute bottom-20 left-0 w-[calc(100vw-48px)] sm:w-[380px] h-[600px] sm:h-[650px] max-h-[calc(100vh-120px)] flex flex-col rounded-2xl sm:rounded-3xl bg-[#efeae2] shadow-[0_20px_50px_rgba(0,0,0,0.2)] overflow-hidden z-50 origin-bottom-left"
     >
       {/* Header Section */}
       <div className="relative bg-gradient-to-b from-[#001e2b] to-[#002f3a] px-4 pt-4 pb-6 text-white">
@@ -94,7 +94,7 @@ export default function ChatWindow({ onClose }) {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto px-4 pb-4">
+      <div className="flex-1 overflow-y-auto px-4 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {/* Chat Messages */}
         <div className="flex flex-col gap-4">
           <AnimatePresence>
