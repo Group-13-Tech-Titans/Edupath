@@ -57,13 +57,19 @@ export default function EditReviewerModal({
   // Submits the updated data to the API
   const handleEditSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
     setError("");
+
+    const email = (formData.email || "").trim().toLowerCase();
+    if (!email.endsWith("@gmail.com") || !/^[a-z0-9._%+-]+@gmail\.com$/.test(email)) {
+      return setError("Only valid @gmail.com addresses are allowed.");
+    }
+
+    setIsSubmitting(true);
 
     try {
       const id = formData._id || formData.id;
       // Send PUT request to update the reviewer in the backend
-      await axios.put(`${API_BASE}/${id}`, formData, getAuthHeader());
+      await axios.put(`${API_BASE}/${id}`, { ...formData, email: email }, getAuthHeader());
       
       // Refresh the reviewers list in the parent component to show new data
       fetchReviewers();
@@ -109,7 +115,7 @@ export default function EditReviewerModal({
               name="email"
               type="email"
               value={formData.email || ""}
-              onChange={handleEditChange}
+              onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value.toLowerCase() }))}
               className="mt-1 w-full rounded-xl border px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-400 transition"
               required
             />
