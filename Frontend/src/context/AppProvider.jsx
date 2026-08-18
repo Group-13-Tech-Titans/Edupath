@@ -53,7 +53,6 @@ function loadState() {
     return {
       ...defaultState,
       ...parsed,
-      currentUser: null,
       authLoading: true,
       users: parsed.users || [],
       courses: parsed.courses || mockCourses,
@@ -103,13 +102,23 @@ export const AppProvider = ({ children }) => {
           authLoading: false,
         }));
       })
-      .catch(() => {
-        setToken(null);
-        setState((prev) => ({
-          ...prev,
-          currentUser: null,
-          authLoading: false,
-        }));
+      .catch((error) => {
+        if (error.status === 401 || error.status === 403) {
+          // Token is actually invalid or expired
+          setToken(null);
+          setState((prev) => ({
+            ...prev,
+            currentUser: null,
+            authLoading: false,
+          }));
+        } else {
+          // Network error or 500 error (e.g. backend cold start). 
+          // Do NOT clear the token. Keep the cached user so they aren't forced to login again.
+          setState((prev) => ({
+            ...prev,
+            authLoading: false,
+          }));
+        }
       });
   }, []);
 
