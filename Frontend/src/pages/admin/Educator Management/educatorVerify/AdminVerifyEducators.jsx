@@ -16,6 +16,9 @@ const AdminVerifyEducators = () => {
   const [isLoadingVerifications, setIsLoadingVerifications] = useState(false);
   const [isLoadingSpec, setIsLoadingSpec] = useState(false);
   const [isLoadingContact, setIsLoadingContact] = useState(false);
+  
+  const [educatorCache, setEducatorCache] = useState({});
+  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
 
   const sorted = useMemo(() => {
     return [...requests].sort(
@@ -136,6 +139,48 @@ const AdminVerifyEducators = () => {
     }
   };
 
+  const handleViewDetails = async (ed) => {
+    const id = ed._id || ed.id;
+    if (educatorCache[id]) {
+      navigate(`/admin/verify-educator/${id}`, { state: { educator: educatorCache[id] } });
+      return;
+    }
+    
+    setIsFetchingDetails(true);
+    try {
+      const token = localStorage.getItem("edupath_token");
+      const res = await fetch(`${API_URL}/api/admin/educators/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const fullEducator = data.educator || ed;
+        
+        // Map fields that AdminEducatorReview expects
+        const mappedEducator = {
+          ...fullEducator,
+          fullName: fullEducator.profile?.fullName || fullEducator.name || "Unknown",
+          field: fullEducator.specializationTag || fullEducator.profile?.specializationTag || fullEducator.specializationTags?.[0] || fullEducator.profile?.specialization || "N/A",
+          educationLevel: fullEducator.profile?.educationLevel || "N/A",
+          docs: {
+            ...(fullEducator.profile?.documents || {}),
+            portfolio: fullEducator.profile?.documents?.portfolio || fullEducator.profile?.credentialsLink || fullEducator.credentialsLink || null
+          }
+        };
+
+        setEducatorCache(prev => ({ ...prev, [id]: mappedEducator }));
+        navigate(`/admin/verify-educator/${id}`, { state: { educator: mappedEducator } });
+      } else {
+        navigate(`/admin/verify-educator/${id}`, { state: { educator: ed } });
+      }
+    } catch (err) {
+      console.error("Failed to fetch full details", err);
+      navigate(`/admin/verify-educator/${id}`, { state: { educator: ed } });
+    } finally {
+      setIsFetchingDetails(false);
+    }
+  };
+
   return (
     <PageShell>
       <div className="space-y-6">
@@ -193,7 +238,12 @@ const AdminVerifyEducators = () => {
                   <div className="py-8 text-center text-sm font-semibold text-muted">No pending verification requests.</div>
                 ) : (
                   sorted.map((req) => (
-                    <RequestCard key={req._id || req.id} educator={req} navigate={navigate} />
+                    <RequestCard 
+                      key={req._id || req.id} 
+                      educator={req} 
+                      onViewDetails={() => handleViewDetails(req)}
+                      isFetching={isFetchingDetails}
+                    />
                   ))
                 )}
               </div>
@@ -420,7 +470,7 @@ const ContactDetailModal = ({ contact, onClose }) => {
   );
 };
 
-const RequestCard = ({ educator, navigate }) => {
+const RequestCard = ({ educator, onViewDetails, isFetching }) => {
   return (
     <div className="rounded-[22px] border border-black/5 bg-white/80 p-4 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -452,10 +502,11 @@ const RequestCard = ({ educator, navigate }) => {
         </div>
 
         <button
-          onClick={() => navigate(`/admin/verify-educator/${educator._id}`, { state: { educator } })}
-          className="rounded-full bg-amber-100 px-4 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-200"
+          onClick={onViewDetails}
+          disabled={isFetching}
+          className="rounded-full bg-amber-100 px-4 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-200 disabled:opacity-50"
         >
-          Action
+          {isFetching ? "Loading..." : "Action"}
         </button>
       </div>
     </div>

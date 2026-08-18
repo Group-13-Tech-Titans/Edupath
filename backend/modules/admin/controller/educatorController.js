@@ -5,7 +5,8 @@ const { educatorVerificationResultEmail } = require("../../../utils/emailTemplat
 //get pending educators for admin review
 exports.getPendingEducators = async (req, res) => {
   try {
-    const pendingEducators = await User.find({ role: "educator", status: "PENDING_VERIFICATION" }).select("-password");
+    const pendingEducators = await User.find({ role: "educator", status: "PENDING_VERIFICATION" })
+      .select("name email profile.fullName profile.avatar specializationTag specializationTags profile.specialization status isVerified profile.educationLevel profile.yearsOfExperience createdAt updatedAt profile.phone _id");
     res.status(200).json({ success: true, educators: pendingEducators });
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch pending educators." });
@@ -135,12 +136,37 @@ exports.getAllEducators = async (req, res) => {
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    const educators = await User.find(query).select("-password").sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit));
+    const educators = await User.find(query)
+      .select("name email profile.fullName profile.avatar specializationTag specializationTags profile.specialization status isVerified profile.educationLevel profile.yearsOfExperience createdAt updatedAt _id")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
     
     const hasMore = educators.length === parseInt(limit);
+    
+    res.json({ educators, hasMore });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to fetch educators" });
+  }
+};
 
-    res.status(200).json({ success: true, educators, hasMore });
+// Get full details of a specific educator by ID
+exports.getEducatorById = async (req, res) => {
+  try {
+    const educatorId = req.params.id;
+    const educator = await User.findById(educatorId).select("-password");
+    
+    if (!educator) {
+      return res.status(404).json({ message: "Educator not found" });
+    }
+    
+    // Check if the user is actually an educator (or pending)
+    if (educator.role !== "educator" && educator.role !== "pending") {
+      return res.status(403).json({ message: "User is not an educator" });
+    }
+    
+    res.status(200).json({ success: true, educator });
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch educators." });
+    res.status(500).json({ message: "Failed to fetch educator details." });
   }
 };

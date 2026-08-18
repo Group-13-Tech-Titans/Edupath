@@ -34,8 +34,10 @@ const AdminEducatorList = () => {
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Modal state
+  // Modal and Cache state
   const [selectedEducator, setSelectedEducator] = useState(null);
+  const [educatorCache, setEducatorCache] = useState({});
+  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
 
   const observer = useRef();
   const lastElementRef = useCallback(node => {
@@ -98,6 +100,34 @@ const AdminEducatorList = () => {
     if (val === "") {
       setPage(1);
       fetchEducators("", 1);
+    }
+  };
+
+  const handleViewDetails = async (ed) => {
+    if (educatorCache[ed._id]) {
+      setSelectedEducator(educatorCache[ed._id]);
+      return;
+    }
+    
+    setIsFetchingDetails(true);
+    try {
+      const token = localStorage.getItem("edupath_token");
+      const res = await fetch(`${API_URL}/api/admin/educators/${ed._id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const fullEducator = data.educator || ed;
+        setEducatorCache(prev => ({ ...prev, [ed._id]: fullEducator }));
+        setSelectedEducator(fullEducator);
+      } else {
+        setSelectedEducator(ed);
+      }
+    } catch (err) {
+      console.error("Failed to fetch full details", err);
+      setSelectedEducator(ed);
+    } finally {
+      setIsFetchingDetails(false);
     }
   };
 
@@ -191,10 +221,11 @@ const AdminEducatorList = () => {
                       </div>
 
                       <button
-                        onClick={() => setSelectedEducator(ed)}
-                        className="rounded-full bg-primary/10 px-4 py-2 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors shrink-0"
+                        onClick={() => handleViewDetails(ed)}
+                        disabled={isFetchingDetails}
+                        className="rounded-full bg-primary/10 px-4 py-2 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors shrink-0 disabled:opacity-50"
                       >
-                        View Details
+                        {isFetchingDetails && !selectedEducator && !educatorCache[ed._id] ? "Loading..." : "View Details"}
                       </button>
                     </div>
                   </div>
