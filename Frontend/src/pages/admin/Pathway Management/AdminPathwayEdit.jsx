@@ -176,11 +176,21 @@ const AdminPathwayEdit = () => {
   const handleUpdatePathway = async () => {
     setError("");
 
-    if (!pathway.pathName.trim())
-      return setError("Please enter a Pathway Name.");
-    if (!pathway.specialization)
-      return setError("Please select a Specialization.");
-    if (steps.length === 0) return setError("Add at least one step.");
+    if (!pathway.pathName.trim()) {
+      setError("Please enter a Pathway Name.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    if (!pathway.specialization) {
+      setError("Please select a Specialization.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    if (steps.length === 0) {
+      setError("Add at least one step.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
 
     // Fix the order numbers before sending
     const formattedSteps = steps.map((step, index) => {

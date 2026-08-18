@@ -186,16 +186,19 @@ const AdminPathwayBuilder = () => {
 
     if (!pathway.pathName.trim()) {
       setError("Please enter a Pathway Name.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
     if (!pathway.specialization) {
       setError("Please select a Specialization.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
     if (steps.length === 0) {
       setError("You must add at least one step to the curriculum.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 

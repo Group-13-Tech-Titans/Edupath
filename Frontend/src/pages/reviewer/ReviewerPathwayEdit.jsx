@@ -184,6 +184,7 @@ const ReviewerPathwayEdit = () => {
         `${import.meta.env.VITE_API_URL}/api/pathway/template/${id}`,
         {
           pathName: pathway.pathName,
+          specialization: pathway.specialization,
           level: pathway.level,
           steps: formattedSteps,
         },

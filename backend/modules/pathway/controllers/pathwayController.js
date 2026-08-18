@@ -185,19 +185,20 @@ exports.syncPathwaySteps = async (req, res) => {
 // ✅ CREATE TEMPLATE PATHWAY (Admin & Reviewer)
 exports.createTemplatePathway = async (req, res) => {
   try {
-    let { pathName, level } = req.body;
+    let { pathName, specialization, level } = req.body;
+
+    if (!specialization) {
+      return res.status(400).json({ success: false, message: "Specialization is required." });
+    }
 
     // 🛡️ SECURITY: Enforce Reviewer Specialization
     if (req.user.role === "reviewer") {
-      // If they didn't provide a pathName, default to their specialization
-      if (!pathName) {
-        pathName = req.user.specializationTag;
-      }
       // If they tried to create a pathway outside their specialization, block it
-      else if (pathName !== req.user.specializationTag) {
+      const tags = req.user.specializationTags || [];
+      if (!tags.includes(specialization)) {
         return res.status(403).json({
           success: false,
-          message: `Reviewers can only create pathways for their specialization: ${req.user.specializationTag}`,
+          message: `Reviewers can only create pathways for their specializations: ${tags.join(", ")}`,
         });
       }
     }
@@ -206,6 +207,7 @@ exports.createTemplatePathway = async (req, res) => {
       isTemplate: true,
       createdBy: req.user._id,
       pathName,
+      specialization,
       level,
       status: "draft",
       steps: [],
@@ -224,7 +226,7 @@ exports.getTemplatePathways = async (req, res) => {
 
     // 🛡️ SECURITY: Reviewers only see templates matching their specialization
     if (req.user.role === "reviewer") {
-      query.pathName = req.user.specializationTag;
+      query.specialization = { $in: req.user.specializationTags || [] };
     }
 
     const templates = await Pathway.find(query);
@@ -245,7 +247,7 @@ exports.addStepToTemplate = async (req, res) => {
     let query = { _id: templateId, isTemplate: true };
     // 🛡️ SECURITY: Ensure reviewers only edit their own specializations
     if (req.user.role === "reviewer") {
-      query.pathName = req.user.specializationTag;
+      query.specialization = { $in: req.user.specializationTags || [] };
     }
 
     const template = await Pathway.findOne(query);
@@ -285,7 +287,7 @@ exports.getTemplateById = async (req, res) => {
   try {
     let query = { _id: req.params.id, isTemplate: true };
     if (req.user.role === "reviewer")
-      query.pathName = req.user.specializationTag;
+      query.specialization = { $in: req.user.specializationTags || [] };
 
     const template = await Pathway.findOne(query);
     if (!template) {
@@ -303,27 +305,32 @@ exports.getTemplateById = async (req, res) => {
 // ✅ UPDATE ENTIRE TEMPLATE & STEPS (Admin & Reviewer)
 exports.updateTemplate = async (req, res) => {
   try {
-    const { pathName, level, steps } = req.body;
+    const { pathName, specialization, level, steps } = req.body;
+
+    if (!specialization) {
+      return res.status(400).json({ success: false, message: "Specialization is required." });
+    }
 
     let query = { _id: req.params.id, isTemplate: true };
 
     // 🛡️ SECURITY: Reviewer Checks
     if (req.user.role === "reviewer") {
-      query.pathName = req.user.specializationTag; // Must belong to their specialization
+      const tags = req.user.specializationTags || [];
+      query.specialization = { $in: tags }; // Must belong to their specialization
 
-      // Block them from attempting to rename the pathway to a different specialization
-      if (pathName && pathName !== req.user.specializationTag) {
+      // Block them from attempting to change the specialization
+      if (specialization && !tags.includes(specialization)) {
         return res.status(403).json({
           success: false,
           message:
-            "Reviewers cannot change the specialization topic of a pathway.",
+            "Reviewers cannot change the specialization to one they do not own.",
         });
       }
     }
 
     const template = await Pathway.findOneAndUpdate(
       query,
-      { pathName, level, steps },
+      { pathName, specialization, level, steps },
       { returnDocument: "after", runValidators: true },
     );
 
@@ -347,7 +354,7 @@ exports.deleteTemplatePathway = async (req, res) => {
   try {
     let query = { _id: req.params.id, isTemplate: true };
     if (req.user.role === "reviewer")
-      query.pathName = req.user.specializationTag;
+      query.specialization = { $in: req.user.specializationTags || [] };
 
     const template = await Pathway.findOneAndDelete(query);
 
@@ -373,7 +380,7 @@ exports.updateTemplateStatus = async (req, res) => {
 
     let query = { _id: req.params.id, isTemplate: true };
     if (req.user.role === "reviewer")
-      query.pathName = req.user.specializationTag;
+      query.specialization = { $in: req.user.specializationTags || [] };
 
     const template = await Pathway.findOneAndUpdate(
       query,

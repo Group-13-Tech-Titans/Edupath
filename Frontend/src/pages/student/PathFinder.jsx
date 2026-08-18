@@ -333,7 +333,12 @@ const PathFinder = () => {
                   <h2 className="text-3xl font-black text-slate-800 mb-2">What do you want to master?</h2>
                   <p className="text-slate-500 mb-8">Select a specialization to help us customize your curriculum.</p>
                   
-                  {availablePaths.length === 0 ? (
+                  {isLoading ? (
+                    <div className="flex flex-col items-center justify-center space-y-4 py-8">
+                      <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      <p className="text-slate-500 font-bold">Loading pathways...</p>
+                    </div>
+                  ) : availablePaths.length === 0 ? (
                     <div className="bg-amber-50 text-amber-700 p-4 rounded-xl font-bold">No pathways are currently published. Please check back later!</div>
                   ) : (
                     <div className="grid gap-4 sm:grid-cols-2">

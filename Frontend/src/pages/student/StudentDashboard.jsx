@@ -13,6 +13,7 @@ import { getSubscriptionStatus } from "../../api/subscriptionApi.js";
 import { isPremiumUser } from "../../utils/subscriptionUtils.js";
 import PlanLimitModal from "../../components/student/PlanLimitModal.jsx";
 import UpgradeModal from "../../components/student/UpgradeModal.jsx";
+import StudentFooter from "./StudentFooter.jsx";
 import { Sparkles, ArrowRight, BookOpen, Route, Clock, ShieldCheck } from "lucide-react";
 
 // --- CONFIGURATION CONSTANTS ---
@@ -28,25 +29,6 @@ const getPathwayIcon = (index) => {
   if (index === 0) return "🚀";
   if (index === 1) return "💡";
   return "⭐";
-};
-
-const StatCard = ({ icon, title, value, themeClass }) => (
-  <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow flex items-center gap-5">
-    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-3xl ${themeClass}`}>
-      {icon}
-    </div>
-    <div>
-      <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">{title}</p>
-      <p className="text-3xl font-black text-slate-800">{value}</p>
-    </div>
-  </div>
-);
-
-StatCard.propTypes = {
-  icon: PropTypes.string.isRequired,
-  title: PropTypes.string.isRequired,
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-  themeClass: PropTypes.string.isRequired,
 };
 
 const PathwayCard = ({ pathway, index, pathwayName, onResume, onDelete }) => {
@@ -414,42 +396,6 @@ const StudentDashboard = () => {
         {/* PATHWAY CONTENT SECTION */}
         {renderPathwayContent()}
 
-        {/* GENERAL STATS CARDS */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4">
-          <Link
-            to="/student/explore"
-            className="group block"
-          >
-            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all flex items-center justify-between gap-5">
-              <div className="flex items-center gap-5">
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl bg-blue-50 text-blue-500">
-                  📚
-                </div>
-                <div>
-                  <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Available Courses</p>
-                  <p className="text-3xl font-black text-slate-800">{approvedCourses.length}</p>
-                </div>
-              </div>
-              <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center group-hover:translate-x-1 transition-transform">
-                <ArrowRight className="w-4 h-4" />
-              </div>
-            </div>
-          </Link>
-
-          <StatCard
-            icon="✅"
-            title="Lessons Completed"
-            value={completedCount}
-            themeClass="bg-emerald-50 text-emerald-500"
-          />
-          <StatCard
-            icon="🔥"
-            title="Study Streak"
-            value="7 Days"
-            themeClass="bg-orange-50 text-orange-500"
-          />
-        </div>
-
         {/* DELETE MODAL */}
         {showDeleteModal && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -493,6 +439,7 @@ const StudentDashboard = () => {
         )}
 
       </div>
+      <StudentFooter />
     </PageShell>
   );
 };
