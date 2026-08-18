@@ -23,7 +23,7 @@ connectDB();
 
 app.use(cors({
     origin: function (origin, callback) {
-        const allowedOrigins = ['http://localhost:5173'];
+        const allowedOrigins = ['http://localhost:5173', 'https://www.openrento.com', 'https://openrento.com'];
         // Allow any origin that matches the Vercel preview domain pattern
         if (!origin || allowedOrigins.includes(origin) || /^https:\/\/edupath-.*\.vercel\.app$/.test(origin)) {
             callback(null, true);
