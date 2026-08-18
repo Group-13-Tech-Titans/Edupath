@@ -35,6 +35,11 @@ export default function CreateReviewerForm({
     setError(""); 
     setSuccess("");
     
+    const email = form.email.trim().toLowerCase();
+    if (!email.endsWith("@gmail.com") || !/^[a-z0-9._%+-]+@gmail\.com$/.test(email)) {
+      return setError("Only valid @gmail.com addresses are allowed.");
+    }
+    
     if (form.specializationTags.length === 0) { // Ensure at least one specialization is selected
       return setError("Please select at least one specialization.");
     }
@@ -42,7 +47,7 @@ export default function CreateReviewerForm({
     //payload created based on the form state
     setIsSubmitting(true);
     try {
-      await axios.post(API_BASE, form, getAuthHeader());
+      await axios.post(API_BASE, { ...form, email: email }, getAuthHeader());
       fetchReviewers(); 
       setSuccess("Reviewer account created ✅");
       setForm({ name: "", email: "", specializationTags: [] });
@@ -90,7 +95,7 @@ export default function CreateReviewerForm({
             name="email"
             type="email"
             value={form.email}
-            onChange={handleChange}
+            onChange={(e) => setForm((p) => ({ ...p, email: e.target.value.toLowerCase() }))}
             placeholder="reviewer@edupath.com"
             className="mt-2 w-full rounded-full border px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-emerald-100 transition"
             required

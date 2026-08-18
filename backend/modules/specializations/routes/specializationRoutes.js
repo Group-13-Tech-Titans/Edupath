@@ -107,7 +107,7 @@ router.post("/requests", authMiddleware, roleMiddleware(["educator"]), async (re
 // Admin gets all requests
 router.get("/requests", authMiddleware, roleMiddleware(["admin"]), async (req, res) => {
   try {
-    const requests = await SpecializationRequest.find().sort({ createdAt: -1 }).populate('educatorId', 'profile email name');
+    const requests = await SpecializationRequest.find().sort({ createdAt: -1 }).populate('educatorId', 'profile.fullName profile.avatar email name profile.specialization specializationTag status isVerified');
     res.json({ requests });
   } catch (err) {
     res.status(500).json({ message: err.message || "Failed to fetch requests" });

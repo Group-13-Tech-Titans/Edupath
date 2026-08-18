@@ -27,6 +27,7 @@ router.delete("/reviewers/:id", authMiddleware, roleMiddleware(["admin"]), revie
 //   EDUCATORS VERIFICATION
 router.get("/educators/pending", authMiddleware, roleMiddleware(["admin"]), educatorController.getPendingEducators); // show pending educators 
 router.get("/educators", authMiddleware, roleMiddleware(["admin"]), educatorController.getAllEducators); // show all educators with optional filter
+router.get("/educators/:id", authMiddleware, roleMiddleware(["admin"]), educatorController.getEducatorById); // get full details of an educator
 router.patch("/educators/:id/verify", authMiddleware, roleMiddleware(["admin"]), educatorController.verifyEducator); // mark verified educator
 router.patch("/educators/:id/reject", authMiddleware, roleMiddleware(["admin"]), educatorController.rejectEducator); // mark rejected educator
 

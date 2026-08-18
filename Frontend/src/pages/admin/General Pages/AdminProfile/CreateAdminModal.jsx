@@ -10,12 +10,19 @@ export default function CreateAdminModal({ onClose, onAdminCreated, createAdminA
 
   const handleCreateAdminSubmit = async (e) => {
     e.preventDefault();
+    
+    const email = newAdminForm.email.trim().toLowerCase();
+    if (!email.endsWith("@gmail.com") || !/^[a-z0-9._%+-]+@gmail\.com$/.test(email)) {
+      showToast("error", "Only valid @gmail.com addresses are allowed.");
+      return;
+    }
+
     setIsCreatingAdmin(true);
 
     try {
       const payload = {
         name: newAdminForm.fullName,
-        email: newAdminForm.email,
+        email: email,
         role: "admin",
       };
 
@@ -67,7 +74,7 @@ export default function CreateAdminModal({ onClose, onAdminCreated, createAdminA
                   type="email" 
                   required 
                   value={newAdminForm.email} 
-                  onChange={(e) => setNewAdminForm({ ...newAdminForm, email: e.target.value })} 
+                  onChange={(e) => setNewAdminForm({ ...newAdminForm, email: e.target.value.toLowerCase() })} 
                   placeholder="newadmin@edupath.com" 
                   className="mt-1 w-full rounded-xl border px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/40 bg-slate-50 transition" 
                 />
