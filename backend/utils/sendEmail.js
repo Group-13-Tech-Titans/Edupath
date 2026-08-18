@@ -8,10 +8,14 @@ const nodemailer = require("nodemailer");// use to send emails
 // This transporter function acts as a Singleton. The connection pool is created once when the server starts and is reused, making email sending significantly faster.
 // Transporter uses SMTP (Simple Mail Transfer Protocol) to connect to an email service provider like Gmail
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: true,
+  // Force Node.js to use IPv4 for this specific connection
+  family: 4, 
   auth: {
-    user: process.env.EMAIL_USER,// sender email address
-    pass: process.env.EMAIL_PASS, // Sender App Password or API Key
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
 });
 

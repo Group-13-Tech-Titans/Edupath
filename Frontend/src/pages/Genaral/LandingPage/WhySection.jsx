@@ -2,6 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { fadeUp, fade, stagger } from "./LandingSharedUI";
 import { GraduationCap, CheckCircle, Compass, Puzzle, HeartHandshake } from "lucide-react";
+import whyImage from "../../../assets/images/why-section-img.png";
 
 // Clean feature item
 function FeatureRow({ icon, title, text }) {
@@ -34,20 +35,11 @@ export default function WhySection() {
           <motion.div variants={fade} className="relative order-2 lg:order-1">
             <div className="absolute -inset-4 rounded-[40px] bg-gradient-to-tr from-emerald-100 to-teal-50 opacity-50 blur-2xl" />
             <img 
-              src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=800" 
+              src={whyImage} 
               alt="Students collaborating" 
-              className="relative w-full rounded-[40px] shadow-2xl"
+              className="relative w-full rounded-[40px]"
             />
-            {/* Decorative badge */}
-            <div className="absolute -bottom-6 -right-6 hidden sm:flex items-center gap-3 rounded-2xl bg-white p-4 shadow-xl border border-slate-50">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 text-yellow-600">
-                <GraduationCap className="h-6 w-6" />
-              </span>
-              <div>
-                <p className="text-xl font-black text-slate-800">100%</p>
-                <p className="text-xs font-bold text-slate-500">Job Ready</p>
-              </div>
-            </div>
+
           </motion.div>
 
           {/* Right Side: Features */}
