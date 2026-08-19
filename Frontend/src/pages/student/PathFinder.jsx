@@ -108,19 +108,10 @@ const PathFinder = () => {
         const templates = publishedRes.data.templates || [];
         setAllTemplates(templates); 
         
-        // Extract unique path names dynamically - combine published templates, specializations, and standard curriculum tracks
-        const specNames = (specRes.data.specializations || []).map((s) => s.name || s.slug).filter(Boolean);
-        const defaultTracks = [
-          "Web Development",
-          "Data Science",
-          "Artificial Intelligence",
-          "Mobile App Development",
-          "Cybersecurity",
-          "UI/UX Design"
-        ];
+        // Extract unique path names dynamically from published templates only
         const templatePaths = templates.map((t) => t.pathName).filter(Boolean);
         
-        const combinedPaths = [...new Set([...templatePaths, ...specNames, ...defaultTracks])];
+        const combinedPaths = [...new Set(templatePaths)];
         setAvailablePaths(combinedPaths);
         
         setIsLoading(false);

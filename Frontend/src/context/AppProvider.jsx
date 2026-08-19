@@ -258,14 +258,10 @@ export const AppProvider = ({ children }) => {
 
   const signupStudent = useCallback(async (formData) => {
     try {
-      // Extract password & confirm. Keep everything else in 'safeProfileData'
-      const { password, confirm, ...safeProfileData } = formData;
-
       const result = await authApi.updateProfile({
         name: `${formData.firstName} ${formData.lastName}`,
         role: "student",
-        password: password,
-        profile: safeProfileData,
+        profile: formData,
         status: "active",
       });
       setState((prev) => ({

@@ -127,7 +127,8 @@ exports.selectRole = async (req, res) => {
 // Handle user normal registration
 exports.register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, password } = req.body;
+    const email = req.body.email?.trim().toLowerCase();
 
     const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ message: "Email already in use" });
@@ -161,7 +162,8 @@ exports.register = async (req, res) => {
 // Handle normal/local user login
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { password } = req.body;
+    const email = req.body.email?.trim().toLowerCase();
     const user = await User.findOne({ email });
 
     if (!user) return res.status(400).json({ message: "Invalid credentials" });

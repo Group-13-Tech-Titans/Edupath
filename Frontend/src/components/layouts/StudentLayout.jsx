@@ -166,10 +166,18 @@ const StudentLayout = () => {
                 className="flex items-center gap-2 p-1.5 pr-3 rounded-full bg-white hover:bg-slate-100 border border-slate-200/80 shadow-xs transition-all cursor-pointer group"
                 aria-label="User menu"
               >
-                {/* Avatar Initial */}
-                <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-slate-800 to-slate-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
-                  {userInitial}
-                </div>
+                {/* Avatar */}
+                {currentUser?.avatar ? (
+                  <img
+                    src={currentUser.avatar}
+                    alt={displayName}
+                    className="w-7 h-7 rounded-full object-cover shadow-xs"
+                  />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-slate-800 to-slate-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                    {userInitial}
+                  </div>
+                )}
                 <span className="text-xs font-bold text-slate-700 max-w-[110px] truncate">
                   {displayName}
                 </span>
@@ -280,9 +288,17 @@ const StudentLayout = () => {
             {/* Mobile User Card */}
             <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between mb-2">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-slate-800 text-white font-bold text-sm flex items-center justify-center">
-                  {userInitial}
-                </div>
+                {currentUser?.avatar ? (
+                  <img
+                    src={currentUser.avatar}
+                    alt={displayName}
+                    className="w-9 h-9 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-slate-800 text-white font-bold text-sm flex items-center justify-center">
+                    {userInitial}
+                  </div>
+                )}
                 <div>
                   <p className="text-xs font-black text-slate-800">{displayName}</p>
                   <span className={`text-[10px] font-bold uppercase tracking-wider ${isPremium ? "text-emerald-600" : "text-slate-400"}`}>
