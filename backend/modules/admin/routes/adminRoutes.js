@@ -32,6 +32,7 @@ router.patch("/educators/:id/verify", authMiddleware, roleMiddleware(["admin"]),
 router.patch("/educators/:id/reject", authMiddleware, roleMiddleware(["admin"]), educatorController.rejectEducator); // mark rejected educator
 
 //   COURSES MANAGEMENT
+router.get("/courses", authMiddleware, roleMiddleware(["admin"]), courseController.getCourses); // show all courses or filter by ?status=
 router.get("/courses/pending", authMiddleware, roleMiddleware(["admin"]), courseController.getPendingCourses); // show all pending courses 
 router.get("/courses/stats", authMiddleware, roleMiddleware(["admin"]), courseController.getCourseStats); //show all courses count (pending, approved, rejected)
 router.get("/courses/:id", authMiddleware, roleMiddleware(["admin"]), courseController.getCourseById); //show course details by id (for review)

@@ -3,10 +3,19 @@ import { User } from "lucide-react";
 import { Pill, FALLBACK_IMAGE } from "./CourseSharedUI";
 
 
-// A card component to display courses waiting for admin review
+// A card component to display courses
 export default function PendingCourseCard({ course, openCourse }) {
   const courseId = course._id || course.id; //  get course id
   const educatorName = course.educator?.name || course.educator?.fullName || course.educatorName || "Unknown Educator"; // get educator name 
+  
+  // Determine text based on status
+  const isPending = course.status === "pending";
+  const isApproved = course.status === "approved";
+  const isRejected = course.status === "rejected";
+  
+  const badgeText = isPending ? "Needs Review" : isApproved ? "Approved" : isRejected ? "Rejected" : course.status;
+  const badgeColor = isPending ? "bg-amber-500" : isApproved ? "bg-emerald-500" : isRejected ? "bg-red-500" : "bg-slate-500";
+  const buttonText = isPending ? "Review Course" : "View Course";
 
   return (
     // The main card container with hover effect
@@ -28,9 +37,9 @@ export default function PendingCourseCard({ course, openCourse }) {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-transparent" />
         
-        {/* "Needs Review" badge on the top left corner */}
-        <div className="absolute top-3 left-3 bg-amber-500 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full shadow-md">
-          Needs Review
+        {/* Status badge on the top left corner */}
+        <div className={`absolute top-3 left-3 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full shadow-md ${badgeColor}`}>
+          {badgeText}
         </div>
       </button>
 
@@ -64,7 +73,7 @@ export default function PendingCourseCard({ course, openCourse }) {
             onClick={() => openCourse(courseId)}
             className="w-full rounded-2xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:bg-slate-800 transition"
           >
-            Review Course
+            {buttonText}
           </button>
         </div>
       </div>

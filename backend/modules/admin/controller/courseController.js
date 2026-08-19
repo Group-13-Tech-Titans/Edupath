@@ -10,6 +10,18 @@ exports.getPendingCourses = async (req, res) => {
   }
 };
 
+// Get courses by status
+exports.getCourses = async (req, res) => {
+  try {
+    const { status } = req.query;
+    const query = status ? { status } : {};
+    const courses = await Course.find(query);
+    res.status(200).json({ success: true, courses });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch courses." });
+  }
+};
+
 // Get counts for pending, approved, and rejected courses
 exports.getCourseStats = async (req, res) => {
   try {
