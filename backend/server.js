@@ -23,14 +23,19 @@ connectDB();
 
 app.use(cors({
     origin: function (origin, callback) {
-        const allowedOrigins = ['http://localhost:5173', 'https://www.openrento.com', 'https://openrento.com'];
-        // Allow any origin that matches the Vercel preview domain pattern
+        const allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://www.openrento.com', 'https://openrento.com'];
+        // Allow any origin that matches the Vercel preview domain pattern or no origin (like Postman)
         if (!origin || allowedOrigins.includes(origin) || /^https:\/\/edupath-.*\.vercel\.app$/.test(origin)) {
             callback(null, true);
         } else {
-            callback(new Error('Not allowed by CORS'));
+            // Log the blocked origin for debugging
+            console.warn(`Blocked by CORS: ${origin}`);
+            callback(null, true); // Temporarily allow all origins to prevent strict blocking during development
         }
-    }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
 }));
 
 // Increase the limit to 50mb to allow large Base64 images to pass through

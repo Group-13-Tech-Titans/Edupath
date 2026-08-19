@@ -120,7 +120,7 @@ export default function StudentPlans() {
     },
     {
       q: "Can I delete a pathway on the Free plan to create a new one?",
-      a: "No. The Free plan has a lifetime creation limit of 3 pathways. Deleting an existing pathway does not refund or restore a slot. To create more pathways and freely replace them, you can upgrade to Premium (which allows up to 20 active pathways)."
+      a: "No. The Free plan has a lifetime creation limit of 3 pathways. Deleting an existing pathway does not restore a slot. To create more pathways and freely replace them, you can upgrade to Premium (which allows up to 20 active pathways)."
     },
     {
       q: "How do pathway limits work on the Premium plan?",
@@ -165,9 +165,8 @@ export default function StudentPlans() {
         <div className="mb-12 bg-white rounded-[32px] p-6 sm:p-8 border border-slate-100 shadow-xl relative overflow-hidden">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-slate-100">
             <div className="flex items-center gap-4">
-              <div className={`h-16 w-16 rounded-2xl flex items-center justify-center text-3xl shadow-inner ${
-                isPremium ? "bg-gradient-to-tr from-amber-400 to-emerald-400 text-white" : "bg-emerald-100 text-emerald-700"
-              }`}>
+              <div className={`h-16 w-16 rounded-2xl flex items-center justify-center text-3xl shadow-inner ${isPremium ? "bg-gradient-to-tr from-amber-400 to-emerald-400 text-white" : "bg-emerald-100 text-emerald-700"
+                }`}>
                 {isPremium ? "⭐" : "🎓"}
               </div>
               <div>
@@ -175,9 +174,8 @@ export default function StudentPlans() {
                   <h2 className="text-2xl font-black text-slate-900">
                     {isPremium ? "EduPath Premium Plan" : "EduPath Free Plan"}
                   </h2>
-                  <span className={`px-3 py-0.5 rounded-full text-xs font-black uppercase tracking-wider ${
-                    isPremium ? "bg-emerald-500 text-white shadow-sm" : "bg-slate-100 text-slate-700"
-                  }`}>
+                  <span className={`px-3 py-0.5 rounded-full text-xs font-black uppercase tracking-wider ${isPremium ? "bg-emerald-500 text-white shadow-sm" : "bg-slate-100 text-slate-700"
+                    }`}>
                     {isPremium ? "Active Premium" : "Active Free"}
                   </span>
                 </div>
@@ -240,9 +238,8 @@ export default function StudentPlans() {
               {/* Progress Bar */}
               <div className="h-3 w-full bg-slate-200 rounded-full overflow-hidden mb-2">
                 <div
-                  className={`h-full rounded-full transition-all duration-700 ${
-                    isPremium ? "bg-emerald-500 w-full" : courseProgressPct >= 90 ? "bg-amber-500" : "bg-emerald-500"
-                  }`}
+                  className={`h-full rounded-full transition-all duration-700 ${isPremium ? "bg-emerald-500 w-full" : courseProgressPct >= 90 ? "bg-amber-500" : "bg-emerald-500"
+                    }`}
                   style={{ width: `${isPremium ? 100 : courseProgressPct}%` }}
                 />
               </div>
@@ -277,9 +274,8 @@ export default function StudentPlans() {
               {/* Progress Bar */}
               <div className="h-3 w-full bg-slate-200 rounded-full overflow-hidden mb-2">
                 <div
-                  className={`h-full rounded-full transition-all duration-700 ${
-                    pathwayProgressPct >= 90 ? "bg-amber-500" : "bg-emerald-500"
-                  }`}
+                  className={`h-full rounded-full transition-all duration-700 ${pathwayProgressPct >= 90 ? "bg-amber-500" : "bg-emerald-500"
+                    }`}
                   style={{ width: `${pathwayProgressPct}%` }}
                 />
               </div>
@@ -490,22 +486,20 @@ export default function StudentPlans() {
             <button
               type="button"
               onClick={() => setBillingCycle("monthly")}
-              className={`py-2 px-6 rounded-full text-xs font-black transition-all cursor-pointer ${
-                billingCycle === "monthly"
-                  ? "bg-white text-slate-900 shadow-md"
-                  : "text-slate-500 hover:text-slate-900"
-              }`}
+              className={`py-2 px-6 rounded-full text-xs font-black transition-all cursor-pointer ${billingCycle === "monthly"
+                ? "bg-white text-slate-900 shadow-md"
+                : "text-slate-500 hover:text-slate-900"
+                }`}
             >
               Monthly Billing ($49/mo)
             </button>
             <button
               type="button"
               onClick={() => setBillingCycle("yearly")}
-              className={`relative py-2 px-6 rounded-full text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-                billingCycle === "yearly"
-                  ? "bg-white text-slate-900 shadow-md"
-                  : "text-slate-500 hover:text-slate-900"
-              }`}
+              className={`relative py-2 px-6 rounded-full text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${billingCycle === "yearly"
+                ? "bg-white text-slate-900 shadow-md"
+                : "text-slate-500 hover:text-slate-900"
+                }`}
             >
               <span>Annual Billing ($499/yr)</span>
               <span className="bg-emerald-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
@@ -520,7 +514,7 @@ export default function StudentPlans() {
 
         {/* PRICING CARDS GRID */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16 items-stretch">
-          
+
           {/* FREE PLAN CARD */}
           <div className="bg-white rounded-[32px] p-8 border border-slate-200 shadow-sm flex flex-col justify-between relative">
             <div>
@@ -558,7 +552,7 @@ export default function StudentPlans() {
                 </div>
                 <div className="flex items-start gap-3">
                   <Check className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>Interactive step quizzes & progress tracker</span>
+                  <span>Priority 1-on-1 mentor booking requests</span>
                 </div>
                 <div className="flex items-start gap-3 text-slate-400">
                   <X className="w-5 h-5 text-slate-300 shrink-0 mt-0.5" />
@@ -642,16 +636,13 @@ export default function StudentPlans() {
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-                  <span>Verified course certificates of completion</span>
+                  <span>Access all standard reading materials, code snippets & quizzes</span>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                   <span>Priority 1-on-1 mentor booking requests</span>
                 </div>
-                <div className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-                  <span>AI-powered smart career recommendations</span>
-                </div>
+
               </div>
             </div>
 
