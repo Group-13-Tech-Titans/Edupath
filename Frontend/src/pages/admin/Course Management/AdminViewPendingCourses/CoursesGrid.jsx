@@ -8,7 +8,7 @@ export default function CoursesGrid({ isLoading, error, filteredCourses, openCou
   if (isLoading) {
     return (
       <div className="rounded-[26px] border border-black/5 bg-white/60 p-5 text-sm text-slate-500 animate-pulse text-center">
-        Loading pending courses...
+        Loading courses...
       </div>
     );
   }
@@ -30,8 +30,8 @@ export default function CoursesGrid({ isLoading, error, filteredCourses, openCou
           {/* display clipboard icon */}
           <ClipboardCheck className="w-8 h-8 text-slate-400" strokeWidth={1.5} />
         </div>
-        <p className="text-sm font-semibold text-slate-700">All Caught Up!</p>
-        <p className="text-xs text-slate-500 mt-1">No pending courses require your attention right now.</p>
+        <p className="text-sm font-semibold text-slate-700">Nothing here!</p>
+        <p className="text-xs text-slate-500 mt-1">No courses match the selected status.</p>
       </div>
     );
   }
